@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rev Multimedia Academy Platform
 
-## Getting Started
+Backend and infrastructure foundation for the Rev Multimedia Academy admissions platform — handling applications, payments, student records, and admin operations. This is not an LMS; there is no course content or assignment delivery on this platform.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20+
+- [pnpm](https://pnpm.io/)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
+- Cloudflare account (R2 object storage)
+- Upstash account (Redis cache and rate limiting)
+- Resend account (transactional email)
+
+## Setup
+
+1. Clone the repository and install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Copy environment variables and fill in your credentials:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Edit `.env.local` with values for Supabase, Upstash, R2, Resend, Paystack, and optional Sent.dm.
+
+3. Apply database migrations (local or linked Supabase project):
+
+   ```bash
+   supabase db push
+   ```
+
+   Run the SQL files in `supabase/functions/` on your database (or add them as additional migrations) to create RPC functions.
+
+4. Start the development server:
+
+   ```bash
+   pnpm dev
+   ```
+
+## Scripts
+
+| Command       | Description              |
+|---------------|--------------------------|
+| `pnpm dev`    | Start Next.js dev server |
+| `pnpm build`  | Production build         |
+| `pnpm lint`   | Run ESLint               |
+
+## Build order
+
+Phase 1 (this repo state) covers migrations, RLS, Redis, R2 presign, notification stubs, Paystack webhook, and API route stubs. Later phases add UI, application flows, admin tools, and the public site. See [CURSOR_RULES.md](./CURSOR_RULES.md) Section 14 for the full phased build plan.
+
+## Scaffold command
+
+The project was initialised to match:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm create next-app@latest . --typescript --tailwind --eslint --app --src-dir=no --import-alias="@/*"
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

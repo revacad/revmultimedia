@@ -1,0 +1,63 @@
+import { randomUUID } from "crypto";
+import {
+  courseThumbnailPath,
+  documentPath,
+  profilePhotoPath,
+  teamPhotoPath,
+} from "@/lib/r2/paths";
+
+export type UploadContext =
+  | { type: "profile_photo"; studentId: string; ext: string }
+  | {
+      type: "document";
+      applicationRef: string;
+      documentType: string;
+      ext: string;
+    }
+  | { type: "course_thumbnail"; slug: string; ext: string }
+  | { type: "team_photo"; memberSlug: string; ext: string };
+
+export function buildR2KeyFromUploadContext(context: UploadContext): {
+  key: string;
+  bucket: "private" | "public";
+} {
+  switch (context.type) {
+    case "profile_photo":
+      return {
+        key: profilePhotoPath(context.studentId, context.ext),
+        bucket: "private",
+      };
+    case "document":
+      return {
+        key: documentPath(
+          context.applicationRef,
+          context.documentType,
+          randomUUID(),
+          context.ext,
+        ),
+        bucket: "private",
+      };
+    case "course_thumbnail":
+      return {
+        key: courseThumbnailPath(context.slug, context.ext),
+        bucket: "public",
+      };
+    case "team_photo":
+      return {
+        key: teamPhotoPath(context.memberSlug, context.ext),
+        bucket: "public",
+      };
+    default: {
+      const _exhaustive: never = context;
+      throw new Error(`Unsupported upload context: ${String(_exhaustive)}`);
+    }
+  }
+}
+
+export function extensionFromFileName(fileName: string): string {
+  const parts = fileName.split(".");
+  if (parts.length < 2) {
+    return "bin";
+  }
+  return parts[parts.length - 1]!.toLowerCase();
+}

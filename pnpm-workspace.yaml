@@ -1,0 +1,13 @@
+packages:
+  - '.'
+
+overrides:
+  lru-cache: "11.3.1"
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+settings:
+  autoInstallPeers: true
