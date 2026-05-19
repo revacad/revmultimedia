@@ -7,7 +7,7 @@ export default function InternationalWelcomeNote() {
       <p className="mb-1 font-body text-[15px] font-semibold text-accent-hover">
         International students welcome
       </p>
-      <p className="font-body text-[14px] leading-relaxed text-brand-gray-600">
+      <p className="font-body text-[14px] leading-relaxed text-gray-600">
         Rev Multimedia Academy welcomes applicants from Ghana and around the
         world. Online courses are open worldwide. Hybrid and in-person courses
         may require travel to Accra for scheduled sessions &mdash; we never block

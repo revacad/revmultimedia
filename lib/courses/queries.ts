@@ -55,6 +55,25 @@ const courseSelect = `
   )
 `;
 
+export async function getFeaturedCoursesForHome(): Promise<Course[]> {
+  return withCache("courses:featured:home", 300, async () => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select(courseSelect)
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .limit(3);
+
+    if (error) {
+      console.error("[courses] getFeaturedCoursesForHome failed", error);
+      return [];
+    }
+
+    return (data ?? []).map((row) => mapCourse(row as Record<string, unknown>));
+  });
+}
+
 export async function getPublishedCourses(): Promise<Course[]> {
   return withCache("courses:published", 300, async () => {
     const supabase = createPublicClient();

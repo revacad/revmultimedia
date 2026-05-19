@@ -6,7 +6,7 @@ function logInvalidateError(operation: string, error: unknown): void {
 
 export function invalidateCourse(slug: string): void {
   void redis
-    .del(`course:${slug}`, "courses:published")
+    .del(`course:${slug}`, "courses:published", "courses:featured:home")
     .catch((error) => logInvalidateError("invalidateCourse", error));
 }
 

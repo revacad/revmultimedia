@@ -1,40 +1,75 @@
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 interface GhostCourseCardProps {
   title: string
-  accent: 'secondary' | 'accent'
-  icon: 'play' | 'cut'
+  accent: 'primary' | 'secondary' | 'accent'
+  icon: 'play' | 'cut' | 'pen'
   className?: string
+  imageSrc?: string
 }
 
-export default function GhostCourseCard({ title, accent, icon, className }: GhostCourseCardProps) {
-  const gradient =
-    accent === 'secondary'
-      ? 'from-secondary/20 to-secondary/[0.03]'
-      : 'from-accent/20 to-accent/[0.03]'
-  const iconColor = accent === 'secondary' ? 'text-secondary/30' : 'text-accent/30'
-  const badgeBg =
-    accent === 'secondary' ? 'bg-secondary-light text-secondary' : 'bg-accent-light text-accent-hover'
+export default function GhostCourseCard({
+  title,
+  accent,
+  icon,
+  className,
+  imageSrc,
+}: GhostCourseCardProps) {
+  const iconColor =
+    accent === 'primary'
+      ? 'text-primary/40'
+      : accent === 'secondary'
+        ? 'text-secondary/40'
+        : 'text-accent/40'
 
   return (
     <article
       className={cn(
-        'flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-dashed border-brand-gray-200 bg-surface-2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover',
+        'relative flex min-h-[380px] w-full min-w-0 flex-col items-center justify-center gap-3 overflow-hidden rounded-[20px] border-[1.5px] border-dashed border-gray-200 bg-surface-2',
+        imageSrc && 'border-solid',
         className,
       )}
     >
-      <div
-        className={cn(
-          'relative flex h-[220px] flex-col items-center justify-center bg-gradient-to-br',
-          gradient,
-        )}
-      >
+      {imageSrc && (
+        <>
+          <Image src={imageSrc} alt="" fill className="object-cover" aria-hidden />
+          <div className="absolute inset-0 bg-white/80" aria-hidden />
+        </>
+      )}
+      <div className="relative z-10 flex flex-col items-center gap-3">
         {icon === 'play' ? (
-          <svg className={cn('mb-2 h-8 w-8', iconColor)} fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
+          <svg
+            className={cn('h-10 w-10', iconColor)}
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l7 4.5-7 4.5z" />
+          </svg>
+        ) : icon === 'pen' ? (
+          <svg
+            className={cn('h-10 w-10', iconColor)}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+            />
           </svg>
         ) : (
-          <svg className={cn('mb-2 h-8 w-8', iconColor)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className={cn('h-10 w-10', iconColor)}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -43,14 +78,8 @@ export default function GhostCourseCard({ title, accent, icon, className }: Ghos
             />
           </svg>
         )}
-        <p className="font-display text-lg text-brand-gray-400">{title}</p>
-        <span className={cn('mt-3 rounded-full px-3 py-1 text-xs font-semibold', badgeBg)}>
-          Coming Soon
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col p-6">
-        <p className="font-display text-lg font-semibold text-brand-gray-400">{title}</p>
-        <p className="mt-1 text-sm text-brand-gray-500">Opening soon</p>
+        <p className="font-display text-xl text-gray-400">{title}</p>
+        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-400">Coming Soon</span>
       </div>
     </article>
   )

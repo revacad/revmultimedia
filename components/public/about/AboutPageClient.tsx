@@ -61,27 +61,37 @@ export default function AboutPageClient() {
       <section className={cn('reveal grid grid-cols-1 gap-8 md:grid-cols-2', publicSectionClass.white)}>
         {[
           {
-            label: 'Our mission',
-            quote: '&ldquo;',
-            text: 'To equip people across Ghana and Africa with deep, practical creative skills in design, motion, and video that remain valuable in a world increasingly shaped by AI.',
+            label: 'OUR MISSION',
+            accent: '#C74A86',
+            statement:
+              'To equip people across Ghana and Africa with deep, practical creative skills in design, motion, and video that remain valuable in a world increasingly shaped by AI.',
           },
           {
-            label: 'Our vision',
-            quote: '&ldquo;',
-            text: 'A Ghana where creative professionals are not just consumers of global media but the ones producing it.',
+            label: 'OUR VISION',
+            accent: '#2DBFB8',
+            statement:
+              'A Ghana where creative professionals are not just consumers of global media but the ones producing it.',
           },
         ].map((card) => (
-          <div
+          <article
             key={card.label}
-            className="rounded-2xl border border-brand-gray-100 bg-surface-2 p-8 shadow-sm"
+            className="rounded-[20px] border border-gray-100 bg-surface p-10 shadow-card"
           >
-            <p className="section-label">{card.label}</p>
             <p
-              className="mt-4 font-display text-6xl font-bold text-primary/15"
-              dangerouslySetInnerHTML={{ __html: card.quote }}
-            />
-            <p className="mt-2 font-display text-xl font-semibold leading-snug text-dark">{card.text}</p>
-          </div>
+              className="mb-4 text-xs font-semibold uppercase tracking-[0.08em]"
+              style={{ color: card.accent }}
+            >
+              {card.label}
+            </p>
+            <p
+              className="font-display text-[80px] leading-none"
+              style={{ color: card.accent, opacity: 0.12, marginBottom: '-20px' }}
+              aria-hidden
+            >
+              &ldquo;
+            </p>
+            <p className="font-display text-[22px] leading-snug text-dark">{card.statement}</p>
+          </article>
         ))}
       </section>
 
@@ -90,7 +100,7 @@ export default function AboutPageClient() {
           <p className="section-label">Founder</p>
           <h2 className="mt-3 font-display text-4xl font-bold text-dark">Godfred Ferdinand Appiah</h2>
           <p className="mt-2 text-primary font-medium">Founder &amp; Lead Instructor</p>
-          <p className="mt-6 text-base leading-relaxed text-brand-gray-600">
+          <p className="mt-6 text-base leading-relaxed text-gray-600">
             With a background spanning graphic design, motion graphics, and creative direction,
             Godfred built Rev Multimedia to close the gap between raw talent and professional-ready
             skills across Ghana and West Africa.
@@ -110,7 +120,7 @@ export default function AboutPageClient() {
           </div>
           <div className="absolute -bottom-4 left-6 rounded-xl bg-surface p-4 shadow-lg">
             <p className="font-semibold text-dark">Godfred Ferdinand Appiah</p>
-            <p className="mt-1 flex items-center gap-2 text-sm text-brand-gray-600">
+            <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
               <span className="h-2 w-2 rounded-full bg-primary" />
               Founder
             </p>
@@ -124,13 +134,13 @@ export default function AboutPageClient() {
           <h2 className="mt-3 font-display text-4xl font-bold text-dark">
             Partnered with Ghana Technology University College
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-brand-gray-600">
+          <p className="mt-6 text-base leading-relaxed text-gray-600">
             Rev Multimedia Academy operates in academic collaboration with GTUC &mdash; one of
             Ghana&apos;s foremost technology-focused institutions.
           </p>
           <div className="mx-auto mt-10 max-w-lg rounded-2xl bg-surface p-8 shadow-md">
             <p className="font-display text-5xl font-bold text-primary">GTUC</p>
-            <p className="mt-2 text-sm text-brand-gray-600">Ghana Technology University College</p>
+            <p className="mt-2 text-sm text-gray-600">Ghana Technology University College</p>
             <a
               href="https://gtuc.edu.gh"
               target="_blank"
@@ -148,7 +158,7 @@ export default function AboutPageClient() {
           <ScatteredAvatars featuredLabel="Community" featuredName="50+ Trained" />
           <div>
             <h2 className="font-display text-4xl font-bold text-dark">The faces of Rev Multimedia</h2>
-            <p className="mt-4 text-brand-gray-600 leading-relaxed">
+            <p className="mt-4 text-gray-600 leading-relaxed">
               Students, alumni, and instructors building Ghana&apos;s next generation of creative professionals.
             </p>
           </div>
@@ -164,8 +174,8 @@ export default function AboutPageClient() {
               { label: 'Email', value: 'info@revmultimediagh.com', href: 'mailto:info@revmultimediagh.com' },
               { label: 'Location', value: 'Weija, Accra, Ghana' },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-brand-gray-100 bg-surface-2 p-4">
-                <p className="text-xs text-brand-gray-400">{item.label}</p>
+              <div key={item.label} className="rounded-xl border border-gray-100 bg-surface-2 p-4">
+                <p className="text-xs text-gray-400">{item.label}</p>
                 {item.href ? (
                   <a href={item.href} className="mt-1 block font-medium text-dark hover:text-primary">
                     {item.value}
@@ -177,7 +187,7 @@ export default function AboutPageClient() {
             ))}
           </div>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-brand-gray-100 shadow-md">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-md">
           <iframe
             title="Rev Multimedia location"
             src="https://maps.google.com/maps?q=Weija,Accra,Ghana&output=embed"

@@ -25,6 +25,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  // DEV ONLY — remove before production
+  if (process.env.NODE_ENV === "development" && code === "000000") {
+    return NextResponse.json({ valid: true });
+  }
+
   const key = `otp:${email}`;
   const storedRaw = await redis.get<string>(key);
 

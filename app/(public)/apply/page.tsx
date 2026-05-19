@@ -1,26 +1,36 @@
-﻿import Link from 'next/link'
-import Button from '@/components/ui/Button'
+﻿import { createServerClient } from '@/lib/supabase/server'
+import { withCache } from '@/lib/redis/cache'
+import { mapApplyCourses } from '@/lib/apply/map-courses'
+import ApplyPageClient from '@/components/public/apply/ApplyPageClient'
 
 export const metadata = {
   title: 'Apply | Rev Multimedia Academy',
   description: 'Apply for the next cohort at Rev Multimedia Academy.',
 }
 
-export default function ApplyPage() {
+async function fetchPublishedCourses() {
+  const supabase = await createServerClient()
+  const { data } = await supabase
+    .from('courses')
+    .select('id, title, slug, category, mode, tuition_fee_ghs, intakes(*)')
+    .eq('is_published', true)
+    .order('title')
+  return mapApplyCourses(data || [])
+}
+
+export default async function ApplyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ course?: string; intake?: string }>
+}) {
+  const params = await searchParams
+  const courses = await withCache('courses:published', 300, fetchPublishedCourses)
+
   return (
-    <section className="public-section public-section--muted">
-      <div className="mx-auto max-w-lg rounded-2xl bg-white p-8 text-center shadow-md">
-        <p className="section-label">Admissions</p>
-        <h1 className="mt-3 font-display text-5xl font-bold text-dark">Apply</h1>
-        <p className="mx-auto mt-4 max-w-md text-brand-gray-600">
-          The full application flow is coming soon. In the meantime, contact us to reserve your place.
-        </p>
-        <Link href="/contact" className="mt-8 inline-block">
-          <Button variant="primary" size="lg">
-            Contact admissions
-          </Button>
-        </Link>
-      </div>
-    </section>
+    <ApplyPageClient
+      courses={courses}
+      preselectedCourse={params.course}
+      preselectedIntake={params.intake}
+    />
   )
 }

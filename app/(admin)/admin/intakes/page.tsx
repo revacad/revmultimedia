@@ -15,7 +15,7 @@ export default async function AdminIntakesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold text-dark">Intakes</h1>
-          <p className="text-brand-gray-600 text-sm mt-1">
+          <p className="text-gray-600 text-sm mt-1">
             Manage cohorts and application windows per course.
           </p>
         </div>

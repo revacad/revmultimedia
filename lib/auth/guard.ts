@@ -7,7 +7,7 @@ export async function requireAdminPage(): Promise<{
 }> {
   const session = await getAdminSession();
   if (!session) {
-    redirect("/login?redirect=/admin/courses");
+    redirect("/admin/login");
   }
   return session;
 }

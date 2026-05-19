@@ -14,8 +14,23 @@ export type UploadContext =
       documentType: string;
       ext: string;
     }
+  | {
+      type: "application_document";
+      draftId: string;
+      documentType: string;
+      ext: string;
+    }
   | { type: "course_thumbnail"; slug: string; ext: string }
   | { type: "team_photo"; memberSlug: string; ext: string };
+
+function applicationDraftPath(
+  draftId: string,
+  documentType: string,
+  uuid: string,
+  ext: string,
+): string {
+  return `documents/drafts/${draftId}/${documentType}/${uuid}.${ext}`;
+}
 
 export function buildR2KeyFromUploadContext(context: UploadContext): {
   key: string;
@@ -31,6 +46,16 @@ export function buildR2KeyFromUploadContext(context: UploadContext): {
       return {
         key: documentPath(
           context.applicationRef,
+          context.documentType,
+          randomUUID(),
+          context.ext,
+        ),
+        bucket: "private",
+      };
+    case "application_document":
+      return {
+        key: applicationDraftPath(
+          context.draftId,
           context.documentType,
           randomUUID(),
           context.ext,

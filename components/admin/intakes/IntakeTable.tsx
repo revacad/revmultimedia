@@ -14,30 +14,30 @@ interface IntakeTableProps {
 export default function IntakeTable({ intakes }: IntakeTableProps) {
   if (intakes.length === 0) {
     return (
-      <p className="text-brand-gray-600 text-sm py-8 text-center">
+      <p className="text-gray-600 text-sm py-8 text-center">
         No intakes yet.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-brand-gray-200 bg-white">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-brand-gray-200 bg-brand-gray-50">
-            <th className="px-4 py-3 font-semibold text-brand-gray-600 uppercase text-xs tracking-wide">
+          <tr className="border-b border-gray-200 bg-gray-50">
+            <th className="px-4 py-3 font-semibold text-gray-600 uppercase text-xs tracking-wide">
               Intake
             </th>
-            <th className="px-4 py-3 font-semibold text-brand-gray-600 uppercase text-xs tracking-wide">
+            <th className="px-4 py-3 font-semibold text-gray-600 uppercase text-xs tracking-wide">
               Course
             </th>
-            <th className="px-4 py-3 font-semibold text-brand-gray-600 uppercase text-xs tracking-wide">
+            <th className="px-4 py-3 font-semibold text-gray-600 uppercase text-xs tracking-wide">
               Dates
             </th>
-            <th className="px-4 py-3 font-semibold text-brand-gray-600 uppercase text-xs tracking-wide">
+            <th className="px-4 py-3 font-semibold text-gray-600 uppercase text-xs tracking-wide">
               Enrolled
             </th>
-            <th className="px-4 py-3 font-semibold text-brand-gray-600 uppercase text-xs tracking-wide">
+            <th className="px-4 py-3 font-semibold text-gray-600 uppercase text-xs tracking-wide">
               Status
             </th>
             <th className="px-4 py-3" />
@@ -47,16 +47,16 @@ export default function IntakeTable({ intakes }: IntakeTableProps) {
           {intakes.map((intake) => (
             <tr
               key={intake.id}
-              className="border-b border-brand-gray-100 hover:bg-brand-gray-50/80"
+              className="border-b border-gray-100 hover:bg-gray-50/80"
             >
               <td className="px-4 py-3 font-medium text-dark">{intake.name}</td>
-              <td className="px-4 py-3 text-brand-gray-600">
+              <td className="px-4 py-3 text-gray-600">
                 {intake.course?.title ?? "—"}
               </td>
-              <td className="px-4 py-3 text-brand-gray-600">
+              <td className="px-4 py-3 text-gray-600">
                 {formatDate(intake.start_date)} – {formatDate(intake.end_date)}
               </td>
-              <td className="px-4 py-3 text-brand-gray-600">
+              <td className="px-4 py-3 text-gray-600">
                 {intake.enrolled_count}
                 {intake.max_slots != null ? ` / ${intake.max_slots}` : ""}
               </td>
@@ -64,7 +64,7 @@ export default function IntakeTable({ intakes }: IntakeTableProps) {
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     intake.is_closed
-                      ? "bg-brand-gray-100 text-brand-gray-600"
+                      ? "bg-gray-100 text-gray-600"
                       : "bg-accent/15 text-accent"
                   }`}
                 >

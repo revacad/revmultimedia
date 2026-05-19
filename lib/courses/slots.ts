@@ -23,8 +23,8 @@ export function getSlotIndicator(intakes: Intake[]): SlotIndicator {
   if (remaining === 0) {
     return {
       text: "Full",
-      colorClass: "text-brand-gray-400",
-      dotClass: "bg-brand-gray-400",
+      colorClass: "text-gray-400",
+      dotClass: "bg-gray-400",
     };
   }
   if (remaining === 1) {

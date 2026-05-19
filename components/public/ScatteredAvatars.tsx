@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import Image from 'next/image'
+import { gsap } from 'gsap'
 import { cn } from '@/lib/utils'
 
 const AVATARS = [
@@ -32,12 +34,26 @@ export default function ScatteredAvatars({
   featuredName = '50+ Trained',
   className,
 }: ScatteredAvatarsProps) {
+  useEffect(() => {
+    const avatars = document.querySelectorAll('.avatar-float')
+    avatars.forEach((avatar, i) => {
+      gsap.to(avatar, {
+        y: -12,
+        duration: 2.5 + i * 0.3,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+        delay: i * 0.2,
+      })
+    })
+  }, [])
+
   return (
     <div className={cn('relative mx-auto h-[400px] w-full max-w-[400px]', className)}>
       {AVATARS.map((a) => (
         <div
           key={a.id}
-          className="absolute overflow-hidden rounded-full border-[3px] border-white shadow-md"
+          className="avatar-float absolute overflow-hidden rounded-full border-[3px] border-white shadow-md"
           style={{
             top: a.top,
             left: a.left,

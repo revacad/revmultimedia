@@ -19,7 +19,7 @@ function LogoDots() {
 
 function SearchIcon() {
   return (
-    <svg className="h-4 w-4 shrink-0 text-brand-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   )
@@ -27,7 +27,7 @@ function SearchIcon() {
 
 function BellIcon() {
   return (
-    <svg className="h-5 w-5 text-brand-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
     </svg>
   )
@@ -53,7 +53,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-brand-gray-200 bg-white/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="flex h-[72px] min-w-0 items-center gap-3 px-4 sm:gap-4 sm:px-8">
           <Link href="/" className="flex shrink-0 items-center">
             <LogoDots />
@@ -78,7 +78,7 @@ export default function Navbar() {
                       'whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-medium transition-colors',
                       active
                         ? 'bg-primary-light text-primary'
-                        : 'text-brand-gray-600 hover:bg-surface-2 hover:text-dark',
+                        : 'text-gray-600 hover:bg-surface-2 hover:text-dark',
                     )}
                   >
                     {link.label}
@@ -94,7 +94,7 @@ export default function Navbar() {
               <input
                 type="search"
                 placeholder="Search courses..."
-                className="w-full rounded-full border border-brand-gray-200 bg-surface-2 py-2.5 pl-11 pr-4 text-sm text-dark placeholder:text-brand-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-full border border-gray-200 bg-surface-2 py-2.5 pl-11 pr-4 text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 aria-label="Search courses"
               />
             </label>

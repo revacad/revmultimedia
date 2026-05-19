@@ -1,3 +1,13 @@
+// IMPORTANT: Cloudflare R2 bucket requires CORS configuration.
+// Go to Cloudflare Dashboard → R2 → rev-multimedia-private bucket
+// → Settings → CORS Policy → Add rule:
+// Allowed Origins: http://localhost:3000, https://revmultimediagh.com
+// Allowed Methods: PUT, GET
+// Allowed Headers: *
+// Max Age: 3600
+//
+// Application uploads use POST /api/r2/upload (server proxy) to avoid browser CORS on PUT.
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
@@ -21,6 +31,11 @@ const uploadContextSchema = z.discriminatedUnion("type", [
     documentType: z.string().min(1),
   }),
   z.object({
+    type: z.literal("application_document"),
+    draftId: z.string().uuid(),
+    documentType: z.string().min(1),
+  }),
+  z.object({
     type: z.literal("course_thumbnail"),
     slug: z.string().min(1),
   }),
@@ -38,15 +53,6 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   let body: z.infer<typeof bodySchema>;
 
   try {
@@ -57,12 +63,29 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const { fileName, fileType, fileSize, uploadContext } = body;
+  const isApplicationDraft = uploadContext.type === "application_document";
+
+  if (!isApplicationDraft) {
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
 
   if (!fileType.startsWith("image/") && fileType !== "application/pdf") {
     return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   }
 
-  if (fileSize > MAX_FILE_SIZE) {
+  const maxSize =
+    isApplicationDraft && uploadContext.documentType === "passport_photo"
+      ? 2_097_152
+      : MAX_FILE_SIZE;
+
+  if (fileSize > maxSize) {
     return NextResponse.json({ error: "File too large" }, { status: 400 });
   }
 

@@ -20,7 +20,7 @@ function ModeCallout({ course }: { course: Course }) {
     return (
       <div className="rounded-xl border border-accent/25 bg-accent-light p-5">
         <p className="mb-2 font-semibold text-accent-hover">Fully online</p>
-        <p className="text-sm leading-relaxed text-brand-gray-600">
+        <p className="text-sm leading-relaxed text-gray-600">
           Study from anywhere in the world. Live sessions and project reviews happen remotely
           &mdash; ideal for international students.
         </p>
@@ -32,7 +32,7 @@ function ModeCallout({ course }: { course: Course }) {
     return (
       <div className="rounded-xl border border-secondary/25 bg-secondary-light p-5">
         <p className="mb-2 font-semibold text-secondary">Hybrid delivery</p>
-        <p className="text-sm leading-relaxed text-brand-gray-600">
+        <p className="text-sm leading-relaxed text-gray-600">
           Combines online learning with in-person sessions in Accra. International students are
           welcome but must be able to travel for scheduled on-campus days.
         </p>
@@ -41,9 +41,9 @@ function ModeCallout({ course }: { course: Course }) {
   }
 
   return (
-    <div className="rounded-xl border border-brand-gray-200 bg-surface-2 p-5">
+    <div className="rounded-xl border border-gray-200 bg-surface-2 p-5">
       <p className="mb-2 font-semibold text-dark">In-person in Accra</p>
-      <p className="text-sm leading-relaxed text-brand-gray-600">
+      <p className="text-sm leading-relaxed text-gray-600">
         This programme requires physical attendance at our Accra campus. International applicants
         are welcome &mdash; our admissions team will discuss logistics during review.
       </p>
@@ -54,7 +54,7 @@ function ModeCallout({ course }: { course: Course }) {
 function CurriculumList({ curriculum }: { curriculum: unknown }) {
   if (!curriculum) {
     return (
-      <p className="text-sm text-brand-gray-500">Curriculum details will be published soon.</p>
+      <p className="text-sm text-gray-600">Curriculum details will be published soon.</p>
     )
   }
 
@@ -72,7 +72,7 @@ function CurriculumList({ curriculum }: { curriculum: unknown }) {
         {sections.map((section, index) => (
           <li
             key={index}
-            className="rounded-xl border border-brand-gray-100 bg-surface-2 px-4 py-3 text-sm text-brand-gray-700"
+            className="rounded-xl border border-gray-100 bg-surface-2 px-4 py-3 text-sm text-gray-800"
           >
             {section}
           </li>
@@ -82,7 +82,7 @@ function CurriculumList({ curriculum }: { curriculum: unknown }) {
   }
 
   return (
-    <pre className="overflow-x-auto rounded-xl border border-brand-gray-100 bg-surface-2 p-4 text-xs text-brand-gray-600">
+    <pre className="overflow-x-auto rounded-xl border border-gray-100 bg-surface-2 p-4 text-xs text-gray-600">
       {JSON.stringify(curriculum, null, 2)}
     </pre>
   )
@@ -115,7 +115,7 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
           {course.description && (
             <section>
               <h2 className="mb-4 font-display text-2xl font-semibold text-dark">About this course</h2>
-              <p className="text-[17px] leading-relaxed text-brand-gray-600">{course.description}</p>
+              <p className="text-[17px] leading-relaxed text-gray-600">{course.description}</p>
             </section>
           )}
 
@@ -136,14 +136,14 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                 {course.intakes.map((intake) => (
                   <li
                     key={intake.id}
-                    className="rounded-xl border border-brand-gray-100 bg-surface-2 px-5 py-4"
+                    className="rounded-xl border border-gray-100 bg-surface-2 px-5 py-4"
                   >
                     <p className="font-semibold text-dark">{intake.name}</p>
-                    <p className="mt-1 text-sm text-brand-gray-600">
+                    <p className="mt-1 text-sm text-gray-600">
                       {formatDate(intake.start_date)} &ndash; {formatDate(intake.end_date)}
                     </p>
                     {intake.application_deadline && (
-                      <p className="mt-1 text-xs text-brand-gray-400">
+                      <p className="mt-1 text-xs text-gray-400">
                         Apply by {formatDate(intake.application_deadline)}
                       </p>
                     )}
@@ -155,12 +155,12 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
         </div>
 
         <aside>
-          <div className="sticky top-24 rounded-2xl border border-brand-gray-100 bg-surface p-6 shadow-card">
-            <p className="mb-1 text-sm text-brand-gray-500">Tuition fee</p>
+          <div className="sticky top-24 rounded-2xl border border-gray-100 bg-surface p-6 shadow-card">
+            <p className="mb-1 text-sm text-gray-600">Tuition fee</p>
             <p className="mb-4 font-display text-3xl font-bold text-primary">
               {formatGHS(course.tuition_fee_ghs)}
             </p>
-            <p className="mb-1 text-sm text-brand-gray-500">Format</p>
+            <p className="mb-1 text-sm text-gray-600">Format</p>
             <p className="mb-4 font-medium text-dark">{formatMode(course.mode)}</p>
             <div className={`mb-6 flex items-center gap-2 text-sm font-medium ${slotIndicator.colorClass}`}>
               <span className={`h-2 w-2 rounded-full ${slotIndicator.dotClass}`} />

@@ -154,9 +154,37 @@ function parseCurriculum(value: FormDataEntryValue | null): unknown {
   if (!text) {
     return null;
   }
+  return { outline: text };
+}
+
+export async function deleteCourse(id: string): Promise<ActionResult> {
   try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return { sections: text.split("\n").filter(Boolean) };
+    await requireAdmin();
+
+    const supabase = createAdminClient();
+    const { data: course } = await supabase
+      .from("courses")
+      .select("slug")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase.from("courses").delete().eq("id", id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (course?.slug) {
+      invalidateCourse(course.slug);
+    }
+    revalidatePath("/courses");
+    revalidatePath("/admin/courses");
+
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Failed to delete course",
+    };
   }
 }

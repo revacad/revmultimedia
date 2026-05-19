@@ -14,7 +14,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, helperText, surface = 'dark', type, ...props }, ref) => {
     const surfaceClasses = surface === 'dark' 
       ? 'bg-white/5 border-white/12 text-white placeholder:text-white/35 focus:border-primary focus:ring-primary/15'
-      : 'bg-white border-brand-gray-200 text-dark placeholder:text-brand-gray-400 focus:border-primary focus:ring-primary/15'
+      : 'bg-white border-gray-200 text-dark placeholder:text-gray-400 focus:border-primary focus:ring-primary/15'
     
     const errorClasses = error ? 'border-red-500 focus:ring-red-500/15' : ''
 
@@ -23,7 +23,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label className={cn(
             'block text-[13px] font-medium mb-1.5',
-            surface === 'dark' ? 'text-white/70' : 'text-brand-gray-600'
+            surface === 'dark' ? 'text-white/70' : 'text-gray-600'
           )}>
             {label}
           </label>
@@ -47,7 +47,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {helperText && !error && (
           <p className={cn(
             'text-xs mt-1.5',
-            surface === 'dark' ? 'text-white/50' : 'text-brand-gray-400'
+            surface === 'dark' ? 'text-white/50' : 'text-gray-400'
           )}>{helperText}</p>
         )}
       </div>

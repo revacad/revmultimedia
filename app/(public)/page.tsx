@@ -1,5 +1,5 @@
-import HomePageClient from "@/components/public/home/HomePageClient";
-import { getPublishedCourses } from "@/lib/courses/queries";
+﻿import HomePageClient from "@/components/public/home/HomePageClient";
+import { getFeaturedCoursesForHome } from "@/lib/courses/queries";
 
 export const metadata = {
   title: "Rev Multimedia Academy - Creative Education for the AI Era",
@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  const courses = await getPublishedCourses();
+  const courses = await getFeaturedCoursesForHome();
 
   return <HomePageClient courses={courses} />;
 }

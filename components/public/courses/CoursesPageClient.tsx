@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import CourseCard from '@/components/public/CourseCard'
 import InternationalWelcomeNote from '@/components/public/InternationalWelcomeNote'
-import { withPreviewCourses } from '@/lib/courses/preview'
+import { buttonVariants } from '@/components/ui/Button'
 import { publicSectionClass } from '@/lib/public-ui'
 import { cn } from '@/lib/utils'
 import type { Course, CourseCategory, CourseMode } from '@/lib/courses/types'
@@ -31,15 +32,13 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
   const [category, setCategory] = useState<CourseCategory | 'all'>('all')
   const [mode, setMode] = useState<CourseMode | 'all'>('all')
 
-  const displayCourses = useMemo(() => withPreviewCourses(courses), [courses])
-
-  const filtered = useMemo(() => {
-    return displayCourses.filter((course) => {
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course) => {
       if (category !== 'all' && course.category !== category) return false
       if (mode !== 'all' && course.mode !== mode) return false
       return true
     })
-  }, [displayCourses, category, mode])
+  }, [courses, category, mode])
 
   return (
     <>
@@ -52,7 +51,7 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
         <div>
           <p className="section-label">Programmes</p>
           <h1 className="mt-3 font-display text-5xl font-bold text-dark md:text-6xl">Our courses</h1>
-          <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-brand-gray-600">
+          <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-600">
             Structured pathways in graphic design, motion graphics, and video editing &mdash; taught
             by practitioners, not theorists.
           </p>
@@ -66,7 +65,7 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
                   'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
                   category === filter.value
                     ? 'bg-primary text-white'
-                    : 'bg-surface-2 text-brand-gray-600 hover:bg-surface-3',
+                    : 'bg-surface-2 text-gray-600 hover:bg-surface-3',
                 )}
               >
                 {filter.label}
@@ -83,7 +82,7 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
                   'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
                   mode === filter.value
                     ? 'bg-accent text-dark'
-                    : 'bg-surface-2 text-brand-gray-600 hover:bg-surface-3',
+                    : 'bg-surface-2 text-gray-600 hover:bg-surface-3',
                 )}
               >
                 {filter.label}
@@ -101,8 +100,8 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
             />
           </div>
           <div className="absolute -bottom-4 -left-4 rounded-2xl bg-surface p-4 shadow-lg">
-            <p className="text-xs text-brand-gray-500">Open cohorts</p>
-            <p className="font-display text-2xl font-bold text-primary">{displayCourses.length}+</p>
+            <p className="text-xs text-gray-600">Open cohorts</p>
+            <p className="font-display text-2xl font-bold text-primary">{courses.length}</p>
           </div>
         </div>
       </section>
@@ -112,21 +111,25 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
           <InternationalWelcomeNote />
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-brand-gray-200 bg-white py-20 text-center">
-            <p className="mb-2 font-display text-2xl text-brand-gray-400">
-              No courses match these filters
+        {courses.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white px-8 py-16 text-center">
+            <p className="font-display text-xl font-semibold text-dark">No courses published yet</p>
+            <p className="mt-2 max-w-md text-sm text-gray-600">
+              New programmes will appear here once they are published. Contact us if you have
+              questions about upcoming cohorts.
             </p>
-            <p className="text-sm text-brand-gray-500">
-              Try another category or check back soon for new cohorts.
-            </p>
+            <Link href="/contact" className={cn(buttonVariants({ variant: 'primary', size: 'md' }), 'mt-6')}>
+              Contact us
+            </Link>
           </div>
+        ) : filteredCourses.length === 0 ? (
+          <p className="text-center text-sm text-gray-600">
+            No courses match your filters. Try adjusting category or mode.
+          </p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((course) => (
-              <div key={course.id} className="min-w-0 w-full">
-                <CourseCard course={course} className="h-full w-full" />
-              </div>
+          <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCourses.map((course) => (
+              <CourseCard key={course.id} course={course} className="h-full min-h-[380px] w-full" />
             ))}
           </div>
         )}

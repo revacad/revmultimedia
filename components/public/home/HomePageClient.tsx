@@ -10,11 +10,46 @@ import { buttonVariants } from '@/components/ui/Button'
 import CourseCard from '@/components/public/CourseCard'
 import ScatteredAvatars from '@/components/public/ScatteredAvatars'
 import GhostCourseCard from '@/components/public/home/GhostCourseCard'
-import { PREVIEW_GRAPHIC_DESIGN_COURSE } from '@/lib/courses/preview'
 import type { Course } from '@/lib/courses/types'
 import { cn } from '@/lib/utils'
 
 gsap.registerPlugin(ScrollTrigger)
+
+const GHOST_FILLERS = [
+  {
+    title: 'Graphic Design',
+    accent: 'primary' as const,
+    icon: 'pen' as const,
+    imageSrc: '/images/color-scheme.jpg',
+  },
+  {
+    title: 'Motion Graphics',
+    accent: 'secondary' as const,
+    icon: 'play' as const,
+    imageSrc: '/images/digital-pen.jpg',
+  },
+  {
+    title: 'Video Editing',
+    accent: 'accent' as const,
+    icon: 'cut' as const,
+    imageSrc: '/images/timeline.jpg',
+  },
+]
+
+function buildFeaturedSlots(courses: Course[]) {
+  const slots: Array<
+    | { kind: 'course'; course: Course }
+    | { kind: 'ghost'; ghost: (typeof GHOST_FILLERS)[number] }
+  > = courses.slice(0, 3).map((course) => ({ kind: 'course' as const, course }))
+
+  let ghostIndex = 0
+  while (slots.length < 3 && ghostIndex < GHOST_FILLERS.length) {
+    slots.push({ kind: 'ghost', ghost: GHOST_FILLERS[ghostIndex] })
+    ghostIndex += 1
+  }
+
+  return slots
+}
 
 interface HomePageClientProps {
   courses: Course[]
@@ -78,9 +113,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
     return () => ctx.revert()
   }, [])
 
-  const graphicCourse =
-    courses.find((c) => c.category === 'graphic_design') ??
-    PREVIEW_GRAPHIC_DESIGN_COURSE
+  const featuredSlots = buildFeaturedSlots(courses)
 
   return (
     <div>
@@ -97,7 +130,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             <span className="block">That Cannot Be</span>
             <span className="block text-primary">Automated.</span>
           </h1>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-brand-gray-600">
+          <p className="mt-4 max-w-md text-base leading-relaxed text-gray-600">
             Rev Multimedia Academy trains the next generation of Ghanaian and African creatives
             in Graphic Design, Motion Graphics, and Video Editing &mdash; with the depth and
             discipline the industry actually demands.
@@ -109,18 +142,6 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             <Link href="/courses" className={buttonVariants({ variant: 'secondary', size: 'lg' })}>
               Explore Courses
             </Link>
-          </div>
-          <div className="mt-8 flex flex-wrap gap-6 sm:gap-8">
-            {[
-              { n: '500+', l: 'Students' },
-              { n: '3', l: 'Disciplines' },
-              { n: '2', l: 'Modes' },
-            ].map((s) => (
-              <div key={s.l}>
-                <p className="font-display text-lg font-bold text-primary">{s.n}</p>
-                <p className="text-xs text-brand-gray-400">{s.l}</p>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -158,11 +179,11 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             </div>
 
             <div className="float-card absolute -right-2 -top-4 w-48 rounded-2xl bg-surface p-4 shadow-lg">
-              <p className="text-[11px] uppercase text-brand-gray-400">Next Intake</p>
+              <p className="text-[11px] uppercase text-gray-400">Next Intake</p>
               <p className="font-display text-xl font-semibold text-dark">Sept 2025</p>
             </div>
             <div className="float-card absolute -bottom-6 -left-6 w-52 rounded-2xl bg-surface p-4 shadow-lg">
-              <p className="text-[11px] text-brand-gray-400">Students Enrolled</p>
+              <p className="text-[11px] text-gray-400">Students Enrolled</p>
               <div className="mt-2 flex -space-x-2">
                 {[4, 5, 6].map((i) => (
                   <div key={i} className="h-8 w-8 overflow-hidden rounded-full border-2 border-white">
@@ -197,7 +218,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
               )}
             >
               <p className="font-display text-5xl font-bold text-primary">{s.m}</p>
-              <p className="mt-1 text-sm text-brand-gray-400">{s.l}</p>
+              <p className="mt-1 text-sm text-gray-400">{s.l}</p>
             </div>
           ))}
         </div>
@@ -209,7 +230,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
               </div>
             ))}
           </div>
-          <p className="text-sm text-brand-gray-600">50+ students trained</p>
+          <p className="text-sm text-gray-600">50+ students trained</p>
         </div>
         </div>
       </section>
@@ -224,7 +245,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
           <h2 className="mt-3 font-display text-4xl font-bold text-dark">
             Join a growing community of African creatives.
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-brand-gray-600">
+          <p className="mt-4 text-base leading-relaxed text-gray-600">
             From first-time learners to working professionals, Rev Multimedia brings together
             people committed to building real creative careers &mdash; not just collecting certificates.
           </p>
@@ -237,10 +258,10 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             ].map((s) => (
               <div
                 key={s.l}
-                className="rounded-2xl border border-brand-gray-100 bg-surface-2 p-5 shadow-sm"
+                className="rounded-2xl border border-gray-100 bg-surface-2 p-5 shadow-sm"
               >
                 <p className="font-display text-3xl font-bold text-primary">{s.m}</p>
-                <p className="mt-1 text-sm text-brand-gray-500">{s.l}</p>
+                <p className="mt-1 text-sm text-gray-600">{s.l}</p>
               </div>
             ))}
           </div>
@@ -266,15 +287,24 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="min-w-0 w-full">
-            <CourseCard course={graphicCourse} className="h-full w-full" />
-          </div>
-          <div className="min-w-0 w-full">
-            <GhostCourseCard title="Motion Graphics" accent="secondary" icon="play" className="h-full w-full" />
-          </div>
-          <div className="min-w-0 w-full">
-            <GhostCourseCard title="Video Editing" accent="accent" icon="cut" className="h-full w-full" />
-          </div>
+          {featuredSlots.map((slot) => (
+            <div
+              key={slot.kind === 'course' ? slot.course.id : slot.ghost.title}
+              className="min-w-0 w-full"
+            >
+              {slot.kind === 'course' ? (
+                <CourseCard course={slot.course} className="h-full w-full" />
+              ) : (
+                <GhostCourseCard
+                  title={slot.ghost.title}
+                  accent={slot.ghost.accent}
+                  icon={slot.ghost.icon}
+                  imageSrc={slot.ghost.imageSrc}
+                  className="h-full w-full"
+                />
+              )}
+            </div>
+          ))}
         </div>
         <p className="mt-8 text-center">
           <Link href="/courses" className="text-[15px] font-medium text-primary hover:text-primary-hover">
@@ -296,8 +326,8 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
               />
             </div>
             <div className="absolute -bottom-6 -right-4 rounded-2xl bg-surface p-4 shadow-lg">
-              <p className="text-xs text-brand-gray-500">Industry Ready</p>
-              <div className="mt-2 h-2 w-40 overflow-hidden rounded-full bg-brand-gray-100">
+              <p className="text-xs text-gray-600">Industry Ready</p>
+              <div className="mt-2 h-2 w-40 overflow-hidden rounded-full bg-gray-100">
                 <div className="h-full w-[85%] rounded-full bg-gradient-to-r from-primary to-primary-hover" />
               </div>
               <p className="mt-2 text-sm font-medium text-dark">85% employment rate</p>
@@ -323,7 +353,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
                 )}
               >
                 <p className="font-semibold text-dark">{f.t}</p>
-                <p className="mt-1 text-sm text-brand-gray-600">{f.d}</p>
+                <p className="mt-1 text-sm text-gray-600">{f.d}</p>
               </div>
             ))}
           </div>
@@ -348,15 +378,15 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
                 <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary-light to-accent-light" />
                 <div>
                   <p className="font-semibold text-dark">{t.name}</p>
-                  <p className="text-sm text-brand-gray-500">{t.course}</p>
+                  <p className="text-sm text-gray-600">{t.course}</p>
                 </div>
               </div>
-              <p className="mt-4 text-base leading-relaxed text-brand-gray-600">&ldquo;{t.quote}&rdquo;</p>
-              <div className="mt-4 flex gap-0.5 text-secondary">
+              <p className="mt-4 text-base leading-relaxed text-gray-600">&ldquo;{t.quote}&rdquo;</p>
+              <div className="mt-4 inline-flex gap-0.5 text-sm text-yellow-400" aria-label="5 out of 5 stars">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <svg key={i} className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
+                  <span key={i} aria-hidden="true">
+                    &#9733;
+                  </span>
                 ))}
               </div>
             </article>
