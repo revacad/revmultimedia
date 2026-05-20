@@ -125,27 +125,39 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
           <span className="inline-flex w-fit items-center rounded-full bg-primary-light px-3 py-1 text-xs font-semibold text-primary">
             Creative Education for the AI Era
           </span>
-          <h1 className="mt-4 font-display text-[44px] font-bold leading-[1.05] text-dark sm:text-[52px]">
+          <h1 className="hero-headline section-headline mt-4 font-display text-[36px] font-bold leading-[1.15] text-[#1A1A2E] sm:text-[44px] sm:leading-[1.05] lg:text-[52px]">
             <span className="block">Build Skills</span>
             <span className="block">That Cannot Be</span>
             <span className="block text-primary">Automated.</span>
           </h1>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-gray-600">
+          <p className="mt-4 max-w-md font-body text-[15px] leading-relaxed text-[#5A5A7A] sm:text-base">
             Rev Multimedia Academy trains the next generation of Ghanaian and African creatives
             in Graphic Design, Motion Graphics, and Video Editing &mdash; with the depth and
             discipline the industry actually demands.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/apply" className={buttonVariants({ variant: 'primary', size: 'lg' })}>
+          <div className="mt-6 flex w-full max-w-[280px] flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
+            <Link
+              href="/apply"
+              className={cn(
+                buttonVariants({ variant: 'primary', size: 'md' }),
+                'w-full justify-center px-5 py-3 text-sm sm:w-auto',
+              )}
+            >
               Apply for the Next Cohort
             </Link>
-            <Link href="/courses" className={buttonVariants({ variant: 'secondary', size: 'lg' })}>
+            <Link
+              href="/courses"
+              className={cn(
+                buttonVariants({ variant: 'secondary', size: 'md' }),
+                'w-full justify-center px-5 py-3 text-sm sm:w-auto',
+              )}
+            >
               Explore Courses
             </Link>
           </div>
         </div>
 
-        <div className="relative flex items-center justify-center px-4 pb-10 pt-8 lg:pr-8">
+        <div className="relative hidden items-center justify-center px-4 pb-10 pt-8 lg:flex lg:pr-8">
           <div ref={heroCardRef} className="relative w-full max-w-[420px]">
             <div
               className="relative h-[380px] overflow-hidden rounded-[28px] p-8 shadow-xl"
@@ -217,8 +229,8 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
                 i > 0 && 'md:border-l md:border-dark/[0.08]',
               )}
             >
-              <p className="font-display text-5xl font-bold text-primary">{s.m}</p>
-              <p className="mt-1 text-sm text-gray-400">{s.l}</p>
+              <p className="stat-number font-display text-4xl font-bold text-primary md:text-5xl">{s.m}</p>
+              <p className="mt-1 font-body text-xs text-gray-400 md:text-sm">{s.l}</p>
             </div>
           ))}
         </div>
@@ -242,7 +254,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
         <ScatteredAvatars />
         <div className="lg:pl-8">
           <p className="section-label">Our Community</p>
-          <h2 className="mt-3 font-display text-4xl font-bold text-dark">
+          <h2 className="section-headline mt-3 font-display text-4xl font-bold text-[#1A1A2E]">
             Join a growing community of African creatives.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-600">
@@ -276,7 +288,9 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-label">Our Disciplines</p>
-            <h2 className="mt-2 font-display text-4xl font-bold text-dark">Three tracks. One goal.</h2>
+            <h2 className="section-headline mt-2 font-display text-4xl font-bold text-[#1A1A2E]">
+              Three tracks. One goal.
+            </h2>
           </div>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-light px-4 py-2 text-sm font-semibold text-primary">
@@ -317,7 +331,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
       <section className={cn('reveal-section', publicSectionClass.muted)}>
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div className="relative">
-            <div className="relative h-[400px] overflow-hidden rounded-2xl shadow-lg">
+            <div className="relative h-[250px] overflow-hidden rounded-2xl shadow-lg md:h-[400px]">
               <Image
                 src="/images/students-working-together.jpg"
                 alt="Students working together"
@@ -335,7 +349,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
           </div>
           <div className="lg:pl-8">
             <p className="section-label">Why Rev Multimedia</p>
-            <h2 className="mt-3 font-display text-4xl font-bold text-dark">
+            <h2 className="section-headline mt-3 font-display text-4xl font-bold text-[#1A1A2E]">
               Training built for how the industry actually works.
             </h2>
             {[
@@ -346,14 +360,14 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
               <div
                 key={f.t}
                 className={cn(
-                  'mb-4 rounded-xl border-l-[3px] bg-surface p-5 shadow-sm',
+                  'mb-4 rounded-xl border-l-[3px] bg-white p-5 shadow-sm',
                   f.b === 'primary' && 'border-primary',
                   f.b === 'accent' && 'border-accent',
                   f.b === 'secondary' && 'border-secondary',
                 )}
               >
-                <p className="font-semibold text-dark">{f.t}</p>
-                <p className="mt-1 text-sm text-gray-600">{f.d}</p>
+                <p className="font-body text-base font-semibold text-[#1A1A2E]">{f.t}</p>
+                <p className="mt-1 font-body text-[15px] leading-relaxed text-[#5A5A7A]">{f.d}</p>
               </div>
             ))}
           </div>
@@ -363,7 +377,9 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
       {/* Testimonials */}
       <section className={cn('reveal-section', publicSectionClass.white)}>
         <p className="section-label">Testimonials</p>
-        <h2 className="mt-2 font-display text-4xl font-bold text-dark">What our students say</h2>
+        <h2 className="section-headline mt-2 font-display text-4xl font-bold text-[#1A1A2E]">
+          What our students say
+        </h2>
         <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
           {[
             { name: 'Ama K.', course: 'Graphic Design', border: 'border-primary', quote: 'The structure changed how I approach client work.' },
@@ -396,7 +412,10 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
 
       {/* Final CTA */}
       <section
-        className={cn('reveal-section relative overflow-hidden', publicSectionClass.gradient)}
+        className={cn(
+          'reveal-section relative overflow-hidden max-md:!px-6 max-md:!py-12',
+          publicSectionClass.gradient,
+        )}
         style={{ borderRadius: '0 0 32px 32px', textAlign: 'center' }}
       >
         <Image
@@ -407,24 +426,27 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
         />
         <div className="relative z-10" style={{ textAlign: 'center' }}>
           <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-          <h2 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
+          <h2 className="section-headline font-display text-[32px] font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
             Your creative career starts with one decision.
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-white/80">
+          <p className="mt-6 text-base leading-relaxed text-white/80 sm:text-lg">
             Applications are open for our upcoming cohorts. Spots are limited &mdash; we keep
             class sizes intentionally small so every student gets real attention.
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <div className="mx-auto mt-10 flex w-full max-w-[280px] flex-col items-center gap-3 sm:max-w-none sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4">
             <Link
               href="/apply"
               className={cn(
-                buttonVariants({ variant: 'ghost-on-dark', size: 'xl' }),
-                'border-2 border-white/50',
+                buttonVariants({ variant: 'ghost-on-dark', size: 'md' }),
+                'w-full justify-center border-2 border-white/50 px-5 py-3 text-sm sm:w-auto',
               )}
             >
               Apply Now &mdash; It Takes 10 Minutes
             </Link>
-            <Link href="/contact" className="text-white/80 underline hover:text-white">
+            <Link
+              href="/contact"
+              className="w-full text-center font-body text-sm text-white/80 underline hover:text-white sm:w-auto"
+            >
               Have questions? Talk to us &rarr;
             </Link>
           </div>

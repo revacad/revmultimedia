@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import CourseCard from '@/components/public/CourseCard'
+import GhostCourseCard from '@/components/public/home/GhostCourseCard'
 import InternationalWelcomeNote from '@/components/public/InternationalWelcomeNote'
 import { buttonVariants } from '@/components/ui/Button'
 import { publicSectionClass } from '@/lib/public-ui'
@@ -24,6 +25,30 @@ const MODE_FILTERS: { value: CourseMode | 'all'; label: string }[] = [
   { value: 'hybrid', label: 'Hybrid' },
 ]
 
+const GHOST_FILLERS = [
+  {
+    title: 'Motion Graphics',
+    accent: 'secondary' as const,
+    icon: 'play' as const,
+    imageSrc: '/images/digital-pen.jpg',
+  },
+]
+
+function buildDisplaySlots(courses: Course[]) {
+  const slots: Array<
+    | { kind: 'course'; course: Course }
+    | { kind: 'ghost'; ghost: (typeof GHOST_FILLERS)[number] }
+  > = courses.map((course) => ({ kind: 'course' as const, course }))
+
+  let ghostIndex = 0
+  while (slots.length < 3 && ghostIndex < GHOST_FILLERS.length) {
+    slots.push({ kind: 'ghost', ghost: GHOST_FILLERS[ghostIndex] })
+    ghostIndex += 1
+  }
+
+  return slots
+}
+
 interface CoursesPageClientProps {
   courses: Course[]
 }
@@ -39,6 +64,11 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
       return true
     })
   }, [courses, category, mode])
+
+  const displaySlots = useMemo(
+    () => buildDisplaySlots(filteredCourses),
+    [filteredCourses],
+  )
 
   return (
     <>
@@ -127,11 +157,40 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
             No courses match your filters. Try adjusting category or mode.
           </p>
         ) : (
-          <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCourses.map((course) => (
-              <CourseCard key={course.id} course={course} className="h-full min-h-[380px] w-full" />
-            ))}
-          </div>
+          <>
+            <div className="grid w-full grid-cols-1 gap-6 md:hidden">
+              {filteredCourses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  className="h-full min-h-[380px] w-full"
+                />
+              ))}
+            </div>
+            <div className="hidden w-full grid-cols-1 gap-6 md:grid md:grid-cols-2 lg:grid-cols-3">
+              {displaySlots.map((slot) => (
+                <div
+                  key={slot.kind === 'course' ? slot.course.id : slot.ghost.title}
+                  className="min-w-0 w-full"
+                >
+                  {slot.kind === 'course' ? (
+                    <CourseCard
+                      course={slot.course}
+                      className="h-full min-h-[380px] w-full"
+                    />
+                  ) : (
+                    <GhostCourseCard
+                      title={slot.ghost.title}
+                      accent={slot.ghost.accent}
+                      icon={slot.ghost.icon}
+                      imageSrc={slot.ghost.imageSrc}
+                      className="h-full min-h-[380px] w-full"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </>

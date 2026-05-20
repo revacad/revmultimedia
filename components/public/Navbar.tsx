@@ -110,7 +110,16 @@ export default function Navbar() {
             </button>
             <Link
               href="/apply"
-              className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'hidden sm:inline-flex')}
+              className={cn(
+                buttonVariants({ variant: 'primary', size: 'sm' }),
+                'inline-flex px-4 py-2 text-[13px] md:hidden',
+              )}
+            >
+              Apply Now
+            </Link>
+            <Link
+              href="/apply"
+              className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'hidden md:inline-flex')}
             >
               Apply Now
             </Link>
@@ -130,10 +139,10 @@ export default function Navbar() {
       </header>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-white md:hidden">
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-white p-6 md:hidden">
           <button
             type="button"
-            className="absolute top-6 right-6 text-dark"
+            className="absolute top-6 right-6 z-10 rounded-full p-2 text-dark hover:bg-surface-2"
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close menu"
           >
@@ -145,7 +154,7 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="font-display text-3xl text-dark transition-colors hover:text-primary"
+              className="font-display text-[28px] text-dark transition-colors hover:text-primary"
               onClick={() => setMobileMenuOpen(false)}
             >
               {link.label}
@@ -153,7 +162,7 @@ export default function Navbar() {
           ))}
           <Link
             href="/apply"
-            className={buttonVariants({ variant: 'primary', size: 'lg' })}
+            className={buttonVariants({ variant: 'primary', size: 'md' })}
             onClick={() => setMobileMenuOpen(false)}
           >
             Apply Now

@@ -1,11 +1,13 @@
-﻿import { createServerClient } from '@/lib/supabase/server'
+﻿import type { Metadata } from 'next'
+import { createServerClient } from '@/lib/supabase/server'
 import { withCache } from '@/lib/redis/cache'
 import { mapApplyCourses } from '@/lib/apply/map-courses'
 import ApplyPageClient from '@/components/public/apply/ApplyPageClient'
 
-export const metadata = {
-  title: 'Apply | Rev Multimedia Academy',
-  description: 'Apply for the next cohort at Rev Multimedia Academy.',
+export const metadata: Metadata = {
+  title: 'Apply Now',
+  description:
+    'Apply for a course at Rev Multimedia Academy. Graphic Design, Motion Graphics, and Video Editing programmes available.',
 }
 
 async function fetchPublishedCourses() {

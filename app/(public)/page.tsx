@@ -1,11 +1,14 @@
-﻿import HomePageClient from "@/components/public/home/HomePageClient";
-import { getFeaturedCoursesForHome } from "@/lib/courses/queries";
+﻿import type { Metadata } from 'next'
+import HomePageClient from '@/components/public/home/HomePageClient'
+import { getFeaturedCoursesForHome } from '@/lib/courses/queries'
 
-export const metadata = {
-  title: "Rev Multimedia Academy - Creative Education for the AI Era",
+export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Home',
   description:
-    "Graphic Design, Motion Graphics, and Video Editing training in Accra, Ghana. Build skills that cannot be automated.",
-};
+    'Rev Multimedia Academy — Build skills that cannot be automated. Professional creative training in Accra, Ghana.',
+}
 
 export default async function HomePage() {
   const courses = await getFeaturedCoursesForHome();

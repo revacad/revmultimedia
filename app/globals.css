@@ -140,4 +140,45 @@
     20%, 60% { transform: translateX(-6px); }
     40%, 80% { transform: translateX(6px); }
   }
+
+  .page-container-outer {
+    min-height: 100vh;
+    background-color: #f0f2f8;
+    padding: 16px;
+  }
+
+  .page-container-inner {
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border-radius: 32px;
+    box-shadow: 0 8px 40px rgba(26, 26, 46, 0.12);
+    min-height: calc(100vh - 32px);
+    overflow: clip;
+  }
+
+  @media (max-width: 768px) {
+    .hero-headline {
+      font-size: 36px !important;
+      line-height: 1.15 !important;
+    }
+
+    .section-headline {
+      font-size: 28px !important;
+    }
+
+    .stat-number {
+      font-size: 36px !important;
+    }
+
+    .page-container-outer {
+      padding: 8px;
+    }
+
+    .page-container-inner {
+      border-radius: 16px;
+      min-height: calc(100vh - 16px);
+    }
+  }
 }

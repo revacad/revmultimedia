@@ -49,7 +49,13 @@ export default function ScatteredAvatars({
   }, [])
 
   return (
-    <div className={cn('relative mx-auto h-[400px] w-full max-w-[400px]', className)}>
+    <div
+      className={cn(
+        'relative mx-auto h-[280px] w-full max-w-[280px] md:h-[400px] md:max-w-[400px]',
+        '[&_.avatar-float]:max-md:origin-center [&_.avatar-float]:max-md:scale-[0.7]',
+        className,
+      )}
+    >
       {AVATARS.map((a) => (
         <div
           key={a.id}
