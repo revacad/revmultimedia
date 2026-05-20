@@ -26,11 +26,6 @@ export const SETTINGS_SECTIONS = [
     title: 'Academy Info',
     keys: ['academy_email', 'academy_phone', 'academy_address'],
   },
-  {
-    id: 'notifications',
-    title: 'Notifications',
-    keys: ['sentdm_sender_id'],
-  },
 ] as const
 
 export const SETTINGS_LABELS: Record<string, string> = {
@@ -49,7 +44,6 @@ export const SETTINGS_LABELS: Record<string, string> = {
   academy_email: 'Academy Email',
   academy_phone: 'Academy Phone',
   academy_address: 'Academy Address',
-  sentdm_sender_id: 'Sent.dm Sender ID',
 }
 
 export const SETTINGS_HELPERS: Record<string, string> = {

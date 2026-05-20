@@ -32,5 +32,17 @@ export default async function AdminSettingsPage() {
     }
   }
 
+  for (const key of [
+    'sms_provider',
+    'sentdm_api_key',
+    'sentdm_sender_id',
+    'fishafrica_api_key',
+    'fishafrica_sender_id',
+  ]) {
+    if (!(key in values)) {
+      values[key] = key === 'sms_provider' ? 'sentdm' : ''
+    }
+  }
+
   return <SettingsPageClient values={values} />
 }

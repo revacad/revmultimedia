@@ -14,6 +14,10 @@ import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
 import NotificationHistoryCard, {
   type NotificationLogRow,
 } from '@/components/admin/students/NotificationHistoryCard'
+import CommunicationHistoryCard, {
+  type CommunicationLogHistoryRow,
+} from '@/components/admin/students/CommunicationHistoryCard'
+import SendDirectMessageCard from '@/components/admin/students/SendDirectMessageCard'
 
 export type AdminStudentDetail = {
   id: string
@@ -53,6 +57,7 @@ export type AdminStudentDetail = {
   }[]
   applications: { reference: string } | null
   notifications: NotificationLogRow[]
+  communicationLogs: CommunicationLogHistoryRow[]
 }
 
 const ENROLLMENT_LABELS: Record<string, string> = {
@@ -192,9 +197,11 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
           </section>
 
           <NotificationHistoryCard notifications={student.notifications} />
+          <CommunicationHistoryCard logs={student.communicationLogs} />
         </div>
 
         <div>
+          <SendDirectMessageCard studentId={student.id} />
           <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
             <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Quick info</h2>
             <dl className="space-y-3 font-body text-sm">

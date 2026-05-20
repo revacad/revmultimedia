@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
 import { updateSettings } from '@/actions/settings'
 import { SETTINGS_HELPERS, SETTINGS_LABELS, SETTINGS_SECTIONS } from '@/lib/settings/labels'
+import MessagingSettingsSection from '@/components/admin/settings/MessagingSettingsSection'
 
 interface SettingsPageClientProps {
   values: Record<string, string>
@@ -106,6 +107,7 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
             </section>
           )
         })}
+        <MessagingSettingsSection values={draft} />
       </div>
     </div>
   )

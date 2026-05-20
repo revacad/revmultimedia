@@ -6,6 +6,11 @@ import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
 export default async function AdminStudentDetailPage({
   params,
 }: {
@@ -37,12 +42,20 @@ export default async function AdminStudentDetailPage({
     notFound()
   }
 
-  const { data: notifications } = await supabase
-    .from('notifications_log')
-    .select('id, channel, event_type, status, sent_at')
-    .eq('student_id', id)
-    .order('sent_at', { ascending: false })
-    .limit(10)
+  const [{ data: notifications }, { data: commLogs }] = await Promise.all([
+    supabase
+      .from('notifications_log')
+      .select('id, channel, event_type, status, sent_at')
+      .eq('student_id', id)
+      .order('sent_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('communication_logs')
+      .select('*, communication_campaigns(subject, message, channel)')
+      .eq('student_id', id)
+      .order('sent_at', { ascending: false })
+      .limit(20),
+  ])
 
   const detail: AdminStudentDetail = {
     id: student.id,
@@ -60,6 +73,15 @@ export default async function AdminStudentDetailPage({
     documents: (student.documents as AdminStudentDetail['documents']) ?? [],
     applications: student.applications as AdminStudentDetail['applications'],
     notifications: (notifications ?? []) as AdminStudentDetail['notifications'],
+    communicationLogs: (commLogs ?? []).map((row) => ({
+      id: row.id,
+      channel: row.channel,
+      status: row.status,
+      sent_at: row.sent_at,
+      communication_campaigns: firstRelation(
+        row.communication_campaigns as AdminStudentDetail['communicationLogs'][0]['communication_campaigns'],
+      ),
+    })),
   }
 
   return <StudentDetailView student={detail} />
