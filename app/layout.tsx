@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   title: 'Rev Multimedia',
   description: 'Creative Education for the AI Era — Graphic Design, Motion Graphics, Video Editing',
   manifest: '/manifest.json',
-  themeColor: '#C74A86',
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/icons/icon-180.png', sizes: '180x180', type: 'image/png' }],
@@ -44,7 +43,6 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#C74A86" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

@@ -21,15 +21,17 @@ export default function AppleIcon() {
       >
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            display: 'flex',
+            flexWrap: 'wrap',
+            width: 66,
+            height: 66,
             gap: 10,
             marginBottom: 8,
           }}
         >
-          <div style={{ borderRadius: '50%', background: '#C74A86', width: 28, height: 28 }} />
-          <div style={{ borderRadius: '50%', background: '#F18F3B', width: 28, height: 28 }} />
-          <div style={{ borderRadius: '50%', background: '#2DBFB8', width: 28, height: 28 }} />
+          <div style={{ borderRadius: '50%', background: '#C74A86', width: 28, height: 28, flexShrink: 0 }} />
+          <div style={{ borderRadius: '50%', background: '#F18F3B', width: 28, height: 28, flexShrink: 0 }} />
+          <div style={{ borderRadius: '50%', background: '#2DBFB8', width: 28, height: 28, flexShrink: 0 }} />
           <div
             style={{
               borderRadius: '50%',
@@ -37,6 +39,7 @@ export default function AppleIcon() {
               opacity: 0.7,
               width: 28,
               height: 28,
+              flexShrink: 0,
             }}
           />
         </div>

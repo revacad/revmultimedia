@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import PublicLayoutShell from '@/components/public/PublicLayoutShell'
 
@@ -13,6 +13,10 @@ function metadataBaseUrl(): URL {
     }
   }
   return new URL('https://revmultimedia.com')
+}
+
+export const viewport: Viewport = {
+  themeColor: '#C74A86',
 }
 
 export const metadata: Metadata = {

@@ -19,16 +19,16 @@ export default function Icon() {
       >
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 4,
+            display: 'flex',
+            flexWrap: 'wrap',
             width: 18,
             height: 18,
+            gap: 3,
           }}
         >
-          <div style={{ borderRadius: '50%', background: '#C74A86', width: 7, height: 7 }} />
-          <div style={{ borderRadius: '50%', background: '#F18F3B', width: 7, height: 7 }} />
-          <div style={{ borderRadius: '50%', background: '#2DBFB8', width: 7, height: 7 }} />
+          <div style={{ borderRadius: '50%', background: '#C74A86', width: 7, height: 7, flexShrink: 0 }} />
+          <div style={{ borderRadius: '50%', background: '#F18F3B', width: 7, height: 7, flexShrink: 0 }} />
+          <div style={{ borderRadius: '50%', background: '#2DBFB8', width: 7, height: 7, flexShrink: 0 }} />
           <div
             style={{
               borderRadius: '50%',
@@ -36,6 +36,7 @@ export default function Icon() {
               opacity: 0.7,
               width: 7,
               height: 7,
+              flexShrink: 0,
             }}
           />
         </div>
