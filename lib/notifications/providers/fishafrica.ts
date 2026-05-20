@@ -59,33 +59,59 @@ export async function sendFishAfricaSMS(
         }),
       })
 
+      const responseText = await response.text()
+
+      if (
+        responseText.includes('cloudflare') ||
+        responseText.includes('<!DOCTYPE') ||
+        responseText.includes('<html')
+      ) {
+        console.error(
+          'Fish Africa SMS blocked by Cloudflare WAF.',
+          'Contact Fish Africa to whitelist Vercel IP ranges.',
+          'Skipping SMS delivery.',
+        )
+        return {
+          sent: 0,
+          failed: phones.length,
+          errors: ['Cloudflare WAF block — contact Fish Africa support'],
+          messageIds: [],
+        }
+      }
+
       if (!response.ok) {
-        const body = await response.text()
-        errors.push(body || `Fish Africa request failed (${response.status})`)
+        errors.push(responseText || `Fish Africa request failed (${response.status})`)
         failed += 1
         continue
       }
 
-      let messageId: string | null = null
+      let data: Record<string, unknown>
       try {
-        const data = (await response.json()) as Record<string, unknown>
-        messageId = extractMessageId(data)
-        const results = Array.isArray(data.data) ? data.data : []
-        for (const item of results) {
-          if (item && typeof item === 'object') {
-            const row = item as Record<string, unknown>
-            const id =
-              (typeof row.message_id === 'string' && row.message_id) ||
-              (typeof row.id === 'string' && row.id) ||
-              null
-            if (id) {
-              messageId = id
-              break
-            }
+        data = JSON.parse(responseText) as Record<string, unknown>
+      } catch {
+        console.error('Fish Africa non-JSON response:', responseText.slice(0, 200))
+        return {
+          sent: 0,
+          failed: phones.length,
+          errors: ['Invalid response from Fish Africa'],
+          messageIds: [],
+        }
+      }
+
+      let messageId: string | null = extractMessageId(data)
+      const results = Array.isArray(data.data) ? data.data : []
+      for (const item of results) {
+        if (item && typeof item === 'object') {
+          const row = item as Record<string, unknown>
+          const id =
+            (typeof row.message_id === 'string' && row.message_id) ||
+            (typeof row.id === 'string' && row.id) ||
+            null
+          if (id) {
+            messageId = id
+            break
           }
         }
-      } catch {
-        // Response may not be JSON; still count as sent
       }
 
       sent += 1
