@@ -203,6 +203,11 @@ export async function resendInvoiceEmail(
       country: string
     }
 
+    const { data: settings } = await supabase.from('system_settings').select('key, value')
+    const settingsMap = Object.fromEntries(
+      (settings ?? []).map((s) => [s.key, s.value ?? '']),
+    )
+
     if (invoice.type === 'tuition') {
       await sendTuitionInvoice(application.real_email, {
         name: application.full_name,
@@ -210,6 +215,12 @@ export async function resendInvoiceEmail(
         amountGhs: Number(invoice.total_ghs),
         dueDate: invoice.due_date ?? '',
         isInternational: application.country !== 'Ghana',
+        momoNumber: settingsMap.momo_number_1 || undefined,
+        momoName: settingsMap.momo_name_1 || undefined,
+        bankName: settingsMap.bank_name || undefined,
+        bankAccount: settingsMap.bank_account_number || undefined,
+        bankAccountName: settingsMap.bank_account_name || undefined,
+        swiftCode: settingsMap.bank_swift_code || undefined,
         pdfUrl: '',
       })
     } else {

@@ -1,6 +1,6 @@
 'use client'
 
-import Input from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import ModeBadge from '@/components/public/ModeBadge'
@@ -153,21 +153,17 @@ export default function Step5Review({
           You will use this password to log in and track your application status.
         </p>
         <div className="flex flex-col gap-4">
-          <Input
-            surface="light"
+          <PasswordInput
             label="Password"
-            type="password"
             autoComplete="new-password"
             value={password}
-            onChange={(e) => onChange({ password: e.target.value })}
+            onChange={(value) => onChange({ password: value })}
           />
-          <Input
-            surface="light"
+          <PasswordInput
             label="Confirm password"
-            type="password"
             autoComplete="new-password"
             value={formData.confirmPassword ?? ''}
-            onChange={(e) => onChange({ confirmPassword: e.target.value })}
+            onChange={(value) => onChange({ confirmPassword: value })}
             error={
               formData.confirmPassword && formData.confirmPassword !== password
                 ? 'Passwords do not match'
@@ -231,14 +227,7 @@ export default function Step5Review({
         disabled={!canSubmit || isSubmitting}
         onClick={onSubmit}
       >
-        {isSubmitting ? (
-          <span className="inline-flex items-center gap-2">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Submitting...
-          </span>
-        ) : (
-          'Submit My Application'
-        )}
+        {isSubmitting ? 'Submitting...' : 'Submit My Application'}
       </Button>
     </div>
   )

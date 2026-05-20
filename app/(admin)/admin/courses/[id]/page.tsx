@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import CourseForm from "@/components/admin/courses/CourseForm";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { getCourseByIdAdmin } from "@/lib/courses/queries";
 
 interface EditCoursePageProps {
@@ -7,6 +8,7 @@ interface EditCoursePageProps {
 }
 
 export default async function EditCoursePage({ params }: EditCoursePageProps) {
+  await requireAdmin();
   const { id } = await params;
   const course = await getCourseByIdAdmin(id);
 

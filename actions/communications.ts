@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { Client } from '@upstash/qstash'
+import { getQStashClient, publishJSONWithRetry } from '@/lib/qstash/client'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
 import { sendMessage } from '@/lib/notifications/sms'
@@ -246,8 +246,10 @@ async function queueCampaignProcessing(campaignId: string) {
     return
   }
 
-  const client = new Client({ token })
-  await client.publishJSON({
+  const client = getQStashClient()
+  if (!client) return
+
+  await publishJSONWithRetry(client, {
     url: `${baseUrl.replace(/\/$/, '')}/api/messaging/process`,
     body: { campaignId },
   })

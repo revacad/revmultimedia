@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import ApplicationDetailView from '@/components/admin/applications/ApplicationDetailView'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapApplicationDetail } from '@/lib/applications/map'
 
@@ -17,6 +18,7 @@ export async function generateMetadata({ params }: ApplicationDetailPageProps) {
 }
 
 export default async function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
+  await requireAdmin()
   const { id } = await params
   const supabase = createAdminClient()
 

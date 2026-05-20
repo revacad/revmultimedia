@@ -1,6 +1,7 @@
 import PromoCodesPageClient, {
   type PromoCodeRow,
 } from '@/components/admin/promo/PromoCodesPageClient'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
@@ -15,6 +16,7 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 }
 
 export default async function AdminPromoCodesPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('promo_codes')

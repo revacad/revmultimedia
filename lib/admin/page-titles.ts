@@ -3,6 +3,7 @@ const TITLES: Record<string, string> = {
   '/admin/applications': 'Applications',
   '/admin/students': 'Students',
   '/admin/communications': 'Communications',
+  '/admin/resources': 'Resources',
   '/admin/reports': 'Reports',
   '/admin/payments': 'Payments',
   '/admin/courses': 'Courses',

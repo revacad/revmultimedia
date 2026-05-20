@@ -10,6 +10,7 @@ import {
   SETTINGS_LABELS,
   SETTINGS_TABS,
 } from '@/lib/settings/labels'
+import DataExportSection from '@/components/admin/settings/DataExportSection'
 import MessagingSettingsSection from '@/components/admin/settings/MessagingSettingsSection'
 
 interface SettingsPageClientProps {
@@ -173,6 +174,15 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
         <Tabs.Content value="security" className="pt-4">
           <div className="rounded-xl bg-white p-6 shadow-card">
             <p className="font-body text-sm text-[#9898B8]">Coming soon</p>
+          </div>
+        </Tabs.Content>
+
+        <Tabs.Content value="data" className="pt-4">
+          <div className="rounded-xl bg-white p-6 shadow-card">
+            <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">
+              Database backup
+            </h2>
+            <DataExportSection />
           </div>
         </Tabs.Content>
       </Tabs.Root>

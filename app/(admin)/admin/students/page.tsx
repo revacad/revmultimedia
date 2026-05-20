@@ -1,6 +1,7 @@
 import StudentsPageClient, {
   type StudentListRow,
 } from '@/components/admin/students/StudentsPageClient'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
@@ -10,6 +11,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function AdminStudentsPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('students')

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import PortalInvoicePaymentCard from '@/components/portal/PortalInvoicePaymentCard'
 import { formatApplicationDate } from '@/lib/applications/format'
@@ -15,12 +16,8 @@ const INVOICE_TYPE_LABELS: Record<string, string> = {
 }
 
 export default async function PortalInvoicesPage() {
+  const user = await requirePortalUser()
   const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
 
   const { data: student } = await supabase
     .from('students')

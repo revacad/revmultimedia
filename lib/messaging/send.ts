@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { sendMessage } from '@/lib/notifications/sms'
+import { withRetry } from '@/lib/retry'
 import type { CommunicationChannel } from '@/lib/messaging/types'
 
 function escapeHtml(text: string): string {
@@ -27,12 +28,16 @@ export async function sendCampaignMessage(params: {
 
     try {
       const resend = new Resend(apiKey)
-      const { error } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to: recipientAddress,
-        subject: subject || 'Message from Rev Multimedia',
-        html: `<p>Dear ${escapeHtml(recipientName)},</p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,
-      })
+      const { error } = await withRetry(
+        () =>
+          resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL!,
+            to: recipientAddress,
+            subject: subject || 'Message from Rev Multimedia',
+            html: `<p>Dear ${escapeHtml(recipientName)},</p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,
+          }),
+        { maxRetries: 3, baseDelayMs: 1000 },
+      )
       if (error) {
         return { sent: false, error: error.message }
       }

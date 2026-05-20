@@ -4,16 +4,12 @@ import { useEffect, useRef } from 'react'
 import { publicSectionClass } from '@/lib/public-ui'
 import Image from 'next/image'
 import Link from 'next/link'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { buttonVariants } from '@/components/ui/Button'
 import CourseCard from '@/components/public/CourseCard'
 import ScatteredAvatars from '@/components/public/ScatteredAvatars'
 import GhostCourseCard from '@/components/public/home/GhostCourseCard'
 import type { Course } from '@/lib/courses/types'
 import { cn } from '@/lib/utils'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const GHOST_FILLERS = [
   {
@@ -61,7 +57,14 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
   const statsRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    let ctx: { revert: () => void } | undefined
+
+    const loadGSAP = async () => {
+      const { gsap } = await import('gsap')
+      const { ScrollTrigger } = await import('gsap/ScrollTrigger')
+      gsap.registerPlugin(ScrollTrigger)
+
+      ctx = gsap.context(() => {
       if (heroLeftRef.current) {
         gsap.from(heroLeftRef.current.children, {
           y: 30,
@@ -108,9 +111,17 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
           duration: 0.6,
         })
       }
-    })
+      })
+    }
 
-    return () => ctx.revert()
+    void loadGSAP()
+
+    return () => {
+      ctx?.revert()
+      void import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+        ScrollTrigger.getAll().forEach((t) => t.kill())
+      })
+    }
   }, [])
 
   const featuredSlots = buildFeaturedSlots(courses)

@@ -35,3 +35,11 @@ export function courseThumbnailPath(slug: string, ext: string): string {
 export function teamPhotoPath(memberSlug: string, ext: string): string {
   return `team/${memberSlug}/photo.${ext}`;
 }
+
+export function courseContentPath(courseId: string, uuid: string, ext: string): string {
+  return `courses/${courseId}/content/${uuid}.${ext}`;
+}
+
+export function resourcePath(adminId: string, uuid: string, ext: string): string {
+  return `resources/${adminId}/${uuid}.${ext}`;
+}

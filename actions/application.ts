@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
 import { normalisePhone } from '@/lib/phone'
 import { submitApplicationSchema } from '@/lib/validations/application'
+import { checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency'
 import {
   sendApplicationReceived,
   sendAdminNewApplication,
@@ -15,6 +16,7 @@ import {
   APPLICATION_STATUSES,
   type ApplicationStatus,
 } from '@/lib/applications/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 type RpcResult = {
   error?: string
@@ -26,6 +28,8 @@ type RpcResult = {
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+const RPC_TIMEOUT_MS = 15_000
+
 function isPreviewApplication(courseId: string, intakeId: string): boolean {
   return (
     courseId === 'preview-graphic-design' ||
@@ -36,112 +40,48 @@ function isPreviewApplication(courseId: string, intakeId: string): boolean {
   )
 }
 
-export async function submitApplication(formData: unknown) {
-  const parsed = submitApplicationSchema.safeParse(formData)
-  if (!parsed.success) {
-    return { error: 'Invalid form data', details: parsed.error.flatten() }
-  }
-
-  const data = parsed.data
-
-  const sanitisedData = {
-    ...data,
-    yearCompleted: data.yearCompleted
-      ? parseInt(String(data.yearCompleted), 10)
-      : null,
-  }
-
-  if (
-    sanitisedData.yearCompleted === null ||
-    Number.isNaN(sanitisedData.yearCompleted)
-  ) {
-    return { error: 'Invalid form data' }
-  }
-
-  let normalisedPhone: string
-  try {
-    normalisedPhone = normalisePhone(
-      data.phone,
-      data.country === 'Ghana' ? 'GH' : undefined,
-    )
-  } catch {
-    return { error: 'Invalid phone number' }
-  }
-
-  if (isPreviewApplication(data.courseId, data.intakeId)) {
-    console.log('Preview submission — skipping DB insert', {
-      courseId: data.courseId,
-      intakeId: data.intakeId,
-    })
-    return {
-      success: true,
-      reference: 'REVAPP202500001',
-      invoiceReference: 'REVAPF202500001',
-      isPreview: true,
-      applicantName: data.fullName,
-      email: data.email,
-    }
-  }
-
-  const pYearCompleted = parseInt(String(sanitisedData.yearCompleted), 10)
-
-  console.log('RPC params:', {
-    p_course_id: sanitisedData.courseId,
-    p_intake_id: sanitisedData.intakeId,
-    p_year_completed: pYearCompleted,
-    p_full_name: sanitisedData.fullName,
-    p_phone: normalisedPhone,
+async function rpcWithTimeout<T>(
+  promise: PromiseLike<{ data: T; error: { message: string; code?: string; details?: string; hint?: string } | null }>,
+  ms: number,
+): Promise<{ data: T; error: { message: string; code?: string; details?: string; hint?: string } | null }> {
+  const timeoutPromise = new Promise<{
+    data: T
+    error: { message: string }
+  }>((_, reject) => {
+    setTimeout(() => reject(new Error(`RPC timeout after ${ms / 1000} seconds`)), ms)
   })
 
-  const supabase = createAdminClient()
-  const { data: result, error } = await supabase.rpc('create_application', {
-    p_real_email: sanitisedData.email,
-    p_phone: normalisedPhone,
-    p_full_name: sanitisedData.fullName,
-    p_date_of_birth: sanitisedData.dateOfBirth,
-    p_gender: sanitisedData.gender,
-    p_country: sanitisedData.country,
-    p_address: sanitisedData.address,
-    p_state_region: sanitisedData.stateRegion || null,
-    p_city: sanitisedData.city || null,
-    p_qualification: sanitisedData.qualification,
-    p_institution: sanitisedData.institution,
-    p_year_completed: pYearCompleted,
-    p_prior_experience: sanitisedData.priorExperience || null,
-    p_course_id: sanitisedData.courseId,
-    p_intake_id: sanitisedData.intakeId,
-    p_hybrid_attendance_confirmed: sanitisedData.hybridAttendanceConfirmed || false,
-    p_internal_email_domain: process.env.INTERNAL_EMAIL_DOMAIN!,
-  })
+  return Promise.race([promise, timeoutPromise])
+}
 
-  if (error) {
-    console.error('RPC create_application failed:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    })
-    return {
-      error: 'Failed to submit application. Please try again.',
-      debug: error.message,
-    }
+type SubmitPayload = {
+  courseId: string
+  intakeId: string
+  country: string
+  fullName: string
+  email: string
+  password: string
+  documents: {
+    idDocument: { key: string; fileName: string; fileSize: number; mimeType: string }
+    passportPhoto: { key: string; fileName: string; fileSize: number; mimeType: string }
+    certificates?: { key: string; fileName: string; fileSize: number; mimeType: string }[]
   }
+}
 
-  const rpc = result as RpcResult | null
-
-  if (rpc?.error === 'duplicate') {
-    return {
-      error: 'duplicate',
-      message:
-        'An application already exists with this contact information. Please contact us directly at info@revmultimediagh.com',
-    }
-  }
-
-  if (!rpc?.reference || !rpc.application_id) {
-    console.error('RPC create_application returned unexpected payload:', result)
-    return { error: 'Failed to submit application. Please try again.' }
-  }
-
+async function runPostSubmitSideEffects(
+  supabase: SupabaseClient,
+  rpc: RpcResult,
+  data: SubmitPayload,
+  normalisedPhone: string,
+  idempotencyKey: string,
+  successResult: {
+    success: true
+    reference: string
+    invoiceReference?: string
+    applicantName: string
+    email: string
+  },
+): Promise<void> {
   const idDocType = data.country === 'Ghana' ? 'national_id' : 'passport'
   const documentRows = [
     {
@@ -190,16 +130,17 @@ export async function submitApplication(formData: unknown) {
     console.error('Auth error:', authError)
   }
 
-  const { data: courseRow } = await supabase
-    .from('courses')
-    .select('title')
-    .eq('id', data.courseId)
-    .single()
+  const [{ data: courseRow }, { data: intakeRow }] = await Promise.all([
+    supabase.from('courses').select('title').eq('id', data.courseId).single(),
+    supabase.from('intakes').select('name').eq('id', data.intakeId).single(),
+  ])
 
-  void Promise.allSettled([
+  await Promise.allSettled([
     sendApplicationReceived(data.email, {
       name: data.fullName,
       reference: rpc.reference!,
+      courseName: courseRow?.title,
+      intakeName: intakeRow?.name,
     }),
     sendAdminNewApplication({
       applicantName: data.fullName,
@@ -212,6 +153,154 @@ export async function submitApplication(formData: unknown) {
       'sms',
     ),
   ])
+
+  await storeIdempotencyResult(idempotencyKey, successResult)
+}
+
+export async function submitApplication(formData: unknown) {
+  const parsed = submitApplicationSchema.safeParse(formData)
+  if (!parsed.success) {
+    return { error: 'Invalid form data', details: parsed.error.flatten() }
+  }
+
+  const data = parsed.data
+
+  const { isDuplicate, result: cachedResult } = await checkIdempotency(data.idempotencyKey)
+  if (isDuplicate && cachedResult && typeof cachedResult === 'object') {
+    return cachedResult as {
+      success: boolean
+      reference: string
+      invoiceReference?: string
+      applicantName?: string
+      email?: string
+    }
+  }
+
+  const sanitisedData = {
+    ...data,
+    yearCompleted: data.yearCompleted
+      ? parseInt(String(data.yearCompleted), 10)
+      : null,
+  }
+
+  if (
+    sanitisedData.yearCompleted === null ||
+    Number.isNaN(sanitisedData.yearCompleted)
+  ) {
+    return { error: 'Invalid form data' }
+  }
+
+  let normalisedPhone: string
+  try {
+    normalisedPhone = normalisePhone(
+      data.phone,
+      data.country === 'Ghana' ? 'GH' : undefined,
+    )
+  } catch {
+    return { error: 'Invalid phone number' }
+  }
+
+  if (isPreviewApplication(data.courseId, data.intakeId)) {
+    console.log('Preview submission — skipping DB insert', {
+      courseId: data.courseId,
+      intakeId: data.intakeId,
+    })
+    const previewResult = {
+      success: true as const,
+      reference: 'REVAPP202500001',
+      invoiceReference: 'REVAPF202500001',
+      isPreview: true,
+      applicantName: data.fullName,
+      email: data.email,
+    }
+    void storeIdempotencyResult(data.idempotencyKey, previewResult)
+    return previewResult
+  }
+
+  const pYearCompleted = parseInt(String(sanitisedData.yearCompleted), 10)
+
+  const supabase = createAdminClient()
+
+  let result: RpcResult | null = null
+  let error: { message: string; code?: string; details?: string; hint?: string } | null = null
+
+  try {
+    const rpcResponse = await rpcWithTimeout(
+      supabase.rpc('create_application', {
+        p_real_email: sanitisedData.email,
+        p_phone: normalisedPhone,
+        p_full_name: sanitisedData.fullName,
+        p_date_of_birth: sanitisedData.dateOfBirth,
+        p_gender: sanitisedData.gender,
+        p_country: sanitisedData.country,
+        p_address: sanitisedData.address,
+        p_state_region: sanitisedData.stateRegion || null,
+        p_city: sanitisedData.city || null,
+        p_qualification: sanitisedData.qualification,
+        p_institution: sanitisedData.institution,
+        p_year_completed: pYearCompleted,
+        p_prior_experience: sanitisedData.priorExperience || null,
+        p_course_id: sanitisedData.courseId,
+        p_intake_id: sanitisedData.intakeId,
+        p_hybrid_attendance_confirmed: sanitisedData.hybridAttendanceConfirmed || false,
+        p_internal_email_domain: process.env.INTERNAL_EMAIL_DOMAIN!,
+      }),
+      RPC_TIMEOUT_MS,
+    )
+    result = rpcResponse.data as RpcResult | null
+    error = rpcResponse.error
+  } catch (rpcTimeoutError) {
+    console.error('RPC create_application timed out:', rpcTimeoutError)
+    return {
+      error: 'Submission timed out. Please try again.',
+      debug: rpcTimeoutError instanceof Error ? rpcTimeoutError.message : 'RPC timeout',
+    }
+  }
+
+  if (error) {
+    console.error('RPC create_application failed:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    return {
+      error: 'Failed to submit application. Please try again.',
+      debug: error.message,
+    }
+  }
+
+  const rpc = result
+
+  if (rpc?.error === 'duplicate') {
+    return {
+      error: 'duplicate',
+      message:
+        'An application already exists with this contact information. Please contact us directly at info@revmultimediagh.com',
+    }
+  }
+
+  if (!rpc?.reference || !rpc.application_id) {
+    console.error('RPC create_application returned unexpected payload:', result)
+    return { error: 'Failed to submit application. Please try again.' }
+  }
+
+  const successResult = {
+    success: true as const,
+    reference: rpc.reference,
+    invoiceReference: rpc.invoice_reference,
+    applicantName: data.fullName,
+    email: data.email,
+  }
+
+  void runPostSubmitSideEffects(
+    supabase,
+    rpc,
+    data,
+    normalisedPhone,
+    data.idempotencyKey,
+    successResult,
+  ).catch((err) => console.error('Post-submit side effects error:', err))
 
   return {
     success: true,
@@ -249,7 +338,7 @@ export async function updateApplicationStatus(
 
     const { data: app } = await supabase
       .from('applications')
-      .select('real_email, full_name')
+      .select('real_email, full_name, reference')
       .eq('id', applicationId)
       .single()
 
@@ -258,6 +347,7 @@ export async function updateApplicationStatus(
         await sendStatusChanged(app.real_email, {
           name: app.full_name,
           status,
+          reference: app.reference,
         })
         await supabase.from('notifications_log').insert({
           application_id: applicationId,

@@ -1,4 +1,5 @@
 import SettingsPageClient from '@/components/admin/settings/SettingsPageClient'
+import { requireSuperAdmin } from '@/lib/auth/requireAdmin'
 import { MESSAGING_SETTING_KEYS, SETTINGS_TABS } from '@/lib/settings/labels'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -9,6 +10,8 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function AdminSettingsPage() {
+  await requireSuperAdmin()
+
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('system_settings')

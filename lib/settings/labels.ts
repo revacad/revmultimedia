@@ -49,6 +49,11 @@ export const SETTINGS_TABS = [
     title: 'Security',
     sections: [],
   },
+  {
+    id: 'data',
+    title: 'Data',
+    sections: [],
+  },
 ] as const
 
 /** @deprecated Use SETTINGS_TABS */

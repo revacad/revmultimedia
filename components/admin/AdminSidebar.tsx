@@ -4,24 +4,55 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-const links = [
+const baseLinks = [
   { href: '/admin', label: 'Dashboard', icon: 'dashboard' },
   { href: '/admin/applications', label: 'Applications', icon: 'files' },
   { href: '/admin/students', label: 'Students', icon: 'users' },
   { href: '/admin/communications', label: 'Communications', icon: 'comms' },
+  { href: '/admin/resources', label: 'Resources', icon: 'folder' },
   { href: '/admin/reports', label: 'Reports', icon: 'chart' },
   { href: '/admin/payments', label: 'Payments', icon: 'payments' },
   { href: '/admin/courses', label: 'Courses', icon: 'courses' },
   { href: '/admin/intakes', label: 'Intakes', icon: 'calendar' },
   { href: '/admin/promo-codes', label: 'Promo Codes', icon: 'tag' },
-  { href: '/admin/settings', label: 'Settings', icon: 'settings' },
 ] as const
 
-function NavIcon({ name }: { name: (typeof links)[number]['icon'] }) {
+const superadminLinks = [
+  { href: '/admin/admins', label: 'Admin Users', icon: 'shield' as const },
+  { href: '/admin/audit-log', label: 'Audit Log', icon: 'audit' as const },
+  { href: '/admin/settings', label: 'Settings', icon: 'settings' as const },
+] as const
+
+type NavIconName =
+  | (typeof baseLinks)[number]['icon']
+  | (typeof superadminLinks)[number]['icon']
+
+function NavIcon({ name }: { name: NavIconName }) {
+  if (name === 'shield') {
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+    )
+  }
+  if (name === 'audit') {
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    )
+  }
   if (name === 'dashboard') {
     return (
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    )
+  }
+  if (name === 'folder') {
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
       </svg>
     )
   }
@@ -96,6 +127,10 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ adminName, adminRole }: AdminSidebarProps) {
   const pathname = usePathname()
+  const links = [
+    ...baseLinks,
+    ...(adminRole === 'superadmin' ? superadminLinks : []),
+  ]
 
   function isActive(href: string) {
     if (href === '/admin') return pathname === '/admin'

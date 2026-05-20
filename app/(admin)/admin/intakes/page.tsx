@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import IntakeTable from "@/components/admin/intakes/IntakeTable";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { getAllIntakesAdmin } from "@/lib/courses/queries";
 
 export const metadata = {
@@ -8,6 +9,7 @@ export const metadata = {
 };
 
 export default async function AdminIntakesPage() {
+  await requireAdmin();
   const intakes = await getAllIntakesAdmin();
 
   return (

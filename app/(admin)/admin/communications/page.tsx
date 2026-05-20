@@ -1,6 +1,7 @@
 import CommunicationsPageClient, {
   type CampaignListRow,
 } from '@/components/admin/communications/CommunicationsPageClient'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
@@ -15,6 +16,7 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 }
 
 export default async function AdminCommunicationsPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
 
   const [{ data: campaigns, error }, { data: courses }] = await Promise.all([

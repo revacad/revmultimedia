@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import GenerateInvoiceForm from '@/components/admin/invoices/GenerateInvoiceForm'
 import Link from 'next/link'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +16,7 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 }
 
 export default async function NewTuitionInvoicePage({ params }: NewTuitionInvoicePageProps) {
+  await requireAdmin()
   const { id } = await params
   const supabase = createAdminClient()
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { loginAdmin } from '@/actions/auth'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -66,42 +67,13 @@ export default function LoginForm() {
           }}
         />
       </div>
-      <div>
-        <label
-          htmlFor="password"
-          style={{
-            display: 'block',
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: '#5A5A7A',
-            marginBottom: '6px',
-          }}
-        >
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          style={{
-            width: '100%',
-            padding: '13px 16px',
-            border: '1.5px solid #D8D8E8',
-            borderRadius: '10px',
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '15px',
-            color: '#1A1A2E',
-            outline: 'none',
-            backgroundColor: 'white',
-          }}
-        />
-      </div>
+      <PasswordInput
+        label="Password"
+        name="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={setPassword}
+      />
 
       {error && (
         <p

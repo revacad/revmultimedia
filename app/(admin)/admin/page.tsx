@@ -5,6 +5,7 @@ import { formatApplicationDate } from '@/lib/applications/format'
 import type { ApplicationStatus } from '@/lib/applications/types'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getAdminSession } from '@/lib/auth/admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { formatGHS } from '@/lib/utils'
 
 export const metadata = {
@@ -30,6 +31,7 @@ function formatToday(): string {
 }
 
 export default async function AdminDashboardPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
   const session = await getAdminSession()
 

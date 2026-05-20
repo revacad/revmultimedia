@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { buttonVariants } from '@/components/ui/Button'
+import { SearchBar } from '@/components/public/SearchBar'
 import { cn } from '@/lib/utils'
 
 function LogoDots() {
@@ -14,14 +15,6 @@ function LogoDots() {
         <span key={i} className={cn('h-2 w-2 rounded-full', c)} />
       ))}
     </div>
-  )
-}
-
-function SearchIcon() {
-  return (
-    <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
   )
 }
 
@@ -87,17 +80,7 @@ export default function Navbar() {
               })}
             </nav>
 
-            <label className="relative hidden w-[280px] shrink-0 items-center xl:flex">
-              <span className="pointer-events-none absolute left-4">
-                <SearchIcon />
-              </span>
-              <input
-                type="search"
-                placeholder="Search courses..."
-                className="w-full rounded-full border border-gray-200 bg-surface-2 py-2.5 pl-11 pr-4 text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                aria-label="Search courses"
-              />
-            </label>
+            <SearchBar />
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">

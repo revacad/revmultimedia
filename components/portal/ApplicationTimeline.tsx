@@ -6,8 +6,8 @@ interface ApplicationTimelineProps {
 
 export default function ApplicationTimeline({ activeStep }: ApplicationTimelineProps) {
   return (
-    <div className="w-full overflow-x-auto pb-2">
-      <div className="flex min-w-[640px] items-start">
+    <div className="w-full overflow-x-auto pb-2 md:overflow-visible">
+      <div className="flex min-w-0 flex-wrap items-start gap-y-4 md:min-w-[640px] md:flex-nowrap">
         {TIMELINE_STEPS.map((label, index) => {
           const step = index + 1
           const completed = step < activeStep

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import IntakeForm from "@/components/admin/intakes/IntakeForm";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { getAllCoursesAdmin, getIntakeByIdAdmin } from "@/lib/courses/queries";
 
 interface EditIntakePageProps {
@@ -7,6 +8,7 @@ interface EditIntakePageProps {
 }
 
 export default async function EditIntakePage({ params }: EditIntakePageProps) {
+  await requireAdmin();
   const { id } = await params;
   const [intake, courses] = await Promise.all([
     getIntakeByIdAdmin(id),

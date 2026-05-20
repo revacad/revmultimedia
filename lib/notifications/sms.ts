@@ -1,4 +1,5 @@
 import { getSystemSettings } from '@/lib/settings/cache'
+import { withRetry } from '@/lib/retry'
 
 type SmsChannel = 'sms' | 'whatsapp'
 
@@ -41,19 +42,23 @@ async function sendViaSentDm(
     'RevAcademy'
 
   try {
-    const response = await fetch('https://api.sent.dm/v1/messages', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        phone,
-        message,
-        channel,
-        sender_id: senderId,
-      }),
-    })
+    const response = await withRetry(
+      () =>
+        fetch('https://api.sent.dm/v1/messages', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone,
+            message,
+            channel,
+            sender_id: senderId,
+          }),
+        }),
+      { maxRetries: 3, baseDelayMs: 1000 },
+    )
 
     if (!response.ok) {
       const body = await response.text()
@@ -90,18 +95,22 @@ async function sendViaFishAfrica(
     'https://api.letsfish.africa/v1/sms/send'
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to: phone,
-        message,
-        sender_id: senderId,
-      }),
-    })
+    const response = await withRetry(
+      () =>
+        fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: phone,
+            message,
+            sender_id: senderId,
+          }),
+        }),
+      { maxRetries: 3, baseDelayMs: 1000 },
+    )
 
     if (!response.ok) {
       const body = await response.text()

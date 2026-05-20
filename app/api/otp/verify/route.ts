@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { redis } from "@/lib/redis/client";
+import { checkRateLimit, loginLimit } from "@/lib/redis/ratelimit";
 
 const bodySchema = z.object({
   email: z.email(),
@@ -25,8 +26,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // DEV ONLY — remove before production
-  if (process.env.NODE_ENV === "development" && code === "000000") {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const { allowed } = await checkRateLimit(loginLimit, ip);
+  if (!allowed) {
+    return NextResponse.json({ valid: false, reason: "rate_limited" }, { status: 429 });
+  }
+
+  if (
+    process.env.DISABLE_OTP_VERIFICATION === "true" &&
+    process.env.NODE_ENV !== "production"
+  ) {
     return NextResponse.json({ valid: true });
   }
 

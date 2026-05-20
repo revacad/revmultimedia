@@ -3,29 +3,41 @@
 import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { buttonVariants } from '@/components/ui/Button'
 import ScatteredAvatars from '@/components/public/ScatteredAvatars'
 import { publicSectionClass } from '@/lib/public-ui'
 import { cn } from '@/lib/utils'
 
-gsap.registerPlugin(ScrollTrigger)
-
 export default function AboutPageClient() {
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
-        gsap.from(el, {
-          scrollTrigger: { trigger: el, start: 'top 85%' },
-          y: 32,
-          opacity: 0,
-          duration: 0.65,
-          ease: 'power3.out',
+    let ctx: { revert: () => void } | undefined
+
+    const loadGSAP = async () => {
+      const { gsap } = await import('gsap')
+      const { ScrollTrigger } = await import('gsap/ScrollTrigger')
+      gsap.registerPlugin(ScrollTrigger)
+
+      ctx = gsap.context(() => {
+        gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
+          gsap.from(el, {
+            scrollTrigger: { trigger: el, start: 'top 85%' },
+            y: 32,
+            opacity: 0,
+            duration: 0.65,
+            ease: 'power3.out',
+          })
         })
       })
-    })
-    return () => ctx.revert()
+    }
+
+    void loadGSAP()
+
+    return () => {
+      ctx?.revert()
+      void import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+        ScrollTrigger.getAll().forEach((t) => t.kill())
+      })
+    }
   }, [])
 
   return (

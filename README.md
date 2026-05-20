@@ -53,6 +53,21 @@ Backend and infrastructure foundation for the Rev Multimedia Academy admissions 
 
 Phase 1 (this repo state) covers migrations, RLS, Redis, R2 presign, notification stubs, Paystack webhook, and API route stubs. Later phases add UI, application flows, admin tools, and the public site. See [CURSOR_RULES.md](./CURSOR_RULES.md) Section 14 for the full phased build plan.
 
+## Maintenance
+
+### Weekly database export to R2
+
+Set `EXPORT_SECRET_KEY` in `.env.local` (generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
+
+Trigger a manual export from **Admin → Settings → Data**, or schedule an automated backup:
+
+- **URL:** `https://your-domain.com/api/export`
+- **Method:** `POST`
+- **Header:** `Authorization: Bearer YOUR_EXPORT_SECRET_KEY`
+- **Schedule:** Every Sunday at 2:00 AM (e.g. via [cron-job.org](https://cron-job.org))
+
+Exports are stored in R2 at `exports/db-backup-YYYY-MM-DD.json`.
+
 ## Scaffold command
 
 The project was initialised to match:

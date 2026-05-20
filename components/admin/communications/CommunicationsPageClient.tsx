@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { createCampaign } from '@/actions/communications'
 import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
+import EmailComposer from '@/components/admin/communications/EmailComposer'
+import WhatsAppComposer from '@/components/admin/communications/WhatsAppComposer'
 import { formatPaymentDateTime } from '@/lib/payments/format'
+import { StateWrapper } from '@/components/ui/StateWrapper'
 import type { AudienceFilter, CampaignFilters, CommunicationChannel } from '@/lib/messaging/types'
 
 export type CampaignListRow = {
@@ -135,15 +138,27 @@ export default function CommunicationsPageClient({
 
             <div>
               <AdminLabel htmlFor="message">Message</AdminLabel>
-              <textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-                rows={5}
-                className={adminFieldClassName}
-                placeholder="Your message…"
-              />
+              {channel === 'email' ? (
+                <EmailComposer value={message} onChange={setMessage} />
+              ) : channel === 'whatsapp' ? (
+                <WhatsAppComposer value={message} onChange={setMessage} />
+              ) : (
+                <>
+                  <textarea
+                    id="message"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value.slice(0, 160))}
+                    required
+                    rows={5}
+                    maxLength={160}
+                    className={adminFieldClassName}
+                    placeholder="SMS message (160 characters max)…"
+                  />
+                  <p className="mt-1 text-right font-body text-xs text-[#9898B8]">
+                    {message.length}/160
+                  </p>
+                </>
+              )}
             </div>
 
             <div>
@@ -231,9 +246,12 @@ export default function CommunicationsPageClient({
           <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">
             Recent campaigns
           </h2>
-          {campaigns.length === 0 ? (
-            <p className="font-body text-sm text-[#9898B8]">No campaigns yet.</p>
-          ) : (
+          <StateWrapper
+            loading={false}
+            empty={campaigns.length === 0}
+            emptyTitle="No campaigns yet"
+            emptyMessage="Bulk messages you send will appear here."
+          >
             <ul className="divide-y divide-[#EFEFF5]">
               {campaigns.map((row) => (
                 <li key={row.id} className="py-3">
@@ -270,7 +288,7 @@ export default function CommunicationsPageClient({
                 </li>
               ))}
             </ul>
-          )}
+          </StateWrapper>
         </section>
       </div>
     </div>

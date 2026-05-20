@@ -1,9 +1,13 @@
 import { redirect } from 'next/navigation'
+import { requirePortalUser } from '@/lib/auth/requirePortalUser'
+import { getPortalAccess } from '@/lib/portal/access'
 import Badge from '@/components/ui/Badge'
 import ReferenceCode from '@/components/ui/ReferenceCode'
 import ApplicationTimeline from '@/components/portal/ApplicationTimeline'
 import DocumentDownloadLink from '@/components/portal/DocumentDownloadLink'
 import PaymentInstructions from '@/components/portal/PaymentInstructions'
+import { AppFeeGate } from '@/components/portal/AppFeeGate'
+import { PaystackButton } from '@/components/portal/PaystackButton'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import { formatApplicationDate, formatDocumentType } from '@/lib/applications/format'
 import { getPaymentSettings } from '@/lib/portal/settings'
@@ -17,12 +21,15 @@ import { formatGHS } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 
 export default async function ApplicantDashboardPage() {
-  const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  await requirePortalUser()
+  const access = await getPortalAccess()
 
-  if (!user) redirect('/login')
+  if (!access || access.type === 'student') {
+    if (access?.type === 'student') redirect('/portal/dashboard')
+    redirect('/login')
+  }
+
+  const supabase = await createServerClient()
 
   const { data: application } = await supabase
     .from('applications')
@@ -35,18 +42,10 @@ export default async function ApplicantDashboardPage() {
       documents(*)
     `,
     )
-    .eq('auth_user_id', user.id)
+    .eq('auth_user_id', access.userId)
     .single()
 
   if (!application) redirect('/login')
-
-  const { data: student } = await supabase
-    .from('students')
-    .select('student_id')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
-
-  if (student) redirect('/portal/dashboard')
 
   const invoices = (application.invoices as {
     id: string
@@ -87,6 +86,18 @@ export default async function ApplicantDashboardPage() {
     tuitionPaid,
   })
 
+  const appFeeAmount =
+    access.appFeeAmount ??
+    Number(appFeeInvoice?.total_ghs ?? appFeeInvoice?.amount_ghs ?? 100)
+
+  const gateProps = {
+    appFeePaid: access.appFeePaid,
+    invoiceRef: access.invoiceRef ?? appFeeInvoice?.reference,
+    appFeeAmount,
+    applicationRef: access.applicationRef ?? application.reference,
+    payerEmail: access.payerEmail ?? application.real_email,
+  }
+
   return (
     <div className="mx-auto max-w-[860px] px-6 py-8">
       <section className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-6 shadow-card sm:flex-row sm:items-center sm:justify-between">
@@ -98,6 +109,14 @@ export default async function ApplicantDashboardPage() {
         </div>
         <ReferenceCode code={application.reference} theme="light" label="Application reference" />
       </section>
+
+      {!access.appFeePaid && (
+        <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
+          <AppFeeGate {...gateProps}>
+            <span className="sr-only">Pay application fee</span>
+          </AppFeeGate>
+        </section>
+      )}
 
       <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
         <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Application Status</h2>
@@ -136,68 +155,72 @@ export default async function ApplicantDashboardPage() {
             <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-mono text-sm font-medium text-[#C74A86]">{appFeeInvoice.reference}</p>
-                <p className="font-body text-sm text-[#1A1A2E]">
-                  {formatGHS(Number(appFeeInvoice.total_ghs ?? appFeeInvoice.amount_ghs ?? 100))}
-                </p>
+                <p className="font-body text-sm text-[#1A1A2E]">{formatGHS(appFeeAmount)}</p>
               </div>
               <InvoiceStatusBadge status={appFeeInvoice.status} />
             </div>
           ) : (
-            <p className="mt-2 font-body text-sm text-[#9898B8]">GHS 100.00</p>
+            <p className="mt-2 font-body text-sm text-[#9898B8]">{formatGHS(appFeeAmount)}</p>
           )}
-          {appFeeInvoice?.status === 'unpaid' && (
-            <button
-              type="button"
-              className="mt-4 rounded-full bg-[#C74A86] px-5 py-2.5 font-body text-sm font-semibold text-white"
-            >
-              Pay Application Fee — GHS 100
-            </button>
+          {appFeeInvoice?.status === 'unpaid' && gateProps.payerEmail && (
+            <div className="mt-4">
+              <PaystackButton
+                applicationRef={gateProps.applicationRef ?? ''}
+                invoiceRef={gateProps.invoiceRef ?? appFeeInvoice.reference}
+                amount={Math.round(appFeeAmount * 100)}
+                email={gateProps.payerEmail}
+              />
+            </div>
           )}
         </div>
 
         {tuitionInvoice && (
-          <div className="pt-5">
-            <p className="font-body text-sm font-semibold text-[#5A5A7A]">Tuition</p>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="font-mono text-sm font-medium text-[#C74A86]">{tuitionInvoice.reference}</p>
-                <p className="font-body text-sm text-[#1A1A2E]">
-                  {formatGHS(Number(tuitionInvoice.total_ghs ?? tuitionInvoice.amount_ghs))}
-                </p>
+          <AppFeeGate {...gateProps}>
+            <div className="pt-5">
+              <p className="font-body text-sm font-semibold text-[#5A5A7A]">Tuition</p>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-mono text-sm font-medium text-[#C74A86]">{tuitionInvoice.reference}</p>
+                  <p className="font-body text-sm text-[#1A1A2E]">
+                    {formatGHS(Number(tuitionInvoice.total_ghs ?? tuitionInvoice.amount_ghs))}
+                  </p>
+                </div>
+                <InvoiceStatusBadge status={tuitionInvoice.status} />
               </div>
-              <InvoiceStatusBadge status={tuitionInvoice.status} />
+              {tuitionInvoice.status === 'unpaid' && (
+                <PaymentInstructions settings={settings} invoiceReference={tuitionInvoice.reference} />
+              )}
+              {tuitionInvoice.status === 'paid' && (
+                <p className="mt-3 flex items-center gap-2 font-body text-sm font-semibold text-[#1E9990]">
+                  <span aria-hidden>✓</span> Payment confirmed
+                </p>
+              )}
             </div>
-            {tuitionInvoice.status === 'unpaid' && (
-              <PaymentInstructions settings={settings} invoiceReference={tuitionInvoice.reference} />
-            )}
-            {tuitionInvoice.status === 'paid' && (
-              <p className="mt-3 flex items-center gap-2 font-body text-sm font-semibold text-[#1E9990]">
-                <span aria-hidden>✓</span> Payment confirmed
-              </p>
-            )}
-          </div>
+          </AppFeeGate>
         )}
       </section>
 
       <section className="rounded-xl bg-white p-6 shadow-card">
         <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Submitted Documents</h2>
-        {documents.length === 0 ? (
-          <p className="font-body text-sm text-[#9898B8]">No documents uploaded yet.</p>
-        ) : (
-          <ul className="space-y-3">
-            {documents.map((doc) => (
-              <li
-                key={doc.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EFEFF5] pb-3 last:border-0 last:pb-0"
-              >
-                <span className="font-body text-sm text-[#1A1A2E]">
-                  {formatDocumentType(doc.document_type)}
-                </span>
-                <DocumentDownloadLink r2Key={doc.r2_key} fileName={doc.file_name} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <AppFeeGate {...gateProps}>
+          {documents.length === 0 ? (
+            <p className="font-body text-sm text-[#9898B8]">No documents uploaded yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {documents.map((doc) => (
+                <li
+                  key={doc.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EFEFF5] pb-3 last:border-0 last:pb-0"
+                >
+                  <span className="font-body text-sm text-[#1A1A2E]">
+                    {formatDocumentType(doc.document_type)}
+                  </span>
+                  <DocumentDownloadLink r2Key={doc.r2_key} fileName={doc.file_name} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </AppFeeGate>
       </section>
     </div>
   )

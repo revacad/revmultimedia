@@ -35,7 +35,7 @@ export default async function PortalLayout({ children }: { children: React.React
     <div className="flex min-h-screen flex-col">
       <PortalNavbar displayName={firstName(displayName)} />
       <PortalSecondaryNav isStudent={isStudent} />
-      <main className="min-h-screen flex-1 bg-[#F0F2F8] p-6">{children}</main>
+      <main className="min-h-screen flex-1 overflow-x-hidden bg-[#F0F2F8] p-4 sm:p-6">{children}</main>
     </div>
   )
 }

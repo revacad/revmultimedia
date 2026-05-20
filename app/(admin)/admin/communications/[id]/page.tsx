@@ -2,6 +2,7 @@ import CampaignDetailClient, {
   type CampaignDetail,
   type CommunicationLogRow,
 } from '@/components/admin/communications/CampaignDetailClient'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 
@@ -17,6 +18,7 @@ export default async function AdminCampaignDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireAdmin()
   const { id } = await params
   const supabase = createAdminClient()
 

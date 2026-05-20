@@ -9,6 +9,7 @@ import { formatApplicationDate, getCountryFlag } from '@/lib/applications/format
 import type { ApplicationListRow, ApplicationStatus } from '@/lib/applications/types'
 import { formatCategory } from '@/lib/courses/labels'
 import type { CourseCategory } from '@/lib/courses/types'
+import { StateWrapper } from '@/components/ui/StateWrapper'
 import { cn } from '@/lib/utils'
 
 interface ApplicationsPageClientProps {
@@ -100,20 +101,18 @@ export default function ApplicationsPageClient({
         />
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-xl border border-[#EFEFF5] bg-white py-16 text-center shadow-card">
-          <p className="font-body text-base text-[#9898B8]">
-            {applications.length === 0
-              ? 'No applications yet'
-              : 'No applications match your filters'}
-          </p>
-          <p className="mt-2 font-body text-sm text-[#9898B8]">
-            {applications.length === 0
-              ? 'Applications submitted through the public form will appear here.'
-              : 'Try a different status or search term.'}
-          </p>
-        </div>
-      ) : (
+      <StateWrapper
+        loading={false}
+        empty={filtered.length === 0}
+        emptyTitle={
+          applications.length === 0 ? 'No applications yet' : 'No matching applications'
+        }
+        emptyMessage={
+          applications.length === 0
+            ? 'Applications submitted through the public form will appear here.'
+            : 'Try a different status or search term.'
+        }
+      >
         <div className="overflow-hidden rounded-xl border border-[#EFEFF5] bg-white shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-left">
@@ -211,7 +210,7 @@ export default function ApplicationsPageClient({
             </table>
           </div>
         </div>
-      )}
+      </StateWrapper>
     </div>
   )
 }

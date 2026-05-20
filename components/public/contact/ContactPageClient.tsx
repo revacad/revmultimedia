@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { submitContactForm } from '@/actions/contact'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
 import { publicSectionClass } from '@/lib/public-ui'
@@ -69,6 +70,29 @@ function WhatsAppIcon() {
 
 export default function ContactPageClient() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [formError, setFormError] = useState<string | null>(null)
+  const [formSuccess, setFormSuccess] = useState(false)
+  const [pending, startTransition] = useTransition()
+
+  function handleContactSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setFormError(null)
+    setFormSuccess(false)
+    startTransition(async () => {
+      const result = await submitContactForm({ name, email, message })
+      if (result.error) {
+        setFormError(result.error)
+        return
+      }
+      setFormSuccess(true)
+      setName('')
+      setEmail('')
+      setMessage('')
+    })
+  }
 
   return (
     <div>
@@ -112,7 +136,7 @@ export default function ContactPageClient() {
       <section className={cn('grid grid-cols-1 gap-10 lg:grid-cols-2', publicSectionClass.white)}>
         <form
           className="rounded-2xl border border-gray-100 bg-surface p-8 shadow-md"
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={handleContactSubmit}
         >
           <h2 className="font-display text-2xl font-bold text-dark">Send a message</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -123,6 +147,9 @@ export default function ContactPageClient() {
               <span className="text-sm font-medium text-dark">Name</span>
               <input
                 type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                 placeholder="Your name"
               />
@@ -131,6 +158,9 @@ export default function ContactPageClient() {
               <span className="text-sm font-medium text-dark">Email</span>
               <input
                 type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                 placeholder="you@example.com"
               />
@@ -139,12 +169,27 @@ export default function ContactPageClient() {
               <span className="text-sm font-medium text-dark">Message</span>
               <textarea
                 rows={5}
+                required
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                 placeholder="How can we help?"
               />
             </label>
-            <button type="submit" className={cn(buttonVariants({ variant: 'primary', size: 'md' }), 'w-full')}>
-              Send message
+            {formError && (
+              <p className="text-sm text-red-600" role="alert">
+                {formError}
+              </p>
+            )}
+            {formSuccess && (
+              <p className="text-sm text-[#1E9990]">Thank you — we received your message.</p>
+            )}
+            <button
+              type="submit"
+              disabled={pending}
+              className={cn(buttonVariants({ variant: 'primary', size: 'md' }), 'w-full disabled:opacity-50')}
+            >
+              {pending ? 'Sending…' : 'Send message'}
             </button>
           </div>
         </form>

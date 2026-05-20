@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
-import { gsap } from 'gsap'
 import { cn } from '@/lib/utils'
 
 const AVATARS = [
@@ -35,17 +34,30 @@ export default function ScatteredAvatars({
   className,
 }: ScatteredAvatarsProps) {
   useEffect(() => {
-    const avatars = document.querySelectorAll('.avatar-float')
-    avatars.forEach((avatar, i) => {
-      gsap.to(avatar, {
-        y: -12,
-        duration: 2.5 + i * 0.3,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        delay: i * 0.2,
+    let tweens: Array<{ kill: () => void }> = []
+
+    const loadGSAP = async () => {
+      const { gsap } = await import('gsap')
+      const avatars = document.querySelectorAll('.avatar-float')
+      avatars.forEach((avatar, i) => {
+        const tween = gsap.to(avatar, {
+          y: -12,
+          duration: 2.5 + i * 0.3,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut',
+          delay: i * 0.2,
+        })
+        tweens.push(tween)
       })
-    })
+    }
+
+    void loadGSAP()
+
+    return () => {
+      tweens.forEach((t) => t.kill())
+      tweens = []
+    }
   }, [])
 
   return (

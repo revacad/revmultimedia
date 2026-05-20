@@ -5,6 +5,7 @@ import ReportsPageClient, {
   type RevenueMonth,
 } from '@/components/admin/reports/ReportsPageClient'
 import type { CourseCategory } from '@/lib/courses/types'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
@@ -26,6 +27,7 @@ function lastSixMonths(): { key: string; label: string }[] {
 }
 
 export default async function AdminReportsPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)

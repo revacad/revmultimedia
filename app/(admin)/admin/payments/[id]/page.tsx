@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import PaymentDetailView from '@/components/admin/payments/PaymentDetailView'
 import { mapInvoiceDetail } from '@/lib/payments/map'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +11,7 @@ interface PaymentDetailPageProps {
 }
 
 export default async function PaymentDetailPage({ params }: PaymentDetailPageProps) {
+  await requireAdmin()
   const { id } = await params
   const supabase = createAdminClient()
 

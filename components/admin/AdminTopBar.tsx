@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { adminLogout } from '@/actions/auth'
+import AdminSearchBar from '@/components/admin/AdminSearchBar'
 import { getAdminPageTitle } from '@/lib/admin/page-titles'
 
 interface AdminTopBarProps {
@@ -15,7 +16,8 @@ export default function AdminTopBar({ adminName }: AdminTopBarProps) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#EFEFF5] bg-white px-8">
       <p className="font-display text-lg font-semibold text-[#1A1A2E]">{title}</p>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-1 items-center justify-end gap-4">
+        <AdminSearchBar />
         <span className="font-body text-sm text-[#5A5A7A]">{adminName}</span>
         <form action={adminLogout}>
           <button

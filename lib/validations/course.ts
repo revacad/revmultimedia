@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isVideoIntroUrl } from "@/lib/courses/curriculum";
 
 export const courseSchema = z.object({
   title: z.string().min(1),
@@ -9,6 +10,11 @@ export const courseSchema = z.object({
   tuition_fee_ghs: z.number().positive(),
   max_slots: z.number().int().positive(),
   is_published: z.boolean(),
+  video_intro_url: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((v) => isVideoIntroUrl(v ?? ""), "Intro video must be a YouTube or Vimeo URL"),
 });
 
 export const intakeSchema = z.object({

@@ -13,13 +13,21 @@ export interface Intake {
   is_closed: boolean;
 }
 
+export type CourseCurriculum = {
+  html?: string;
+  version?: number;
+  outline?: string;
+  sections?: string[];
+};
+
 export interface Course {
   id: string;
   title: string;
   slug: string;
   category: CourseCategory;
   description: string | null;
-  curriculum: unknown;
+  curriculum: CourseCurriculum | null;
+  video_intro_url: string | null;
   mode: CourseMode;
   tuition_fee_ghs: number;
   max_slots: number;

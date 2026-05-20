@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
 import { redis } from '@/lib/redis/client'
+import { checkRateLimit, loginLimit, passwordResetLimit } from '@/lib/redis/ratelimit'
+import { getClientIp } from '@/lib/auth/getClientIp'
 import { sendPasswordReset } from '@/lib/notifications/email'
 
 const STUDENT_ID_RE = /^REV\d{10}$/i
@@ -17,6 +19,12 @@ export async function loginAdmin(
   email: string,
   password: string,
 ): Promise<{ error?: string }> {
+  const ip = await getClientIp()
+  const { allowed } = await checkRateLimit(loginLimit, ip)
+  if (!allowed) {
+    return { error: 'Too many login attempts. Please try again later.' }
+  }
+
   const supabase = await createServerClient()
 
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -57,6 +65,12 @@ export async function portalLogin(
   identifier: string,
   password: string,
 ): Promise<{ error?: string }> {
+  const ip = await getClientIp()
+  const { allowed } = await checkRateLimit(loginLimit, ip)
+  if (!allowed) {
+    return { error: 'Too many login attempts. Please try again later.' }
+  }
+
   const trimmed = identifier.trim().toUpperCase()
   const admin = createAdminClient()
 
@@ -118,6 +132,15 @@ export async function requestPasswordReset(
   identifier: string,
   email: string,
 ): Promise<{ message: string }> {
+  const ip = await getClientIp()
+  const { allowed } = await checkRateLimit(passwordResetLimit, ip)
+  if (!allowed) {
+    return {
+      message:
+        'If your details match our records, you will receive a reset link shortly.',
+    }
+  }
+
   const genericMessage =
     'If your details match our records, you will receive a reset link shortly.'
 
@@ -127,28 +150,31 @@ export async function requestPasswordReset(
 
   let authUserId: string | null = null
   let matchedIdentifier = trimmedId
+  let recipientName: string | undefined
 
   if (STUDENT_ID_RE.test(trimmedId)) {
     const { data: student } = await admin
       .from('students')
-      .select('auth_user_id, real_email, student_id')
+      .select('auth_user_id, real_email, student_id, full_name')
       .eq('student_id', trimmedId)
       .maybeSingle()
 
     if (student && student.real_email.toLowerCase() === trimmedEmail) {
       authUserId = student.auth_user_id
       matchedIdentifier = student.student_id
+      recipientName = student.full_name
     }
   } else {
     const { data: application } = await admin
       .from('applications')
-      .select('auth_user_id, real_email, reference')
+      .select('auth_user_id, real_email, reference, full_name')
       .eq('reference', trimmedId)
       .maybeSingle()
 
     if (application && application.real_email.toLowerCase() === trimmedEmail) {
       authUserId = application.auth_user_id
       matchedIdentifier = application.reference
+      recipientName = application.full_name
     }
   }
 
@@ -164,7 +190,10 @@ export async function requestPasswordReset(
   )
 
   const resetUrl = `${portalBaseUrl()}/reset-password?token=${token}`
-  await sendPasswordReset(trimmedEmail, { resetUrl })
+  await sendPasswordReset(trimmedEmail, {
+    resetUrl,
+    name: recipientName,
+  })
 
   return { message: genericMessage }
 }

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import Badge from '@/components/ui/Badge'
 import ReferenceCode from '@/components/ui/ReferenceCode'
 import CertificateDownloadButton from '@/components/portal/CertificateDownloadButton'
@@ -36,12 +37,8 @@ const INVOICE_TYPE_LABELS: Record<string, string> = {
 }
 
 export default async function StudentDashboardPage() {
+  const user = await requirePortalUser()
   const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
 
   const { data: student } = await supabase
     .from('students')
@@ -84,17 +81,17 @@ export default async function StudentDashboardPage() {
   )
 
   return (
-    <div className="mx-auto max-w-[860px] px-6 py-8">
-      <section className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-6 shadow-card sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-[860px] px-0 py-4 sm:px-6 sm:py-8">
+      <section className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
-          <h1 className="font-display text-[28px] font-semibold text-[#1A1A2E]">
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A2E] sm:text-[28px]">
             Welcome back, {firstName(student.full_name)}
           </h1>
           <p className="mt-1 font-body text-[15px] text-[#9898B8]">
             You are enrolled at Rev Multimedia Academy
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right [&_.font-mono]:text-sm sm:[&_.font-mono]:text-base">
           <ReferenceCode
             code={student.student_id}
             theme="light"

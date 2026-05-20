@@ -1,6 +1,7 @@
 import StudentDetailView, {
   type AdminStudentDetail,
 } from '@/components/admin/students/StudentDetailView'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 
@@ -16,6 +17,7 @@ export default async function AdminStudentDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireAdmin()
   const { id } = await params
   const supabase = createAdminClient()
 

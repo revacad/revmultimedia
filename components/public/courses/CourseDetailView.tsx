@@ -1,11 +1,17 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
+import SanitizedHtml from '@/components/ui/SanitizedHtml'
 import Button from '@/components/ui/Button'
 import InternationalWelcomeNote from '@/components/public/InternationalWelcomeNote'
 import ModeBadge from '@/components/public/ModeBadge'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
 import { getCourseThumbnailSrc } from '@/lib/courses/thumbnail'
+import {
+  curriculumHtml,
+  getVimeoId,
+  getYouTubeId,
+} from '@/lib/courses/curriculum'
 import { getSlotIndicator } from '@/lib/courses/slots'
 import type { Course } from '@/lib/courses/types'
 import { publicSectionClass } from '@/lib/public-ui'
@@ -51,46 +57,46 @@ function ModeCallout({ course }: { course: Course }) {
   )
 }
 
-function CurriculumList({ curriculum }: { curriculum: unknown }) {
-  if (!curriculum) {
-    return (
-      <p className="text-sm text-gray-600">Curriculum details will be published soon.</p>
-    )
-  }
+function IntroVideo({ url }: { url: string }) {
+  const youtubeId = getYouTubeId(url)
+  const vimeoId = getVimeoId(url)
 
-  const sections =
-    typeof curriculum === 'object' &&
-    curriculum !== null &&
-    'sections' in curriculum &&
-    Array.isArray((curriculum as { sections: unknown }).sections)
-      ? ((curriculum as { sections: string[] }).sections)
-      : null
+  if (!youtubeId && !vimeoId) return null
 
-  if (sections) {
-    return (
-      <ul className="space-y-3">
-        {sections.map((section, index) => (
-          <li
-            key={index}
-            className="rounded-xl border border-gray-100 bg-surface-2 px-4 py-3 text-sm text-gray-800"
-          >
-            {section}
-          </li>
-        ))}
-      </ul>
-    )
-  }
+  const embedSrc = youtubeId
+    ? `https://www.youtube.com/embed/${youtubeId}`
+    : `https://player.vimeo.com/video/${vimeoId}`
 
   return (
-    <pre className="overflow-x-auto rounded-xl border border-gray-100 bg-surface-2 p-4 text-xs text-gray-600">
-      {JSON.stringify(curriculum, null, 2)}
-    </pre>
+    <section className={publicSectionClass.white}>
+      <h2
+        className="mb-6 font-display text-[28px] font-semibold text-[#1A1A2E]"
+        style={{ fontFamily: 'Clash Display, sans-serif' }}
+      >
+        Course intro
+      </h2>
+      <div
+        className="relative w-full overflow-hidden rounded-2xl"
+        style={{ aspectRatio: '16 / 9', borderRadius: '16px' }}
+      >
+        <iframe
+          src={embedSrc}
+          title="Course intro video"
+          className="absolute inset-0 h-full w-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    </section>
   )
 }
 
 export default function CourseDetailView({ course }: CourseDetailViewProps) {
   const thumbnailSrc = getCourseThumbnailSrc(course)
   const slotIndicator = getSlotIndicator(course.intakes)
+
+  const rawCurriculumHtml = curriculumHtml(course.curriculum)
+  const descriptionIsHtml = Boolean(course.description?.includes('<'))
 
   return (
     <div>
@@ -115,18 +121,17 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
           {course.description && (
             <section>
               <h2 className="mb-4 font-display text-2xl font-semibold text-dark">About this course</h2>
-              <p className="text-[17px] leading-relaxed text-gray-600">{course.description}</p>
+              {descriptionIsHtml && course.description ? (
+                <SanitizedHtml html={course.description} className="rich-content" />
+              ) : (
+                <p className="text-[17px] leading-relaxed text-gray-600">{course.description}</p>
+              )}
             </section>
           )}
 
           <section>
             <h2 className="mb-4 font-display text-2xl font-semibold text-dark">Delivery mode</h2>
             <ModeCallout course={course} />
-          </section>
-
-          <section>
-            <h2 className="mb-4 font-display text-2xl font-semibold text-dark">Curriculum</h2>
-            <CurriculumList curriculum={course.curriculum} />
           </section>
 
           {course.intakes.length > 0 && (
@@ -162,7 +167,9 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
             </p>
             <p className="mb-1 text-sm text-gray-600">Format</p>
             <p className="mb-4 font-medium text-dark">{formatMode(course.mode)}</p>
-            <div className={`mb-6 flex items-center gap-2 text-sm font-medium ${slotIndicator.colorClass}`}>
+            <div
+              className={`mb-6 flex items-center gap-2 text-sm font-medium ${slotIndicator.colorClass}`}
+            >
               <span className={`h-2 w-2 rounded-full ${slotIndicator.dotClass}`} />
               {slotIndicator.text}
             </div>
@@ -174,6 +181,48 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
           </div>
         </aside>
       </div>
+
+      <section style={{ padding: '48px' }}>
+        <h2
+          style={{
+            fontFamily: 'Clash Display, sans-serif',
+            fontSize: '28px',
+            color: '#1A1A2E',
+            marginBottom: '8px',
+          }}
+        >
+          What you will learn
+        </h2>
+        <p
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '16px',
+            color: '#9898B8',
+            marginBottom: '32px',
+          }}
+        >
+          Full curriculum for {course.title}
+        </p>
+        {rawCurriculumHtml ? (
+          <SanitizedHtml html={rawCurriculumHtml} className="rich-content" />
+        ) : (
+          <div
+            className="text-center"
+            style={{
+              background: '#F7F8FC',
+              border: '1.5px dashed #D8D8E8',
+              borderRadius: '14px',
+              padding: '32px',
+            }}
+          >
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: '#9898B8' }}>
+              Curriculum details coming soon
+            </p>
+          </div>
+        )}
+      </section>
+
+      {course.video_intro_url && <IntroVideo url={course.video_intro_url} />}
     </div>
   )
 }

@@ -8,7 +8,10 @@ import {
   extensionFromFileName,
   type UploadContext,
 } from "@/lib/r2/upload-context";
-import { generatePresignedUploadUrl } from "@/lib/r2/presign";
+import {
+  generatePresignedUploadUrl,
+  getPublicUrl,
+} from "@/lib/r2/presign";
 
 const objectContextSchema = z.discriminatedUnion("type", [
   z.object({
@@ -43,6 +46,13 @@ const objectContextSchema = z.discriminatedUnion("type", [
     type: z.literal("team_photo"),
     memberSlug: z.string().min(1),
   }),
+  z.object({
+    type: z.literal("course_content"),
+    courseId: z.string().uuid(),
+  }),
+  z.object({
+    type: z.literal("resource"),
+  }),
 ]);
 
 const flatContextSchema = z.discriminatedUnion("uploadContext", [
@@ -59,6 +69,13 @@ const flatContextSchema = z.discriminatedUnion("uploadContext", [
     uploadContext: z.literal("certificate"),
     studentId: z.string().min(1),
     courseSlug: z.string().min(1),
+  }),
+  z.object({
+    uploadContext: z.literal("course_content"),
+    courseId: z.string().uuid(),
+  }),
+  z.object({
+    uploadContext: z.literal("resource"),
   }),
 ]);
 
@@ -86,11 +103,17 @@ function normalizeUploadContext(
       documentType: raw.documentType,
     };
   }
-  return {
-    type: "certificate",
-    studentId: raw.studentId,
-    courseSlug: raw.courseSlug,
-  };
+  if (raw.uploadContext === "certificate") {
+    return {
+      type: "certificate",
+      studentId: raw.studentId,
+      courseSlug: raw.courseSlug,
+    };
+  }
+  if (raw.uploadContext === "course_content") {
+    return { type: "course_content", courseId: raw.courseId };
+  }
+  return { type: "resource" };
 }
 
 function validateFileForContext(
@@ -113,6 +136,15 @@ function validateFileForContext(
     case "certificate":
       if (!isPdf) return "Certificates must be PDF files";
       if (fileSize > 10_485_760) return "File too large. Maximum 10MB.";
+      return null;
+    case "course_content":
+      if (!isImage) return "Images must be JPEG, PNG, or WebP";
+      if (fileSize > 5_242_880) return "File too large. Maximum 5MB.";
+      return null;
+    case "resource":
+      if (!isImage && !isPdf) return "Resources must be PDF or image files";
+      if (isPdf && fileSize > 20_971_520) return "File too large. Maximum 20MB.";
+      if (isImage && fileSize > 5_242_880) return "File too large. Maximum 5MB.";
       return null;
     case "application_document":
       if (!isImage && !isPdf) return "Invalid file type";
@@ -169,7 +201,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (uploadContext.type === "certificate") {
+    const adminOnlyTypes = new Set([
+      "certificate",
+      "course_thumbnail",
+      "team_photo",
+      "document",
+      "course_content",
+      "resource",
+    ]);
+
+    if (adminOnlyTypes.has(uploadContext.type)) {
       const adminSession = await getAdminSession();
       if (!adminSession) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -226,6 +267,25 @@ export async function POST(request: Request): Promise<NextResponse> {
         ext: "pdf",
       };
       break;
+    case "course_content":
+      contextWithExt = {
+        type: "course_content",
+        courseId: uploadContext.courseId,
+        ext,
+      };
+      break;
+    case "resource": {
+      const adminSession = await getAdminSession();
+      if (!adminSession) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      contextWithExt = {
+        type: "resource",
+        adminId: adminSession.adminId,
+        ext,
+      };
+      break;
+    }
     default:
       contextWithExt = { ...uploadContext, ext } as UploadContext;
   }
@@ -238,6 +298,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       : process.env.CLOUDFLARE_R2_BUCKET_NAME!;
 
   const presignedUrl = await generatePresignedUploadUrl(bucketName, key, 300);
+
+  if (uploadContext.type === "course_content") {
+    return NextResponse.json({
+      presignedUrl,
+      key,
+      publicUrl: getPublicUrl(key),
+    });
+  }
 
   return NextResponse.json({ presignedUrl, key });
 }

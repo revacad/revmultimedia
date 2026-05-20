@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { LogoLoader } from '@/components/ui/LogoLoader'
 import { cn } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import StepIndicator from '@/components/public/apply/StepIndicator'
@@ -21,6 +22,8 @@ import {
 } from '@/lib/apply/validation'
 
 const TOTAL_STEPS = 5
+const STORAGE_KEY = 'rev_application_draft'
+const SUBMIT_TIMEOUT_MS = 30_000
 
 interface ApplyPageClientProps {
   courses: ApplyCourse[]
@@ -34,7 +37,11 @@ export default function ApplyPageClient({
   preselectedIntake,
 }: ApplyPageClientProps) {
   const [draftId] = useState(() => crypto.randomUUID())
+  const [idempotencyKey] = useState(
+    () => `apply-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  )
   const [currentStep, setCurrentStep] = useState(1)
+  const [restoredFromDraft, setRestoredFromDraft] = useState(false)
   const [formData, setFormData] = useState<Partial<ApplicationFormData>>({})
   const [emailVerified, setEmailVerified] = useState(false)
   const [hybridWarningAccepted, setHybridWarningAccepted] = useState(false)
@@ -52,6 +59,50 @@ export default function ApplyPageClient({
   const patchForm = useCallback((patch: Partial<ApplicationFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }))
   }, [])
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY)
+      if (!saved) return
+
+      const parsed = JSON.parse(saved) as {
+        formData: Partial<ApplicationFormData>
+        currentStep: number
+        emailVerified?: boolean
+        savedAt: string
+      }
+
+      const savedAt = new Date(parsed.savedAt)
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+
+      if (savedAt > twoHoursAgo && parsed.currentStep > 1) {
+        setFormData(parsed.formData)
+        setCurrentStep(parsed.currentStep)
+        setEmailVerified(parsed.emailVerified ?? false)
+        setRestoredFromDraft(true)
+      }
+    } catch {
+      // Ignore sessionStorage errors
+    }
+  }, [])
+
+  useEffect(() => {
+    if (currentStep > 1) {
+      try {
+        sessionStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            formData,
+            currentStep,
+            emailVerified,
+            savedAt: new Date().toISOString(),
+          }),
+        )
+      } catch {
+        // sessionStorage may be unavailable
+      }
+    }
+  }, [formData, currentStep, emailVerified])
 
   const step1Ready = useMemo(
     () =>
@@ -110,6 +161,7 @@ export default function ApplyPageClient({
     setSubmitError(null)
 
     const payload = {
+      idempotencyKey,
       email: formData.email!,
       fullName: formData.fullName!,
       phone: formData.phone!,
@@ -134,30 +186,51 @@ export default function ApplyPageClient({
       },
     }
 
-    const result = await submitApplication(payload)
+    const timeoutId = setTimeout(() => {
+      setIsSubmitting(false)
+      setSubmitError(
+        'Submission is taking longer than expected. ' +
+          'Please check your connection and try again. ' +
+          'If the problem persists, contact us at info@revmultimedia.com',
+      )
+    }, SUBMIT_TIMEOUT_MS)
 
-    setIsSubmitting(false)
+    try {
+      const result = await submitApplication(payload)
+      clearTimeout(timeoutId)
 
-    if ('error' in result && result.error) {
-      if (result.error === 'duplicate' && 'message' in result) {
-        setSubmitError(result.message as string)
-      } else {
-        setSubmitError(
-          typeof result.error === 'string'
-            ? result.error
-            : 'Failed to submit application. Please try again.',
-        )
+      if ('error' in result && result.error) {
+        if (result.error === 'duplicate' && 'message' in result) {
+          setSubmitError(result.message as string)
+        } else {
+          setSubmitError(
+            typeof result.error === 'string'
+              ? result.error
+              : 'Failed to submit application. Please try again.',
+          )
+        }
+        return
       }
-      return
-    }
 
-    if ('success' in result && result.success) {
-      setSubmitResult({
-        success: true,
-        reference: result.reference,
-        name: result.applicantName ?? formData.fullName ?? '',
-        email: result.email ?? formData.email ?? '',
-      })
+      if ('success' in result && result.success) {
+        try {
+          sessionStorage.removeItem(STORAGE_KEY)
+        } catch {
+          // Ignore
+        }
+        setSubmitResult({
+          success: true,
+          reference: result.reference,
+          name: result.applicantName ?? formData.fullName ?? '',
+          email: result.email ?? formData.email ?? '',
+        })
+      }
+    } catch {
+      clearTimeout(timeoutId)
+      setSubmitError('An unexpected error occurred. Please try again.')
+    } finally {
+      clearTimeout(timeoutId)
+      setIsSubmitting(false)
     }
   }
 
@@ -177,7 +250,58 @@ export default function ApplyPageClient({
 
   return (
     <section className="public-section public-section--muted px-4 py-12">
+      {isSubmitting && <LogoLoader fullScreen text="Submitting your application..." />}
       <div className="mx-auto max-w-[720px]">
+        {restoredFromDraft && (
+          <div
+            style={{
+              backgroundColor: '#EBF9F8',
+              border: '1px solid rgba(45,191,184,0.30)',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px',
+                color: '#1E9990',
+              }}
+            >
+              Your previous progress has been restored.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  sessionStorage.removeItem(STORAGE_KEY)
+                } catch {
+                  // Ignore
+                }
+                setFormData({})
+                setCurrentStep(1)
+                setEmailVerified(false)
+                setRestoredFromDraft(false)
+              }}
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '13px',
+                color: '#9898B8',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              Start fresh
+            </button>
+          </div>
+        )}
         <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
         <div

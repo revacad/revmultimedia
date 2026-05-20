@@ -10,6 +10,7 @@ export const PREVIEW_GRAPHIC_DESIGN_COURSE: Course = {
   description:
     "Master visual communication. Typography, layout, brand systems, and digital design built on principles that outlast any software update.",
   curriculum: null,
+  video_intro_url: null,
   tuition_fee_ghs: 2500,
   max_slots: 20,
   is_published: true,

@@ -28,6 +28,7 @@ export async function createCourse(
       tuition_fee_ghs: Number(formData.get("tuition_fee_ghs")),
       max_slots: Number(formData.get("max_slots")),
       is_published: formData.get("is_published") === "on",
+      video_intro_url: String(formData.get("video_intro_url") ?? "").trim() || null,
     };
 
     const parsed = courseSchema.safeParse(raw);
@@ -40,7 +41,7 @@ export async function createCourse(
       .from("courses")
       .insert({
         ...parsed.data,
-        curriculum: parseCurriculum(formData.get("curriculum")),
+        curriculum: parseCurriculumHtml(formData.get("curriculum_html")),
       })
       .select("id, slug")
       .single();
@@ -78,6 +79,7 @@ export async function updateCourse(
       tuition_fee_ghs: Number(formData.get("tuition_fee_ghs")),
       max_slots: Number(formData.get("max_slots")),
       is_published: formData.get("is_published") === "on",
+      video_intro_url: String(formData.get("video_intro_url") ?? "").trim() || null,
     };
 
     const parsed = courseSchema.safeParse(raw);
@@ -90,7 +92,7 @@ export async function updateCourse(
       .from("courses")
       .update({
         ...parsed.data,
-        curriculum: parseCurriculum(formData.get("curriculum")),
+        curriculum: parseCurriculumHtml(formData.get("curriculum_html")),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -149,12 +151,12 @@ export async function togglePublish(
   }
 }
 
-function parseCurriculum(value: FormDataEntryValue | null): unknown {
-  const text = String(value ?? "").trim();
-  if (!text) {
+function parseCurriculumHtml(value: FormDataEntryValue | null): unknown {
+  const html = String(value ?? "").trim();
+  if (!html || html === "<p></p>") {
     return null;
   }
-  return { outline: text };
+  return { html, version: 1 };
 }
 
 export async function deleteCourse(id: string): Promise<ActionResult> {

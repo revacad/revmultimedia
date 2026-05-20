@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { portalLogin } from '@/actions/auth'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -68,22 +69,13 @@ export default function PortalLoginForm() {
           style={inputStyle}
         />
       </div>
-      <div>
-        <label htmlFor="password" style={labelStyle}>
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          style={inputStyle}
-        />
-      </div>
+      <PasswordInput
+        label="Password"
+        name="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={setPassword}
+      />
 
       <div style={{ textAlign: 'right' }}>
         <Link

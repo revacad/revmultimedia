@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 import {
   AdminFormCard,
   AdminFormSection,
@@ -12,28 +13,62 @@ import {
   adminFieldClassName,
 } from '@/components/admin/AdminFormPrimitives'
 import { createCourse, updateCourse } from '@/actions/course'
+import { curriculumHtml, isVideoIntroUrl } from '@/lib/courses/curriculum'
 import type { Course } from '@/lib/courses/types'
 
 interface CourseFormProps {
   course?: Course
 }
 
-function curriculumOutline(curriculum: unknown): string {
-  if (!curriculum || typeof curriculum !== 'object') return ''
-  const record = curriculum as { outline?: string; sections?: string[] }
-  if (typeof record.outline === 'string') return record.outline
-  if (Array.isArray(record.sections)) return record.sections.join('\n')
-  return ''
-}
-
 export default function CourseForm({ course }: CourseFormProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [curriculumHtmlValue, setCurriculumHtmlValue] = useState(() =>
+    curriculumHtml(course?.curriculum ?? null),
+  )
+  const [videoUrlError, setVideoUrlError] = useState<string | null>(null)
+
+  const canUploadImages = Boolean(course?.id)
+
+  async function handleCurriculumImageUpload(file: File): Promise<string> {
+    if (!course?.id) {
+      throw new Error('Save the course first')
+    }
+    const res = await fetch('/api/r2/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadContext: 'course_content',
+        courseId: course.id,
+      }),
+    })
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      throw new Error(data.error ?? 'Upload failed')
+    }
+    const { presignedUrl, publicUrl } = (await res.json()) as {
+      presignedUrl: string
+      publicUrl: string
+    }
+    const uploadRes = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type },
+    })
+    if (!uploadRes.ok) {
+      throw new Error('Failed to upload image')
+    }
+    return publicUrl
+  }
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
+    formData.set('curriculum_html', curriculumHtmlValue)
 
     const result = course
       ? await updateCourse(course.id, formData)
@@ -132,17 +167,49 @@ export default function CourseForm({ course }: CourseFormProps) {
             <div>
               <AdminLabel
                 htmlFor="curriculum"
-                helper="Describe the curriculum. You can use line breaks for sections."
+                helper="Full curriculum shown on the public course page."
               >
-                Curriculum outline
+                Curriculum
               </AdminLabel>
-              <textarea
-                id="curriculum"
-                name="curriculum"
-                rows={8}
-                className={adminFieldClassName}
-                defaultValue={curriculumOutline(course?.curriculum)}
+              <RichTextEditor
+                content={curriculumHtmlValue}
+                onChange={setCurriculumHtmlValue}
+                onImageUpload={canUploadImages ? handleCurriculumImageUpload : undefined}
+                placeholder="Describe weeks, modules, and learning outcomes…"
+                minHeight={320}
               />
+              {!canUploadImages && (
+                <p className="mt-2 font-body text-xs text-[#9898B8]">
+                  Save the course first to enable image uploads in the curriculum editor.
+                </p>
+              )}
+            </div>
+            <div>
+              <AdminLabel
+                htmlFor="video_intro_url"
+                helper="YouTube or Vimeo URL. Shown on the course page."
+              >
+                Intro Video URL (optional)
+              </AdminLabel>
+              <input
+                id="video_intro_url"
+                name="video_intro_url"
+                type="url"
+                className={adminFieldClassName}
+                defaultValue={course?.video_intro_url ?? ''}
+                placeholder="https://www.youtube.com/watch?v=..."
+                onBlur={(e) => {
+                  const v = e.target.value.trim()
+                  if (v && !isVideoIntroUrl(v)) {
+                    setVideoUrlError('Enter a valid YouTube or Vimeo URL')
+                  } else {
+                    setVideoUrlError(null)
+                  }
+                }}
+              />
+              {videoUrlError && (
+                <p className="mt-1 font-body text-xs text-red-600">{videoUrlError}</p>
+              )}
             </div>
             <div>
               <AdminLabel>Course thumbnail</AdminLabel>
@@ -199,7 +266,7 @@ export default function CourseForm({ course }: CourseFormProps) {
         <Button
           type="submit"
           variant="primary"
-          disabled={loading}
+          disabled={loading || Boolean(videoUrlError)}
           className="mt-2 w-fit rounded-full px-8 py-3"
         >
           {loading ? 'Saving…' : course ? 'Update Course' : 'Create Course'}
@@ -208,4 +275,3 @@ export default function CourseForm({ course }: CourseFormProps) {
     </AdminFormCard>
   )
 }
-

@@ -22,7 +22,7 @@ export default function PaymentInstructions({
         <CopyButton text={invoiceReference} />
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 flex flex-col gap-3 sm:space-y-3">
         {settings.momo_number_1 && (
           <div>
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-[#9898B8]">

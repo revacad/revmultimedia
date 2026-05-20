@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import CourseTable from '@/components/admin/courses/CourseTable'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { getAllCoursesAdmin } from '@/lib/courses/queries'
 
 export const metadata = {
@@ -8,6 +9,7 @@ export const metadata = {
 }
 
 export default async function AdminCoursesPage() {
+  await requireAdmin()
   const courses = await getAllCoursesAdmin()
   const published = courses.filter((c) => c.is_published).length
   const drafts = courses.length - published

@@ -1,5 +1,6 @@
 import PaymentsPageClient from '@/components/admin/payments/PaymentsPageClient'
 import { mapPaymentListRow } from '@/lib/payments/map'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
@@ -9,6 +10,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPaymentsPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('invoices')

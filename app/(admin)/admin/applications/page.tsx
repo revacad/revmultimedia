@@ -1,4 +1,5 @@
 import ApplicationsPageClient from '@/components/admin/applications/ApplicationsPageClient'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapApplicationListRow } from '@/lib/applications/map'
 
@@ -9,6 +10,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function AdminApplicationsPage() {
+  await requireAdmin()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('applications')

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import PortalDocumentUpload from '@/components/portal/PortalDocumentUpload'
 import DocumentTypeIcon from '@/components/portal/DocumentTypeIcon'
 import PortalDocumentDownloadButton from '@/components/portal/PortalDocumentDownloadButton'
@@ -8,12 +9,8 @@ import { createServerClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export default async function PortalDocumentsPage() {
+  const user = await requirePortalUser()
   const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
 
   const { data: student } = await supabase
     .from('students')

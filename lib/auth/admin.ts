@@ -1,35 +1,42 @@
-import { createServerClient } from "@/lib/supabase/server";
+import { createServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-export type AdminRole = "admin" | "superadmin";
+export type AdminRole = 'admin' | 'superadmin'
 
 export async function getAdminSession(): Promise<{
-  userId: string;
-  role: AdminRole;
+  userId: string
+  adminId: string
+  role: AdminRole
 } | null> {
-  const supabase = await createServerClient();
+  const supabase = await createServerClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null
 
-  const role = user.app_metadata?.role as string | undefined;
-  if (role !== "admin" && role !== "superadmin") {
-    return null;
-  }
+  const adminClient = createAdminClient()
+  const { data: admin } = await adminClient
+    .from('admins')
+    .select('id, role, is_active')
+    .eq('auth_user_id', user.id)
+    .single()
 
-  return { userId: user.id, role };
+  if (!admin || !admin.is_active) return null
+  if (admin.role !== 'admin' && admin.role !== 'superadmin') return null
+
+  return { userId: user.id, adminId: admin.id, role: admin.role as AdminRole }
 }
 
+/** For server actions — throws instead of redirecting. */
 export async function requireAdmin(): Promise<{
-  userId: string;
-  role: AdminRole;
+  userId: string
+  adminId: string
+  role: AdminRole
 }> {
-  const session = await getAdminSession();
+  const session = await getAdminSession()
   if (!session) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized')
   }
-  return session;
+  return session
 }

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
-import { generateInvoicePdf } from '@/lib/pdf/generate'
+import { generateAndStoreInvoicePdf } from '@/lib/pdf/generate'
 import { sendTuitionInvoice } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
 import { invalidateAdminStats } from '@/lib/redis/invalidate'
@@ -117,7 +117,9 @@ export async function generateTuitionInvoice(data: {
       }
     }
 
-    await generateInvoicePdf(invoice.id, application, settingsMap)
+    void generateAndStoreInvoicePdf(invoice.id).catch((err) => {
+      console.error('Tuition invoice PDF generation failed:', err)
+    })
 
     await sendTuitionInvoice(application.real_email, {
       name: application.full_name,
@@ -125,6 +127,12 @@ export async function generateTuitionInvoice(data: {
       amountGhs: totalGhs,
       dueDate: data.dueDate,
       isInternational: application.country !== 'Ghana',
+      momoNumber: settingsMap.momo_number_1 || undefined,
+      momoName: settingsMap.momo_name_1 || undefined,
+      bankName: settingsMap.bank_name || undefined,
+      bankAccount: settingsMap.bank_account_number || undefined,
+      bankAccountName: settingsMap.bank_account_name || undefined,
+      swiftCode: settingsMap.bank_swift_code || undefined,
       pdfUrl: '',
     })
 

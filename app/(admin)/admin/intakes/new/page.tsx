@@ -1,4 +1,5 @@
 import IntakeForm from "@/components/admin/intakes/IntakeForm";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { getAllCoursesAdmin } from "@/lib/courses/queries";
 
 export const metadata = {
@@ -10,6 +11,7 @@ interface NewIntakePageProps {
 }
 
 export default async function NewIntakePage({ searchParams }: NewIntakePageProps) {
+  await requireAdmin();
   const { course: courseId } = await searchParams;
   const courses = await getAllCoursesAdmin();
 
