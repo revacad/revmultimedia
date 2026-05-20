@@ -32,6 +32,28 @@ export default function Footer() {
                 {link}
               </Link>
             ))}
+            <div style={{ borderTop: '1px solid #EFEFF5', marginTop: '8px', paddingTop: '8px' }}>
+              <p
+                className="mb-2 font-body text-[11px] font-medium uppercase tracking-wider"
+                style={{ color: '#D8D8E8' }}
+              >
+                Legal
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/privacy"
+                  className="font-body text-sm text-gray-600 transition-colors hover:text-primary"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  className="font-body text-sm text-gray-600 transition-colors hover:text-primary"
+                >
+                  Terms of Service
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
