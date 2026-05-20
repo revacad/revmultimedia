@@ -97,7 +97,7 @@ export function buildR2KeyFromUploadContext(context: UploadContext): {
       };
     case "course_thumbnail":
       return {
-        key: courseThumbnailPath(context.slug, context.ext),
+        key: courseThumbnailPathByUuid(randomUUID(), context.ext),
         bucket: "public",
       };
     case "course_content":
