@@ -42,8 +42,6 @@ export async function middleware(request: NextRequest) {
     '/_next/',
     '/favicon',
     '/manifest.json',
-    '/sw.js',
-    '/workbox-',
     '/icons/',
   ]
 
