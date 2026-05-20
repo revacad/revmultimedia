@@ -94,6 +94,8 @@ export const MESSAGING_SETTING_KEYS = [
   'sms_provider',
   'sentdm_api_key',
   'sentdm_sender_id',
+  'sentdm_whatsapp_template_id',
+  'sentdm_sms_template_id',
   'fishafrica_api_key',
   'fishafrica_sender_id',
 ] as const
