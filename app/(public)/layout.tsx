@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import PublicLayoutShell from '@/components/public/PublicLayoutShell'
 
 function metadataBaseUrl(): URL {
@@ -70,5 +71,22 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <PublicLayoutShell>{children}</PublicLayoutShell>
+  return (
+    <>
+      {/* Google Analytics - public pages only */}
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=G-ZWFHCT54WF"
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-ZWFHCT54WF');
+        `}
+      </Script>
+      <PublicLayoutShell>{children}</PublicLayoutShell>
+    </>
+  )
 }
