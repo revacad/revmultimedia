@@ -1,30 +1,28 @@
-import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createServerClient as createSSRClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { withAuthCookieOptions } from '@/lib/supabase/cookies'
 
 export async function createServerClient() {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies()
 
-  return createSupabaseServerClient(
+  return createSSRClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      db: {
-        schema: "public",
-      },
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
+            withAuthCookieOptions(cookiesToSet).forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            )
           } catch {
-            // setAll can fail in Server Components; middleware handles refresh.
+            // Server component — cookies can only be set in Server Actions or Route Handlers
           }
         },
       },
     },
-  );
+  )
 }

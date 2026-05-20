@@ -81,6 +81,7 @@ async function runPostSubmitSideEffects(
     applicantName: string
     email: string
   },
+  courseTitle: string,
 ): Promise<void> {
   const idDocType = data.country === 'Ghana' ? 'national_id' : 'passport'
   const documentRows = [
@@ -130,22 +131,11 @@ async function runPostSubmitSideEffects(
     console.error('Auth error:', authError)
   }
 
-  const [{ data: courseRow }, { data: intakeRow }] = await Promise.all([
-    supabase.from('courses').select('title').eq('id', data.courseId).single(),
-    supabase.from('intakes').select('name').eq('id', data.intakeId).single(),
-  ])
-
   await Promise.allSettled([
-    sendApplicationReceived(data.email, {
-      name: data.fullName,
-      reference: rpc.reference!,
-      courseName: courseRow?.title,
-      intakeName: intakeRow?.name,
-    }),
     sendAdminNewApplication({
       applicantName: data.fullName,
       reference: rpc.reference!,
-      course: courseRow?.title ?? data.courseId,
+      course: courseTitle,
     }),
     sendMessage(
       normalisedPhone,
@@ -293,6 +283,29 @@ export async function submitApplication(formData: unknown) {
     email: data.email,
   }
 
+  const [{ data: courseRow }, { data: intakeRow }] = await Promise.all([
+    supabase.from('courses').select('title').eq('id', data.courseId).single(),
+    supabase.from('intakes').select('name').eq('id', data.intakeId).single(),
+  ])
+
+  const courseTitle = courseRow?.title ?? data.courseId
+  const intakeName = intakeRow?.name
+
+  const emailTimeout = new Promise<void>((resolve) => setTimeout(resolve, 5000))
+  try {
+    await Promise.race([
+      sendApplicationReceived(data.email, {
+        name: data.fullName,
+        reference: rpc.reference,
+        courseName: courseTitle,
+        intakeName,
+      }),
+      emailTimeout,
+    ])
+  } catch (err) {
+    console.error('Application email failed:', err)
+  }
+
   void runPostSubmitSideEffects(
     supabase,
     rpc,
@@ -300,15 +313,10 @@ export async function submitApplication(formData: unknown) {
     normalisedPhone,
     data.idempotencyKey,
     successResult,
+    courseTitle,
   ).catch((err) => console.error('Post-submit side effects error:', err))
 
-  return {
-    success: true,
-    reference: rpc.reference,
-    invoiceReference: rpc.invoice_reference,
-    applicantName: data.fullName,
-    email: data.email,
-  }
+  return successResult
 }
 
 function isApplicationStatus(value: string): value is ApplicationStatus {
