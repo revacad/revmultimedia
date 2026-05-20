@@ -1,7 +1,21 @@
 import type { Metadata } from 'next'
 import PublicLayoutShell from '@/components/public/PublicLayoutShell'
 
+function metadataBaseUrl(): URL {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  if (raw) {
+    try {
+      const url = new URL(raw)
+      if (url.hostname) return url
+    } catch {
+      // ignore invalid env value
+    }
+  }
+  return new URL('https://revmultimedia.com')
+}
+
 export const metadata: Metadata = {
+  metadataBase: metadataBaseUrl(),
   title: {
     default: 'Rev Multimedia Academy | Creative Education in Ghana',
     template: '%s | Rev Multimedia Academy',

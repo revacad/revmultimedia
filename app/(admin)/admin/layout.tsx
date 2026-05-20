@@ -15,6 +15,7 @@ export default async function AdminLayout({
   const pathname = (await headers()).get('x-pathname') ?? ''
   const isLoginPage = pathname === '/admin/login'
 
+  // Protect all admin routes except login (required for production).
   if (!isLoginPage) {
     await requireAdminPage()
   }

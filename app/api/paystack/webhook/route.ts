@@ -1,8 +1,7 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
-import {
-  verifyTransaction,
-  verifyWebhookSignature,
-} from "@/lib/payments/paystack";
+import { logAuditEvent } from "@/lib/audit/log";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type PaystackWebhookEvent = {
   event: string;
@@ -13,11 +12,37 @@ type PaystackWebhookEvent = {
   };
 };
 
+function verifyPaystackSignature(rawBody: string, signature: string): boolean {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret || !signature) {
+    return false;
+  }
+
+  const hash = createHmac("sha512", secret).update(rawBody).digest("hex");
+
+  try {
+    const hashBuffer = Buffer.from(hash, "utf8");
+    const signatureBuffer = Buffer.from(signature, "utf8");
+    if (hashBuffer.length !== signatureBuffer.length) {
+      return false;
+    }
+    return timingSafeEqual(hashBuffer, signatureBuffer);
+  } catch {
+    return false;
+  }
+}
+
+function metadataInvoiceRef(metadata: Record<string, unknown> | undefined): string | null {
+  if (!metadata) return null;
+  const ref = metadata.invoiceRef;
+  return typeof ref === "string" ? ref : null;
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   const rawBody = await request.text();
   const signature = request.headers.get("x-paystack-signature") ?? "";
 
-  if (!verifyWebhookSignature(rawBody, signature)) {
+  if (!verifyPaystackSignature(rawBody, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
@@ -29,21 +54,82 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ received: true });
   }
 
-  if (event.event === "charge.success") {
-    const reference = event.data?.reference;
+  if (event.event !== "charge.success" || !event.data?.reference) {
+    return NextResponse.json({ received: true });
+  }
 
-    if (reference) {
-      try {
-        await verifyTransaction(reference);
-        // TODO: mark app_fee_paid = true on applications table where paystack_reference matches
-      } catch (error) {
-        console.error("[paystack:webhook] verification failed", {
-          reference,
-          error,
-        });
-      }
+  const paystackReference = event.data.reference;
+  const invoiceRef =
+    metadataInvoiceRef(event.data.metadata) ?? paystackReference;
+
+  if (!invoiceRef.startsWith("REVAPF")) {
+    return NextResponse.json({ received: true });
+  }
+
+  const supabase = createAdminClient();
+  const now = new Date().toISOString();
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .select("id, reference, type, status, application_id")
+    .eq("reference", invoiceRef)
+    .maybeSingle();
+
+  if (invoiceError) {
+    console.error("[paystack:webhook] invoice lookup failed", invoiceError);
+    return NextResponse.json({ received: true });
+  }
+
+  if (!invoice) {
+    console.error("[paystack:webhook] invoice not found", { invoiceRef });
+    return NextResponse.json({ received: true });
+  }
+
+  if (invoice.status === "paid" || invoice.status === "waived") {
+    return NextResponse.json({ received: true });
+  }
+
+  const { error: updateInvoiceError } = await supabase
+    .from("invoices")
+    .update({
+      status: "paid",
+      payment_method: "paystack",
+      paystack_reference: paystackReference,
+      updated_at: now,
+    })
+    .eq("id", invoice.id);
+
+  if (updateInvoiceError) {
+    console.error("[paystack:webhook] invoice update failed", updateInvoiceError);
+    return NextResponse.json({ received: true });
+  }
+
+  if (invoice.type === "application_fee" && invoice.application_id) {
+    const { error: appError } = await supabase
+      .from("applications")
+      .update({
+        app_fee_paid: true,
+        app_fee_paid_at: now,
+        updated_at: now,
+      })
+      .eq("id", invoice.application_id);
+
+    if (appError) {
+      console.error("[paystack:webhook] application update failed", appError);
     }
   }
+
+  void logAuditEvent({
+    action: "payment.paystack_webhook",
+    entityType: "invoice",
+    entityId: invoice.id,
+    newValue: {
+      invoiceRef: invoice.reference,
+      paystackReference,
+      type: invoice.type,
+      applicationId: invoice.application_id,
+    },
+  });
 
   return NextResponse.json({ received: true });
 }

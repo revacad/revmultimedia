@@ -35,10 +35,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ valid: false, reason: "rate_limited" }, { status: 429 });
   }
 
-  if (
-    process.env.DISABLE_OTP_VERIFICATION === "true" &&
-    process.env.NODE_ENV !== "production"
-  ) {
+  // Dev-only bypass: DISABLE_OTP_VERIFICATION never applies in production.
+  const isProduction = process.env.NODE_ENV === "production";
+  if (!isProduction && process.env.DISABLE_OTP_VERIFICATION === "true") {
     return NextResponse.json({ valid: true });
   }
 
