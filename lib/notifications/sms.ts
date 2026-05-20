@@ -6,7 +6,12 @@ export async function sendMessage(
   phone: string,
   message: string,
   channel: 'sms' | 'whatsapp',
-): Promise<{ skipped?: boolean; sent?: boolean; error?: string }> {
+): Promise<{
+  skipped?: boolean
+  sent?: boolean
+  error?: string
+  providerMessageId?: string
+}> {
   const settings = await getSystemSettings()
 
   if (channel === 'whatsapp') {
@@ -45,7 +50,13 @@ export async function sendMessage(
       fishAfricaSenderId,
       fishAfricaKey,
     )
-    return result.sent > 0 ? { sent: true } : { error: result.errors[0] }
+    if (result.sent > 0) {
+      return {
+        sent: true,
+        providerMessageId: result.messageIds[0],
+      }
+    }
+    return { error: result.errors[0] }
   }
 
   const sentdmKey = process.env.SENTDM_API_KEY || settings.sentdm_api_key

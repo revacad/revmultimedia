@@ -17,7 +17,12 @@ export async function sendCampaignMessage(params: {
   message: string
   recipientName: string
   recipientAddress: string
-}): Promise<{ sent: boolean; skipped?: boolean; error?: string }> {
+}): Promise<{
+  sent: boolean
+  skipped?: boolean
+  error?: string
+  providerMessageId?: string
+}> {
   const { channel, subject, message, recipientName, recipientAddress } = params
 
   if (channel === 'email') {
@@ -62,5 +67,8 @@ export async function sendCampaignMessage(params: {
   if (result.error) {
     return { sent: false, error: result.error }
   }
-  return { sent: true }
+  return {
+    sent: true,
+    providerMessageId: result.providerMessageId,
+  }
 }

@@ -99,7 +99,13 @@ export async function processCampaignBatch(campaignId: string): Promise<{
       sentDelta += 1
       await supabase
         .from('communication_logs')
-        .update({ status: 'sent', error_message: null })
+        .update({
+          status: 'sent',
+          error_message: null,
+          ...(result.providerMessageId
+            ? { provider_message_id: result.providerMessageId }
+            : {}),
+        })
         .eq('id', log.id)
     } else if (result.skipped) {
       failedDelta += 1
