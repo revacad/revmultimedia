@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/auth/admin'
 import { invalidateSystemSettings } from '@/lib/redis/invalidate'
 
 export async function updateSettings(
-  updates: Record<string, string>,
+  updates: Record<string, string> | { key: string; value: string }[],
 ): Promise<{ success: true } | { error: string }> {
   try {
     const session = await requireAdmin()
@@ -18,7 +18,11 @@ export async function updateSettings(
       .eq('auth_user_id', session.userId)
       .single()
 
-    for (const [key, value] of Object.entries(updates)) {
+    const entries = Array.isArray(updates)
+      ? updates.map((row) => [row.key, row.value] as const)
+      : Object.entries(updates)
+
+    for (const [key, value] of entries) {
       const { error } = await supabase
         .from('system_settings')
         .update({

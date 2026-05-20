@@ -1,6 +1,9 @@
 import { headers } from 'next/headers'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import AdminTopBar from '@/components/admin/AdminTopBar'
 import { requireAdminPage } from '@/lib/auth/guard'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAdminSession } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,13 +23,24 @@ export default async function AdminLayout({
     return <>{children}</>
   }
 
+  const session = await getAdminSession()
+  const supabase = createAdminClient()
+  const { data: admin } = session
+    ? await supabase
+        .from('admins')
+        .select('full_name, role')
+        .eq('auth_user_id', session.userId)
+        .maybeSingle()
+    : { data: null }
+
   return (
     <div className="flex min-h-screen">
-      <AdminSidebar />
+      <AdminSidebar
+        adminName={admin?.full_name ?? 'Admin'}
+        adminRole={admin?.role ?? 'admin'}
+      />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center border-b border-[#EFEFF5] bg-white px-8">
-          <p className="font-body text-sm font-medium text-[#5A5A7A]">Admin Dashboard</p>
-        </header>
+        <AdminTopBar adminName={admin?.full_name ?? 'Admin'} />
         <main className="flex-1 overflow-auto bg-[#F8F8FC] p-8">{children}</main>
       </div>
     </div>

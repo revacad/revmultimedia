@@ -37,6 +37,13 @@ export default async function AdminStudentDetailPage({
     notFound()
   }
 
+  const { data: notifications } = await supabase
+    .from('notifications_log')
+    .select('id, channel, event_type, status, sent_at')
+    .eq('student_id', id)
+    .order('sent_at', { ascending: false })
+    .limit(10)
+
   const detail: AdminStudentDetail = {
     id: student.id,
     student_id: student.student_id,
@@ -52,6 +59,7 @@ export default async function AdminStudentDetailPage({
     invoices: (student.invoices as AdminStudentDetail['invoices']) ?? [],
     documents: (student.documents as AdminStudentDetail['documents']) ?? [],
     applications: student.applications as AdminStudentDetail['applications'],
+    notifications: (notifications ?? []) as AdminStudentDetail['notifications'],
   }
 
   return <StudentDetailView student={detail} />

@@ -44,7 +44,13 @@ export async function loginAdmin(
     return { error: 'This account has been deactivated.' }
   }
 
-  redirect('/admin/courses')
+  redirect('/admin')
+}
+
+export async function adminLogout() {
+  const supabase = await createServerClient()
+  await supabase.auth.signOut()
+  redirect('/admin/login')
 }
 
 export async function portalLogin(

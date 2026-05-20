@@ -11,6 +11,9 @@ import { formatCategory } from '@/lib/courses/labels'
 import type { CourseCategory } from '@/lib/courses/types'
 import { formatGHS } from '@/lib/utils'
 import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
+import NotificationHistoryCard, {
+  type NotificationLogRow,
+} from '@/components/admin/students/NotificationHistoryCard'
 
 export type AdminStudentDetail = {
   id: string
@@ -49,6 +52,7 @@ export type AdminStudentDetail = {
     r2_key: string
   }[]
   applications: { reference: string } | null
+  notifications: NotificationLogRow[]
 }
 
 const ENROLLMENT_LABELS: Record<string, string> = {
@@ -186,6 +190,8 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
               </ul>
             )}
           </section>
+
+          <NotificationHistoryCard notifications={student.notifications} />
         </div>
 
         <div>

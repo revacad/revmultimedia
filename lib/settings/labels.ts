@@ -1,8 +1,8 @@
 export const SETTINGS_SECTIONS = [
   {
-    id: 'fees',
-    title: 'Fees',
-    keys: ['application_fee_ghs'],
+    id: 'application',
+    title: 'Application',
+    keys: ['application_fee_ghs', 'application_deadline_message'],
   },
   {
     id: 'momo',
@@ -35,6 +35,7 @@ export const SETTINGS_SECTIONS = [
 
 export const SETTINGS_LABELS: Record<string, string> = {
   application_fee_ghs: 'Application Fee (GHS)',
+  application_deadline_message: 'Deadline Banner Message',
   momo_number_1: 'Primary MoMo Number',
   momo_name_1: 'Primary MoMo Account Name',
   momo_number_2: 'Secondary MoMo Number (optional)',
@@ -49,4 +50,9 @@ export const SETTINGS_LABELS: Record<string, string> = {
   academy_phone: 'Academy Phone',
   academy_address: 'Academy Address',
   sentdm_sender_id: 'Sent.dm Sender ID',
+}
+
+export const SETTINGS_HELPERS: Record<string, string> = {
+  application_deadline_message:
+    'Shown on the home page. Leave blank to hide.',
 }
