@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import PortalNavbar from '@/components/portal/PortalNavbar'
+import PortalSecondaryNav from '@/components/portal/PortalSecondaryNav'
 import { createServerClient } from '@/lib/supabase/server'
 import { firstName } from '@/lib/portal/timeline'
 
@@ -28,10 +29,12 @@ export default async function PortalLayout({ children }: { children: React.React
     .maybeSingle()
 
   const displayName = student?.full_name ?? application?.full_name ?? 'Student'
+  const isStudent = Boolean(student)
 
   return (
     <div className="flex min-h-screen flex-col">
       <PortalNavbar displayName={firstName(displayName)} />
+      <PortalSecondaryNav isStudent={isStudent} />
       <main className="min-h-screen flex-1 bg-[#F0F2F8] p-6">{children}</main>
     </div>
   )

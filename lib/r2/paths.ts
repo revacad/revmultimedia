@@ -15,6 +15,15 @@ export function invoicePdfPath(invoiceRef: string): string {
   return `invoices/${invoiceRef}/invoice.pdf`;
 }
 
+export function studentDocumentPath(
+  studentId: string,
+  documentType: string,
+  uuid: string,
+  ext: string,
+): string {
+  return `documents/${studentId}/${documentType}/${uuid}.${ext}`;
+}
+
 export function certificatePath(studentId: string, courseSlug: string): string {
   return `certificates/${studentId}/${courseSlug}/certificate.pdf`;
 }

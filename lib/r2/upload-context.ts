@@ -1,8 +1,10 @@
 import { randomUUID } from "crypto";
 import {
+  certificatePath,
   courseThumbnailPath,
   documentPath,
   profilePhotoPath,
+  studentDocumentPath,
   teamPhotoPath,
 } from "@/lib/r2/paths";
 
@@ -12,6 +14,18 @@ export type UploadContext =
       type: "document";
       applicationRef: string;
       documentType: string;
+      ext: string;
+    }
+  | {
+      type: "student_document";
+      studentId: string;
+      documentType: string;
+      ext: string;
+    }
+  | {
+      type: "certificate";
+      studentId: string;
+      courseSlug: string;
       ext: string;
     }
   | {
@@ -50,6 +64,21 @@ export function buildR2KeyFromUploadContext(context: UploadContext): {
           randomUUID(),
           context.ext,
         ),
+        bucket: "private",
+      };
+    case "student_document":
+      return {
+        key: studentDocumentPath(
+          context.studentId,
+          context.documentType,
+          randomUUID(),
+          context.ext,
+        ),
+        bucket: "private",
+      };
+    case "certificate":
+      return {
+        key: certificatePath(context.studentId, context.courseSlug),
         bucket: "private",
       };
     case "application_document":

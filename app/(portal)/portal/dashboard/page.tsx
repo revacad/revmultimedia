@@ -2,9 +2,10 @@ import { redirect } from 'next/navigation'
 import Badge from '@/components/ui/Badge'
 import ReferenceCode from '@/components/ui/ReferenceCode'
 import CertificateDownloadButton from '@/components/portal/CertificateDownloadButton'
+import ProfilePhotoUpload from '@/components/portal/ProfilePhotoUpload'
 import PaymentInstructions from '@/components/portal/PaymentInstructions'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
-import { formatApplicationDate, getInitials } from '@/lib/applications/format'
+import { formatApplicationDate } from '@/lib/applications/format'
 import { getPaymentSettings } from '@/lib/portal/settings'
 import { firstName } from '@/lib/portal/timeline'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
@@ -211,12 +212,11 @@ export default async function StudentDashboardPage() {
       <section className="rounded-xl bg-white p-6 shadow-card">
         <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Profile</h2>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-          <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ background: 'linear-gradient(135deg, #C74A86, #F18F3B)' }}
-          >
-            <span className="font-body text-xl font-bold">{getInitials(student.full_name)}</span>
-          </div>
+          <ProfilePhotoUpload
+            studentDbId={student.id}
+            fullName={student.full_name}
+            currentPhotoKey={student.profile_photo_r2_key}
+          />
           <div className="min-w-0 flex-1 space-y-2">
             <p className="font-display text-xl font-semibold text-[#1A1A2E]">{student.full_name}</p>
             <p className="font-body text-sm text-[#5A5A7A]">{student.real_email}</p>
@@ -226,12 +226,6 @@ export default async function StudentDashboardPage() {
               {student.state_region ? ` · ${student.state_region}` : ''}
             </p>
             <p className="font-mono text-sm font-semibold text-[#C74A86]">{student.student_id}</p>
-            <button
-              type="button"
-              className="mt-2 rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A]"
-            >
-              Update profile photo
-            </button>
           </div>
         </div>
       </section>
