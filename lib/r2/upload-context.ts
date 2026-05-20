@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import {
   certificatePath,
   courseContentPath,
-  courseThumbnailPath,
+  courseThumbnailPathByUuid,
   documentPath,
   profilePhotoPath,
   resourcePath,
@@ -36,7 +36,7 @@ export type UploadContext =
       documentType: string;
       ext: string;
     }
-  | { type: "course_thumbnail"; slug: string; ext: string }
+  | { type: "course_thumbnail"; ext: string }
   | { type: "course_content"; courseId: string; ext: string }
   | { type: "resource"; adminId: string; ext: string }
   | { type: "team_photo"; memberSlug: string; ext: string };

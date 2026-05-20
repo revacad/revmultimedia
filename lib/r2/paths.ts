@@ -32,6 +32,10 @@ export function courseThumbnailPath(slug: string, ext: string): string {
   return `courses/${slug}/thumbnail.${ext}`;
 }
 
+export function courseThumbnailPathByUuid(uuid: string, ext: string): string {
+  return `courses/thumbnails/${uuid}.${ext}`;
+}
+
 export function teamPhotoPath(memberSlug: string, ext: string): string {
   return `team/${memberSlug}/photo.${ext}`;
 }

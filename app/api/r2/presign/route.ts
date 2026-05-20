@@ -40,7 +40,6 @@ const objectContextSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("course_thumbnail"),
-    slug: z.string().min(1),
   }),
   z.object({
     type: z.literal("team_photo"),
@@ -76,6 +75,9 @@ const flatContextSchema = z.discriminatedUnion("uploadContext", [
   }),
   z.object({
     uploadContext: z.literal("resource"),
+  }),
+  z.object({
+    uploadContext: z.literal("course_thumbnail"),
   }),
 ]);
 
@@ -113,6 +115,9 @@ function normalizeUploadContext(
   if (raw.uploadContext === "course_content") {
     return { type: "course_content", courseId: raw.courseId };
   }
+  if (raw.uploadContext === "course_thumbnail") {
+    return { type: "course_thumbnail" };
+  }
   return { type: "resource" };
 }
 
@@ -138,6 +143,7 @@ function validateFileForContext(
       if (fileSize > 10_485_760) return "File too large. Maximum 10MB.";
       return null;
     case "course_content":
+    case "course_thumbnail":
       if (!isImage) return "Images must be JPEG, PNG, or WebP";
       if (fileSize > 5_242_880) return "File too large. Maximum 5MB.";
       return null;
@@ -274,6 +280,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         ext,
       };
       break;
+    case "course_thumbnail":
+      contextWithExt = { type: "course_thumbnail", ext };
+      break;
     case "resource": {
       const adminSession = await getAdminSession();
       if (!adminSession) {
@@ -299,7 +308,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const presignedUrl = await generatePresignedUploadUrl(bucketName, key, 300);
 
-  if (uploadContext.type === "course_content") {
+  if (
+    uploadContext.type === "course_content" ||
+    uploadContext.type === "course_thumbnail"
+  ) {
     return NextResponse.json({
       presignedUrl,
       key,

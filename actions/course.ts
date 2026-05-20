@@ -37,11 +37,14 @@ export async function createCourse(
     }
 
     const supabase = createAdminClient();
+    const thumbnailKey = String(formData.get("thumbnail_r2_key") ?? "").trim() || null;
+
     const { data, error } = await supabase
       .from("courses")
       .insert({
         ...parsed.data,
         curriculum: parseCurriculumHtml(formData.get("curriculum_html")),
+        thumbnail_r2_key: thumbnailKey,
       })
       .select("id, slug")
       .single();
@@ -88,11 +91,14 @@ export async function updateCourse(
     }
 
     const supabase = createAdminClient();
+    const thumbnailKey = String(formData.get("thumbnail_r2_key") ?? "").trim() || null;
+
     const { data, error } = await supabase
       .from("courses")
       .update({
         ...parsed.data,
         curriculum: parseCurriculumHtml(formData.get("curriculum_html")),
+        thumbnail_r2_key: thumbnailKey,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

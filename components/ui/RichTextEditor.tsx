@@ -239,8 +239,15 @@ export function RichTextEditor({
         </div>
       </div>
 
-      <div style={{ minHeight }}>
-        <EditorContent editor={editor} style={{ padding: '16px' }} />
+      <div
+        style={{
+          minHeight,
+          maxHeight: '400px',
+          overflowY: 'auto',
+          padding: '16px',
+        }}
+      >
+        <EditorContent editor={editor} />
       </div>
     </div>
   )
