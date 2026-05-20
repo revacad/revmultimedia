@@ -42,7 +42,15 @@ export default async function AdminStudentDetailPage({
     notFound()
   }
 
-  const [{ data: notifications }, { data: commLogs }] = await Promise.all([
+  const [{ data: allApplications }, { data: notifications }, { data: commLogs }] =
+    await Promise.all([
+    student.auth_user_id
+      ? supabase
+          .from('applications')
+          .select('id, reference, status, created_at, courses(title)')
+          .eq('auth_user_id', student.auth_user_id)
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
     supabase
       .from('notifications_log')
       .select('id, channel, event_type, status, sent_at')
@@ -56,6 +64,16 @@ export default async function AdminStudentDetailPage({
       .order('sent_at', { ascending: false })
       .limit(20),
   ])
+
+  const applicationRows = (allApplications ?? []).map((row) => ({
+    id: row.id,
+    reference: row.reference,
+    status: row.status as AdminStudentDetail['allApplications'][0]['status'],
+    created_at: row.created_at,
+    courses: firstRelation(
+      row.courses as { title: string } | { title: string }[] | null,
+    ),
+  }))
 
   const detail: AdminStudentDetail = {
     id: student.id,
@@ -72,6 +90,7 @@ export default async function AdminStudentDetailPage({
     invoices: (student.invoices as AdminStudentDetail['invoices']) ?? [],
     documents: (student.documents as AdminStudentDetail['documents']) ?? [],
     applications: student.applications as AdminStudentDetail['applications'],
+    allApplications: applicationRows,
     notifications: (notifications ?? []) as AdminStudentDetail['notifications'],
     communicationLogs: (commLogs ?? []).map((row) => ({
       id: row.id,

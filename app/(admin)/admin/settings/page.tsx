@@ -1,5 +1,5 @@
 import SettingsPageClient from '@/components/admin/settings/SettingsPageClient'
-import { SETTINGS_SECTIONS } from '@/lib/settings/labels'
+import { MESSAGING_SETTING_KEYS, SETTINGS_TABS } from '@/lib/settings/labels'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
@@ -24,21 +24,17 @@ export default async function AdminSettingsPage() {
     values[row.key] = row.value ?? ''
   }
 
-  for (const section of SETTINGS_SECTIONS) {
-    for (const key of section.keys) {
-      if (!(key in values)) {
-        values[key] = ''
+  for (const tab of SETTINGS_TABS) {
+    for (const section of tab.sections) {
+      for (const key of section.keys) {
+        if (!(key in values)) {
+          values[key] = ''
+        }
       }
     }
   }
 
-  for (const key of [
-    'sms_provider',
-    'sentdm_api_key',
-    'sentdm_sender_id',
-    'fishafrica_api_key',
-    'fishafrica_sender_id',
-  ]) {
+  for (const key of MESSAGING_SETTING_KEYS) {
     if (!(key in values)) {
       values[key] = key === 'sms_provider' ? 'sentdm' : ''
     }

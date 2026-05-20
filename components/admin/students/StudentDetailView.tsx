@@ -11,9 +11,11 @@ import { formatCategory } from '@/lib/courses/labels'
 import type { CourseCategory } from '@/lib/courses/types'
 import { formatGHS } from '@/lib/utils'
 import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
+import ApplicationStatusBadge from '@/components/admin/applications/ApplicationStatusBadge'
 import NotificationHistoryCard, {
   type NotificationLogRow,
 } from '@/components/admin/students/NotificationHistoryCard'
+import type { ApplicationStatus } from '@/lib/applications/types'
 import CommunicationHistoryCard, {
   type CommunicationLogHistoryRow,
 } from '@/components/admin/students/CommunicationHistoryCard'
@@ -56,6 +58,13 @@ export type AdminStudentDetail = {
     r2_key: string
   }[]
   applications: { reference: string } | null
+  allApplications: {
+    id: string
+    reference: string
+    status: ApplicationStatus
+    created_at: string
+    courses: { title: string } | null
+  }[]
   notifications: NotificationLogRow[]
   communicationLogs: CommunicationLogHistoryRow[]
 }
@@ -217,19 +226,39 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
                 <dt className="text-[#9898B8]">Country</dt>
                 <dd className="text-[#1A1A2E]">{student.country}</dd>
               </div>
-              {student.applications && (
-                <div>
-                  <dt className="text-[#9898B8]">Application</dt>
-                  <dd>
-                    <Link
-                      href={`/admin/applications/${student.application_id}`}
-                      className="font-mono text-primary hover:underline"
-                    >
-                      {student.applications.reference}
-                    </Link>
-                  </dd>
-                </div>
-              )}
+              <div>
+                <dt className="mb-2 text-[#9898B8]">Applications</dt>
+                <dd>
+                  {student.allApplications.length === 0 ? (
+                    <span className="text-[#9898B8]">None</span>
+                  ) : (
+                    <ul className="space-y-2">
+                      {student.allApplications.map((app) => (
+                        <li
+                          key={app.id}
+                          className="flex flex-wrap items-center gap-2"
+                        >
+                          <Link
+                            href={`/admin/applications/${app.id}`}
+                            className="font-mono text-sm text-primary hover:underline"
+                          >
+                            {app.reference}
+                          </Link>
+                          <span className="font-body text-xs text-[#9898B8]">
+                            → {app.courses?.title ?? 'Course'}
+                          </span>
+                          <ApplicationStatusBadge status={app.status} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {student.allApplications.length > 1 && (
+                    <p className="mt-2 font-body text-xs text-[#9898B8]">
+                      Returning students may have one application per course or intake.
+                    </p>
+                  )}
+                </dd>
+              </div>
             </dl>
           </section>
 

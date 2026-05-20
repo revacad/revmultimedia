@@ -17,16 +17,14 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 export default async function AdminCommunicationsPage() {
   const supabase = createAdminClient()
 
-  const [{ data: campaigns, error }, { data: courses }, { data: intakes }] =
-    await Promise.all([
-      supabase
-        .from('communication_campaigns')
-        .select('*, admins(full_name)')
-        .order('created_at', { ascending: false })
-        .limit(30),
-      supabase.from('courses').select('id, title').order('title'),
-      supabase.from('intakes').select('id, name, course_id').order('start_date', { ascending: false }),
-    ])
+  const [{ data: campaigns, error }, { data: courses }] = await Promise.all([
+    supabase
+      .from('communication_campaigns')
+      .select('*, admins(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(30),
+    supabase.from('courses').select('id, title').order('title'),
+  ])
 
   if (error) {
     console.error('[admin/communications] fetch failed', error)
@@ -46,10 +44,6 @@ export default async function AdminCommunicationsPage() {
   }))
 
   return (
-    <CommunicationsPageClient
-      campaigns={rows}
-      courses={courses ?? []}
-      intakes={intakes ?? []}
-    />
+    <CommunicationsPageClient campaigns={rows} courses={courses ?? []} />
   )
 }

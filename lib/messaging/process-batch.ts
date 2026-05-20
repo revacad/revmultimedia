@@ -55,13 +55,37 @@ export async function processCampaignBatch(campaignId: string): Promise<{
     (students ?? []).map((s) => [s.id, s.full_name] as const),
   )
 
+  const applicantLogs = pendingLogs.filter((log) => !log.student_id)
+  const applicantRecipients = [
+    ...new Set(applicantLogs.map((log) => log.recipient)),
+  ]
+
+  const nameByContact = new Map<string, string>()
+  if (applicantRecipients.length > 0) {
+    const { data: applications } = await supabase
+      .from('applications')
+      .select('full_name, real_email, phone')
+      .or(
+        applicantRecipients
+          .flatMap((r) => [`real_email.eq.${r}`, `phone.eq.${r}`])
+          .join(','),
+      )
+
+    for (const app of applications ?? []) {
+      nameByContact.set(app.real_email, app.full_name)
+      nameByContact.set(app.phone, app.full_name)
+    }
+  }
+
   let sentDelta = 0
   let failedDelta = 0
 
   for (const log of pendingLogs) {
     const channel = log.channel as CommunicationChannel
     const recipientName =
-      (log.student_id && nameById.get(log.student_id)) || 'Student'
+      (log.student_id && nameById.get(log.student_id)) ||
+      nameByContact.get(log.recipient) ||
+      'Student'
 
     const result = await sendCampaignMessage({
       channel,

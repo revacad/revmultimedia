@@ -7,7 +7,11 @@ import { requireAdmin } from '@/lib/auth/admin'
 import { sendMessage } from '@/lib/notifications/sms'
 import { sendCampaignMessage } from '@/lib/messaging/send'
 import { resolveCampaignRecipients } from '@/lib/messaging/recipients'
-import type { CampaignFilters, CommunicationChannel } from '@/lib/messaging/types'
+import type {
+  CampaignFilters,
+  CampaignRecipient,
+  CommunicationChannel,
+} from '@/lib/messaging/types'
 
 async function getAdminRecord() {
   const session = await requireAdmin()
@@ -43,7 +47,7 @@ export async function sendDirectMessage(data: {
     if (!student) return { error: 'Student not found' }
 
     const filters: CampaignFilters = {
-      recipientType: 'direct',
+      audience: 'direct',
       studentId: data.studentId,
     }
 
@@ -153,7 +157,8 @@ export async function createCampaign(data: {
     const logs = recipients.map((recipient) => ({
       campaign_id: campaign.id,
       student_id: recipient.studentId,
-      recipient: data.channel === 'email' ? recipient.email : recipient.phone,
+      recipient:
+        data.channel === 'email' ? recipient.email : recipient.phone,
       channel: data.channel,
       status: 'pending' as const,
     }))
@@ -195,7 +200,7 @@ async function processSingleRecipientCampaign(
   channel: CommunicationChannel,
   subject: string | undefined,
   message: string,
-  recipient: { studentId: string; fullName: string; email: string; phone: string },
+  recipient: CampaignRecipient,
 ) {
   const address = channel === 'email' ? recipient.email : recipient.phone
   const result = await sendCampaignMessage({

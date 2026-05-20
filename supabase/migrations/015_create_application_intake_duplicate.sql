@@ -1,3 +1,6 @@
+-- Allow returning students to apply for different courses/intakes;
+-- block only duplicate active applications for the same intake.
+
 CREATE OR REPLACE FUNCTION public.create_application(
   p_real_email text,
   p_phone text,
@@ -150,7 +153,3 @@ BEGIN
   );
 END;
 $$;
-
-GRANT EXECUTE ON FUNCTION public.create_application(
-  text, text, text, date, text, text, text, text, text, text, text, int, text, uuid, uuid, boolean, text
-) TO authenticated, service_role;

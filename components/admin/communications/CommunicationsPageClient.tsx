@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react'
 import { createCampaign } from '@/actions/communications'
 import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
 import { formatPaymentDateTime } from '@/lib/payments/format'
-import type { CampaignFilters, CommunicationChannel } from '@/lib/messaging/types'
+import type { AudienceFilter, CampaignFilters, CommunicationChannel } from '@/lib/messaging/types'
 
 export type CampaignListRow = {
   id: string
@@ -22,12 +22,10 @@ export type CampaignListRow = {
 }
 
 type CourseOption = { id: string; title: string }
-type IntakeOption = { id: string; name: string; course_id: string }
 
 interface CommunicationsPageClientProps {
   campaigns: CampaignListRow[]
   courses: CourseOption[]
-  intakes: IntakeOption[]
 }
 
 const CHANNEL_CLASS: Record<string, string> = {
@@ -39,42 +37,42 @@ const CHANNEL_CLASS: Record<string, string> = {
 export default function CommunicationsPageClient({
   campaigns,
   courses,
-  intakes,
 }: CommunicationsPageClientProps) {
   const router = useRouter()
   const [channel, setChannel] = useState<CommunicationChannel>('sms')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
-  const [audience, setAudience] = useState<'all' | 'course' | 'intake'>('all')
+  const [audience, setAudience] = useState<AudienceFilter>('all_students')
   const [courseId, setCourseId] = useState('')
-  const [intakeId, setIntakeId] = useState('')
+  const [country, setCountry] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  const filteredIntakes = courseId
-    ? intakes.filter((i) => i.course_id === courseId)
-    : intakes
+  function buildFilters(): CampaignFilters | { error: string } {
+    const filters: CampaignFilters = { audience }
+
+    if (audience === 'students_by_course') {
+      if (!courseId) return { error: 'Select a course' }
+      filters.courseId = courseId
+    }
+    if (audience === 'students_by_country') {
+      if (!country.trim()) return { error: 'Enter a country' }
+      filters.country = country.trim()
+    }
+
+    return filters
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setSuccess(null)
 
-    const filters: CampaignFilters = { recipientType: audience }
-    if (audience === 'course') {
-      if (!courseId) {
-        setError('Select a course')
-        return
-      }
-      filters.courseId = courseId
-    }
-    if (audience === 'intake') {
-      if (!intakeId) {
-        setError('Select an intake')
-        return
-      }
-      filters.intakeId = intakeId
+    const built = buildFilters()
+    if ('error' in built) {
+      setError(built.error)
+      return
     }
 
     startTransition(async () => {
@@ -82,7 +80,7 @@ export default function CommunicationsPageClient({
         channel,
         subject: channel === 'email' ? subject : undefined,
         message,
-        filters,
+        filters: built,
       })
       if ('error' in result) {
         setError(result.error)
@@ -101,7 +99,7 @@ export default function CommunicationsPageClient({
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-[#1A1A2E]">Communications</h1>
         <p className="mt-1 font-body text-sm text-[#9898B8]">
-          Send bulk email, SMS, or WhatsApp messages to students
+          Send bulk email, SMS, or WhatsApp to students and applicants
         </p>
       </header>
 
@@ -144,32 +142,49 @@ export default function CommunicationsPageClient({
                 required
                 rows={5}
                 className={adminFieldClassName}
-                placeholder="Your message to students…"
+                placeholder="Your message…"
               />
             </div>
 
             <div>
-              <AdminLabel>Audience</AdminLabel>
+              <AdminLabel htmlFor="audience">Audience</AdminLabel>
               <select
+                id="audience"
                 value={audience}
-                onChange={(e) => setAudience(e.target.value as typeof audience)}
+                onChange={(e) => setAudience(e.target.value as AudienceFilter)}
                 className={adminFieldClassName}
               >
-                <option value="all">All active students</option>
-                <option value="course">By course</option>
-                <option value="intake">By intake</option>
+                <optgroup label="Students">
+                  <option value="all_students">All active students</option>
+                  <option value="students_by_course">Students by course</option>
+                  <option value="students_by_country">Students by country</option>
+                  <option value="students_paid_tuition">Students — tuition paid</option>
+                  <option value="students_unpaid_tuition">Students — tuition unpaid</option>
+                  <option value="students_partial_tuition">Students — partial tuition</option>
+                  <option value="students_completed">Completed students</option>
+                </optgroup>
+                <optgroup label="Applicants">
+                  <option value="all_applicants">All applicants</option>
+                  <option value="applicants_pending">Pending applicants</option>
+                  <option value="applicants_shortlisted">Shortlisted</option>
+                  <option value="applicants_accepted">Accepted (awaiting payment)</option>
+                  <option value="applicants_rejected">Rejected</option>
+                  <option value="applicants_deferred">Deferred</option>
+                  <option value="applicants_app_fee_unpaid">App fee unpaid</option>
+                  <option value="applicants_app_fee_paid">App fee paid</option>
+                </optgroup>
+                <optgroup label="Everyone">
+                  <option value="all">All (students + applicants)</option>
+                </optgroup>
               </select>
             </div>
 
-            {audience === 'course' && (
+            {audience === 'students_by_course' && (
               <div>
                 <AdminLabel>Course</AdminLabel>
                 <select
                   value={courseId}
-                  onChange={(e) => {
-                    setCourseId(e.target.value)
-                    setIntakeId('')
-                  }}
+                  onChange={(e) => setCourseId(e.target.value)}
                   className={adminFieldClassName}
                 >
                   <option value="">Select course…</option>
@@ -182,21 +197,16 @@ export default function CommunicationsPageClient({
               </div>
             )}
 
-            {audience === 'intake' && (
+            {audience === 'students_by_country' && (
               <div>
-                <AdminLabel>Intake</AdminLabel>
-                <select
-                  value={intakeId}
-                  onChange={(e) => setIntakeId(e.target.value)}
+                <AdminLabel htmlFor="country">Country</AdminLabel>
+                <input
+                  id="country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
                   className={adminFieldClassName}
-                >
-                  <option value="">Select intake…</option>
-                  {filteredIntakes.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="e.g. Ghana"
+                />
               </div>
             )}
 
