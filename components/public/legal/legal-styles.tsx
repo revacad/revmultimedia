@@ -14,7 +14,7 @@ export function LegalP({ children }: { children: ReactNode }) {
 
 export function LegalList({ items }: { items: ReactNode[] }) {
   return (
-    <ul style={{ paddingLeft: '20px', margin: '12px 0', listStyleColor: '#C74A86' }}>
+    <ul style={{ paddingLeft: '20px', margin: '12px 0' }}>
       {items.map((item, i) => (
         <li key={i} style={{ marginBottom: '8px', color: '#5A5A7A' }}>
           {item}
