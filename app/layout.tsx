@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { PageTransitionLoader } from '@/components/ui/PageTransitionLoader'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -51,6 +53,9 @@ export default function RootLayout({
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       </head>
       <body>
+        <Suspense fallback={null}>
+          <PageTransitionLoader />
+        </Suspense>
         {children}
       </body>
     </html>
