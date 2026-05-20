@@ -20,7 +20,7 @@ const SANITIZE_OPTIONS = {
     'a',
     'div',
   ],
-  ALLOWED_ATTR: ['src', 'alt', 'href', 'target', 'class', 'style'],
+  ALLOWED_ATTR: ['src', 'alt', 'href', 'target', 'class', 'style', 'id'],
 }
 
 interface SanitizedHtmlProps {

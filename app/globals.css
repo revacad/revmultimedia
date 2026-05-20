@@ -294,6 +294,14 @@
   margin-bottom: 12px;
 }
 
+.rich-content h2:first-child {
+  margin-top: 0;
+}
+
+.curriculum-toc-link:hover {
+  color: #C74A86 !important;
+}
+
 .rich-content h3 {
   font-family: 'Clash Display', sans-serif;
   font-size: 18px;

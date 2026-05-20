@@ -3,15 +3,12 @@ import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import SanitizedHtml from '@/components/ui/SanitizedHtml'
 import Button from '@/components/ui/Button'
+import { CourseCurriculumSection } from '@/components/public/courses/CourseCurriculumSection'
 import InternationalWelcomeNote from '@/components/public/InternationalWelcomeNote'
 import ModeBadge from '@/components/public/ModeBadge'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
 import { getCourseThumbnailSrc } from '@/lib/courses/thumbnail'
-import {
-  curriculumHtml,
-  getVimeoId,
-  getYouTubeId,
-} from '@/lib/courses/curriculum'
+import { processCurriculum, getVimeoId, getYouTubeId } from '@/lib/courses/curriculum'
 import { getSlotIndicator } from '@/lib/courses/slots'
 import type { Course } from '@/lib/courses/types'
 import { publicSectionClass } from '@/lib/public-ui'
@@ -95,7 +92,7 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
   const thumbnailSrc = getCourseThumbnailSrc(course)
   const slotIndicator = getSlotIndicator(course.intakes)
 
-  const rawCurriculumHtml = curriculumHtml(course.curriculum)
+  const { html: processedCurriculum, toc: tocItems } = processCurriculum(course.curriculum)
   const descriptionIsHtml = Boolean(course.description?.includes('<'))
 
   return (
@@ -182,45 +179,12 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
         </aside>
       </div>
 
-      <section style={{ padding: '48px' }}>
-        <h2
-          style={{
-            fontFamily: 'Clash Display, sans-serif',
-            fontSize: '28px',
-            color: '#1A1A2E',
-            marginBottom: '8px',
-          }}
-        >
-          What you will learn
-        </h2>
-        <p
-          style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '16px',
-            color: '#9898B8',
-            marginBottom: '32px',
-          }}
-        >
-          Full curriculum for {course.title}
-        </p>
-        {rawCurriculumHtml ? (
-          <SanitizedHtml html={rawCurriculumHtml} className="rich-content" />
-        ) : (
-          <div
-            className="text-center"
-            style={{
-              background: '#F7F8FC',
-              border: '1.5px dashed #D8D8E8',
-              borderRadius: '14px',
-              padding: '32px',
-            }}
-          >
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: '#9898B8' }}>
-              Curriculum details coming soon
-            </p>
-          </div>
-        )}
-      </section>
+      <CourseCurriculumSection
+        courseTitle={course.title}
+        courseSlug={course.slug}
+        html={processedCurriculum}
+        toc={tocItems}
+      />
 
       {course.video_intro_url && <IntroVideo url={course.video_intro_url} />}
     </div>
