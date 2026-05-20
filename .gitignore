@@ -17,6 +17,12 @@
 /.next/
 /out/
 
+# PWA (regenerated at build)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/worker-*.js
+
 # production
 /build
 

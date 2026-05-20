@@ -5,6 +5,8 @@ interface LogoLoaderProps {
   fullScreen?: boolean
   text?: string
   variant?: 'light' | 'admin'
+  /** Dark background and light text (e.g. PWA splash) */
+  dark?: boolean
 }
 
 export function LogoLoader({
@@ -12,7 +14,9 @@ export function LogoLoader({
   fullScreen = false,
   text,
   variant = 'light',
+  dark = false,
 }: LogoLoaderProps) {
+  const isDark = dark || variant === 'admin'
   const dotSize = size === 'sm' ? 6 : size === 'md' ? 8 : 12
   const fontSize = size === 'sm' ? 16 : size === 'md' ? 22 : 32
   const gap = size === 'sm' ? 3 : size === 'md' ? 4 : 6
@@ -21,8 +25,7 @@ export function LogoLoader({
     ? {
         position: 'fixed' as const,
         inset: 0,
-        backgroundColor:
-          variant === 'admin' ? 'rgba(26,26,46,0.92)' : 'rgba(255,255,255,0.92)',
+        backgroundColor: isDark ? 'rgba(26,26,46,0.95)' : 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         flexDirection: 'column' as const,
@@ -38,8 +41,8 @@ export function LogoLoader({
         padding: size === 'sm' ? '16px' : '32px',
       }
 
-  const multimediaColor = variant === 'admin' ? '#FFFFFF' : '#1A1A2E'
-  const textColor = variant === 'admin' ? 'rgba(255,255,255,0.55)' : '#9898B8'
+  const multimediaColor = isDark ? '#FFFFFF' : '#1A1A2E'
+  const textColor = isDark ? 'rgba(255,255,255,0.6)' : '#9898B8'
 
   return (
     <div style={wrapper} role="status" aria-live="polite" aria-busy="true">

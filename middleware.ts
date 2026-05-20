@@ -37,9 +37,14 @@ export async function middleware(request: NextRequest) {
     '/admin/accept-invite',
     '/forgot-password',
     '/reset-password',
+    '/splash',
     '/api/',
     '/_next/',
     '/favicon',
+    '/manifest.json',
+    '/sw.js',
+    '/workbox-',
+    '/icons/',
   ]
 
   const isPublicPath = publicPaths.some((p) => path.startsWith(p))
