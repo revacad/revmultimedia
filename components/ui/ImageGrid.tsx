@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 interface ImageGridProps {
   images: { url: string; alt?: string; caption?: string }[]
   columns?: 2 | 3
@@ -10,16 +12,18 @@ export function ImageGrid({ images, columns = 2 }: ImageGridProps) {
     <div className={`image-grid ${columns === 3 ? 'image-grid-3' : ''}`}>
       {images.map((image, i) => (
         <div key={i} style={{ position: 'relative' }}>
-          <img
+          <Image
             src={image.url}
             alt={image.alt || ''}
+            width={400}
+            height={200}
             style={{
               width: '100%',
               height: '200px',
               objectFit: 'cover',
               borderRadius: '10px',
-              display: 'block',
             }}
+            unoptimized={image.url.startsWith('http')}
           />
           {image.caption && (
             <p

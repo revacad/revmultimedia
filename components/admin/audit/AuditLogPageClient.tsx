@@ -79,7 +79,7 @@ export default function AuditLogPageClient({
       }
       return true
     })
-  }, [logs, actionFilter, adminFilter, dateFrom, dateTo, search, admins])
+  }, [logs, actionFilter, adminFilter, dateFrom, dateTo, search])
 
   return (
     <div className="mx-auto max-w-[1400px]">
