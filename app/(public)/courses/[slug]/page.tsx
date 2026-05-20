@@ -1,16 +1,26 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import CourseDetailView from '@/components/public/courses/CourseDetailView'
-import { getCourseBySlug, getPublishedCourses } from '@/lib/courses/queries'
+import { getCourseBySlug } from '@/lib/courses/queries'
 import { createServerClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
 
 interface CourseDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  const courses = await getPublishedCourses();
-  return courses.map((course) => ({ slug: course.slug }));
+  try {
+    const supabase = await createServerClient()
+    const { data: courses } = await supabase
+      .from('courses')
+      .select('slug')
+      .eq('is_published', true)
+    return (courses || []).map((course) => ({ slug: course.slug }))
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({

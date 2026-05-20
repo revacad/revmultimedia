@@ -133,10 +133,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
         className={cn('reveal-section grid min-h-[520px] grid-cols-1 lg:grid-cols-[55%_45%]', publicSectionClass.white)}
       >
         <div ref={heroLeftRef} className="flex flex-col justify-center px-6 pb-8 pt-12 sm:px-8 lg:pl-10">
-          <span className="inline-flex w-fit items-center rounded-full bg-primary-light px-3 py-1 text-xs font-semibold text-primary">
-            Creative Education for the AI Era
-          </span>
-          <h1 className="hero-headline section-headline mt-4 font-display text-[36px] font-bold leading-[1.15] text-[#1A1A2E] sm:text-[44px] sm:leading-[1.05] lg:text-[52px]">
+          <h1 className="hero-headline section-headline font-display text-[36px] font-bold leading-[1.15] text-[#1A1A2E] sm:text-[44px] sm:leading-[1.05] lg:text-[52px]">
             <span className="block">Build Skills</span>
             <span className="block">That Cannot Be</span>
             <span className="block text-primary">Automated.</span>
