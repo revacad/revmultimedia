@@ -4,7 +4,7 @@ import { PageTransitionLoader } from '@/components/ui/PageTransitionLoader'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Rev Multimedia Academy',
+  title: 'Rev Multimedia',
   description: 'Creative Education for the AI Era — Graphic Design, Motion Graphics, Video Editing',
   manifest: '/manifest.json',
   themeColor: '#C74A86',

@@ -267,7 +267,7 @@ export async function sendTestSms(
 
     const result = await sendMessage(
       normalized,
-      'Test message from Rev Multimedia Academy. Your SMS provider is configured correctly.',
+      'Test message from Rev Multimedia. Your SMS provider is configured correctly.',
       'sms',
     )
 

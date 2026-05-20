@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 const FAQ = [
   {
-    q: 'Who can apply to Rev Multimedia Academy?',
+    q: 'Who can apply to Rev Multimedia?',
     a: 'Anyone who wants to build a professional creative career. You do not need any prior experience — just commitment and a willingness to put in the work. We have students who started with zero design background and went on to work with clients professionally.',
   },
   {
@@ -42,7 +42,7 @@ const FAQ = [
   },
   {
     q: 'Does Rev Multimedia issue certificates?',
-    a: 'Yes. Students who complete a course receive an official Rev Multimedia Academy certificate. Our academic collaboration with Ghana Technology University College adds further institutional credibility to your training.',
+    a: 'Yes. Students who complete a course receive an official Rev Multimedia certificate. Our academic collaboration with Ghana Technology University College adds further institutional credibility to your training.',
   },
 ]
 

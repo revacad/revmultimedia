@@ -119,7 +119,7 @@ export async function sendOTP(
 
           <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
             font-size:13px;color:#9898B8;line-height:1.6;">
-            Rev Multimedia Academy sends this code to verify your email address
+            Rev Multimedia sends this code to verify your email address
             before processing applications.
           </p>
         `,
@@ -150,11 +150,11 @@ export async function sendApplicationReceived(
     to,
     `Application received — ${data.reference}`,
     emailTemplate({
-      previewText: `Your application to Rev Multimedia Academy has been received. Reference: ${data.reference}`,
+      previewText: `Your application to Rev Multimedia has been received. Reference: ${data.reference}`,
       body: `
           ${emailGreeting(data.name)}
           ${emailHeading('Application received.')}
-          ${emailSubheading('Thank you for applying to Rev Multimedia Academy.')}
+          ${emailSubheading('Thank you for applying to Rev Multimedia.')}
 
           ${emailParagraph('We have received your application and our admissions team will review it shortly. You will be notified of any updates by email.')}
 
@@ -254,12 +254,12 @@ export async function sendStatusChanged(
       body: 'Congratulations! Your application has been shortlisted. Our team will be in touch shortly with further information.',
       alert: {
         type: 'success',
-        text: 'You are one step closer to joining Rev Multimedia Academy.',
+        text: 'You are one step closer to joining Rev Multimedia.',
       },
     },
     accepted: {
       subject: 'Congratulations — your application has been accepted',
-      heading: 'Welcome to Rev Multimedia Academy!',
+      heading: 'Welcome to Rev Multimedia!',
       body: 'We are thrilled to inform you that your application has been accepted. Please log in to your portal to view your tuition invoice and complete payment to secure your place.',
       alert: {
         type: 'success',
@@ -269,7 +269,7 @@ export async function sendStatusChanged(
     rejected: {
       subject: 'Update on your application',
       heading: 'Application update.',
-      body: 'After careful review, we are unable to offer you a place in this cohort. We appreciate your interest in Rev Multimedia Academy and encourage you to apply again in a future intake.',
+      body: 'After careful review, we are unable to offer you a place in this cohort. We appreciate your interest in Rev Multimedia and encourage you to apply again in a future intake.',
       alert: {
         type: 'warning',
         text: 'You are welcome to apply for a future cohort. New intakes open regularly.',
@@ -506,14 +506,14 @@ export async function sendAdminInvite(
         `Your invitation to join as <strong>${escapeHtml(data.role)}</strong> has been resent.`,
       )
     : emailParagraph(
-        `<strong>${escapeHtml(data.invitedBy)}</strong> has invited you to join the Rev Multimedia Academy admin dashboard as <strong>${escapeHtml(data.role)}</strong>.`,
+        `<strong>${escapeHtml(data.invitedBy)}</strong> has invited you to join the Rev Multimedia admin dashboard as <strong>${escapeHtml(data.role)}</strong>.`,
       )
 
   await sendHtmlEmail(
     to,
     'You have been invited to Rev Multimedia Admin',
     emailTemplate({
-      previewText: `${data.invitedBy} has invited you to join Rev Multimedia Academy as ${data.role}.`,
+      previewText: `${data.invitedBy} has invited you to join Rev Multimedia as ${data.role}.`,
       body: `
           ${emailGreeting(data.fullName)}
           ${emailHeading('You have been invited.')}
@@ -524,7 +524,7 @@ export async function sendAdminInvite(
           ${emailDivider()}
           <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
             font-size:12px;color:#9898B8;">
-            This invitation was sent by ${escapeHtml(data.invitedBy)} at Rev Multimedia Academy.
+            This invitation was sent by ${escapeHtml(data.invitedBy)} at Rev Multimedia.
           </p>
         `,
     }),
@@ -539,7 +539,7 @@ export async function sendCertificateUploaded(
     to,
     `Your ${data.courseName} certificate is ready`,
     emailTemplate({
-      previewText: `Your ${data.courseName} certificate from Rev Multimedia Academy is ready to download.`,
+      previewText: `Your ${data.courseName} certificate from Rev Multimedia is ready to download.`,
       body: `
           ${emailGreeting(data.name)}
           ${emailHeading('Your certificate is ready!')}
@@ -565,11 +565,11 @@ export async function sendPaymentConfirmed(
   await sendHtmlEmail(
     to,
     hasEnrollment
-      ? `Welcome to Rev Multimedia Academy — Student ID: ${data.studentId}`
+      ? `Welcome to Rev Multimedia — Student ID: ${data.studentId}`
       : 'Payment confirmed',
     emailTemplate({
       previewText: hasEnrollment
-        ? `Your Student ID is ${data.studentId}. Welcome to Rev Multimedia Academy!`
+        ? `Your Student ID is ${data.studentId}. Welcome to Rev Multimedia!`
         : 'Your payment has been confirmed.',
       body: `
           ${emailGreeting(data.name)}
@@ -578,7 +578,7 @@ export async function sendPaymentConfirmed(
           ${
             hasEnrollment
               ? `
-          ${emailParagraph('Your tuition payment has been confirmed and your enrollment is complete. Welcome to Rev Multimedia Academy!')}
+          ${emailParagraph('Your tuition payment has been confirmed and your enrollment is complete. Welcome to Rev Multimedia!')}
           ${emailReferenceCard('Your Student ID', data.studentId!)}
           ${data.courseName ? emailInfoCard([{ label: 'Programme', value: data.courseName }]) : ''}
           ${emailAlert('success', 'Save your Student ID. You will use it to log in to your student portal.')}

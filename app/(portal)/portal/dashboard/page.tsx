@@ -88,7 +88,7 @@ export default async function StudentDashboardPage() {
             Welcome back, {firstName(student.full_name)}
           </h1>
           <p className="mt-1 font-body text-[15px] text-[#9898B8]">
-            You are enrolled at Rev Multimedia Academy
+            You are enrolled at Rev Multimedia
           </p>
         </div>
         <div className="text-left sm:text-right [&_.font-mono]:text-sm sm:[&_.font-mono]:text-base">

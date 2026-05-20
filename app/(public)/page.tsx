@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Home',
   description:
-    'Rev Multimedia Academy — Build skills that cannot be automated. Professional creative training in Accra, Ghana.',
+    'Rev Multimedia — Build skills that cannot be automated. Professional creative training in Accra, Ghana.',
 }
 
 export default async function HomePage() {

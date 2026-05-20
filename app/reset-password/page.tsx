@@ -4,7 +4,7 @@ import ResetPasswordForm from '@/components/auth/ResetPasswordForm'
 import { redis } from '@/lib/redis/client'
 
 export const metadata = {
-  title: 'Set New Password — Rev Multimedia Academy',
+  title: 'Set New Password — Rev Multimedia',
 }
 
 export default async function ResetPasswordPage({

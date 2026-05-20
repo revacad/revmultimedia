@@ -75,7 +75,7 @@ export async function inviteAdmin(data: {
     fullName: data.fullName.trim(),
     role: data.role,
     inviteUrl,
-    invitedBy: inviter?.full_name ?? 'Rev Multimedia Academy',
+    invitedBy: inviter?.full_name ?? 'Rev Multimedia',
   })
 
   await logAuditEvent({
@@ -137,7 +137,7 @@ export async function resendAdminInvite(
     fullName: invite.full_name,
     role: invite.role,
     inviteUrl,
-    invitedBy: inviter?.full_name ?? 'Rev Multimedia Academy',
+    invitedBy: inviter?.full_name ?? 'Rev Multimedia',
     resent: true,
   })
 

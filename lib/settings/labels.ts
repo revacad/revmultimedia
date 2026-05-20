@@ -31,7 +31,7 @@ export const SETTINGS_TABS = [
   },
   {
     id: 'academy',
-    title: 'Academy Info',
+    title: 'Organisation Info',
     sections: [{ keys: ['academy_email', 'academy_phone', 'academy_address'] as const }],
   },
   {
@@ -80,9 +80,9 @@ export const SETTINGS_LABELS: Record<string, string> = {
   bank_branch: 'Branch',
   bank_swift_code: 'SWIFT / BIC Code',
   bank_iban: 'IBAN',
-  academy_email: 'Academy Email',
-  academy_phone: 'Academy Phone',
-  academy_address: 'Academy Address',
+  academy_email: 'Contact Email',
+  academy_phone: 'Contact Phone',
+  academy_address: 'Address',
 }
 
 export const SETTINGS_HELPERS: Record<string, string> = {

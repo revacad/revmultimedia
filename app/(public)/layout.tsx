@@ -17,11 +17,11 @@ function metadataBaseUrl(): URL {
 export const metadata: Metadata = {
   metadataBase: metadataBaseUrl(),
   title: {
-    default: 'Rev Multimedia Academy | Creative Education in Ghana',
-    template: '%s | Rev Multimedia Academy',
+    default: 'Rev Multimedia | Creative Education in Ghana',
+    template: '%s | Rev Multimedia',
   },
   description:
-    'Rev Multimedia Academy trains the next generation of Ghanaian and African creatives in Graphic Design, Motion Graphics, and Video Editing.',
+    'Rev Multimedia trains the next generation of Ghanaian and African creatives in Graphic Design, Motion Graphics, and Video Editing.',
   keywords: [
     'graphic design ghana',
     'motion graphics ghana',
@@ -29,13 +29,13 @@ export const metadata: Metadata = {
     'creative academy ghana',
     'rev multimedia',
   ],
-  authors: [{ name: 'Rev Multimedia Academy' }],
+  authors: [{ name: 'Rev Multimedia' }],
   openGraph: {
     type: 'website',
     locale: 'en_GH',
     url: 'https://revmultimediagh.com',
-    siteName: 'Rev Multimedia Academy',
-    title: 'Rev Multimedia Academy | Creative Education in Ghana',
+    siteName: 'Rev Multimedia',
+    title: 'Rev Multimedia | Creative Education in Ghana',
     description:
       'Professional training in Graphic Design, Motion Graphics, and Video Editing. Based in Accra, Ghana.',
     images: [
@@ -43,13 +43,13 @@ export const metadata: Metadata = {
         url: '/images/african-creatives-in-class.jpg',
         width: 1200,
         height: 630,
-        alt: 'Rev Multimedia Academy students',
+        alt: 'Rev Multimedia students',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Rev Multimedia Academy',
+    title: 'Rev Multimedia',
     description:
       'Creative education for the AI era. Graphic Design, Motion Graphics, Video Editing.',
   },

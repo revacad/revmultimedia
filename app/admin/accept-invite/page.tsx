@@ -4,7 +4,7 @@ import AcceptInviteForm from '@/components/auth/AcceptInviteForm'
 import { validateAdminInviteToken } from '@/actions/admin'
 
 export const metadata = {
-  title: 'Accept Invitation — Rev Multimedia Academy',
+  title: 'Accept Invitation — Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

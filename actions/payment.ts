@@ -132,7 +132,7 @@ export async function confirmPayment(data: {
             sendMessage(
               application.phone,
               studentId
-                ? `Rev Multimedia: Payment confirmed! Your Student ID is ${studentId}. Welcome to Rev Multimedia Academy! Log in at revmultimedia.com`
+                ? `Rev Multimedia: Payment confirmed! Your Student ID is ${studentId}. Welcome to Rev Multimedia! Log in at revmultimedia.com`
                 : `Rev Multimedia: Payment of GHS ${data.amountGhs.toFixed(2)} confirmed for invoice ${data.invoiceId}.`,
               'sms',
             ),

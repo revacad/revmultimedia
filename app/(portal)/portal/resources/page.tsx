@@ -43,7 +43,7 @@ export default async function PortalResourcesPage() {
       <header className="mb-6">
         <h1 className="font-display text-[28px] font-semibold text-[#1A1A2E]">Resources</h1>
         <p className="mt-1 font-body text-[15px] text-[#9898B8]">
-          Materials and documents from Rev Multimedia Academy
+          Materials and documents from Rev Multimedia
         </p>
       </header>
 

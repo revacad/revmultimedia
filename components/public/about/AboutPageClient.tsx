@@ -56,7 +56,7 @@ export default function AboutPageClient() {
           <p className="mt-6 text-base leading-relaxed text-white/85">
             Too many talented people across Ghana and West Africa were teaching themselves from
             YouTube tutorials &mdash; picking up bad habits, missing foundations, and struggling to
-            compete professionally. Rev Multimedia Academy was built to change that with deep,
+            compete professionally. Rev Multimedia was built to change that with deep,
             structured, industry-relevant creative education.
           </p>
         </div>
@@ -147,7 +147,7 @@ export default function AboutPageClient() {
             Partnered with Ghana Technology University College
           </h2>
           <p className="mt-6 text-base leading-relaxed text-gray-600">
-            Rev Multimedia Academy operates in academic collaboration with GTUC &mdash; one of
+            Rev Multimedia operates in academic collaboration with GTUC &mdash; one of
             Ghana&apos;s foremost technology-focused institutions.
           </p>
           <div className="mx-auto mt-10 max-w-lg rounded-2xl bg-surface p-8 shadow-md">

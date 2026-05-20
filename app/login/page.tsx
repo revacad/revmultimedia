@@ -2,7 +2,7 @@ import AuthPageShell from '@/components/auth/AuthPageShell'
 import PortalLoginForm from '@/components/auth/PortalLoginForm'
 
 export const metadata = {
-  title: 'Login — Rev Multimedia Academy',
+  title: 'Login — Rev Multimedia',
 }
 
 export default async function LoginPage({

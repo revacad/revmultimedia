@@ -139,7 +139,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             <span className="block text-primary">Automated.</span>
           </h1>
           <p className="mt-4 max-w-md font-body text-[15px] leading-relaxed text-[#5A5A7A] sm:text-base">
-            Rev Multimedia Academy trains the next generation of Ghanaian and African creatives
+            Rev Multimedia trains the next generation of Ghanaian and African creatives
             in Graphic Design, Motion Graphics, and Video Editing &mdash; with the depth and
             discipline the industry actually demands.
           </p>

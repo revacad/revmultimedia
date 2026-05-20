@@ -7,7 +7,7 @@ import ApplyPageClient from '@/components/public/apply/ApplyPageClient'
 export const metadata: Metadata = {
   title: 'Apply Now',
   description:
-    'Apply for a course at Rev Multimedia Academy. Graphic Design, Motion Graphics, and Video Editing programmes available.',
+    'Apply for a course at Rev Multimedia. Graphic Design, Motion Graphics, and Video Editing programmes available.',
 }
 
 async function fetchPublishedCourses() {

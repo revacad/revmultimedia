@@ -12,7 +12,7 @@ export function emailTemplate({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Rev Multimedia Academy</title>
+  <title>Rev Multimedia</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -84,11 +84,6 @@ export function emailTemplate({
                   </td>
                 </tr>
               </table>
-              <p style="color:rgba(255,255,255,0.75);font-size:12px;
-                margin:8px 0 0;letter-spacing:0.08em;text-transform:uppercase;
-                font-family:Helvetica,Arial,sans-serif;">
-                Academy
-              </p>
             </td>
           </tr>
 
@@ -103,7 +98,7 @@ export function emailTemplate({
               padding:24px 48px;text-align:center;">
               <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;
                 font-size:13px;color:#9898B8;">
-                Rev Multimedia Academy · Weija, Accra, Ghana
+                Rev Multimedia · Weija, Accra, Ghana
               </p>
               <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;
                 font-size:12px;color:#9898B8;">
@@ -118,7 +113,7 @@ export function emailTemplate({
               </p>
               <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
                 font-size:11px;color:#D8D8E8;">
-                © ${new Date().getFullYear()} Rev Multimedia Academy. All rights reserved.
+                © ${new Date().getFullYear()} Rev Multimedia. All rights reserved.
               </p>
             </td>
           </tr>

@@ -91,7 +91,7 @@ export default function Footer() {
 
       <div className="mt-10 flex flex-col items-center justify-center gap-4 border-t border-gray-100 pt-6 text-center md:mt-12 md:flex-row md:justify-between md:text-left">
         <p className="font-body text-sm text-gray-400">
-          &copy; 2025 Rev Multimedia Academy. All rights reserved.
+          &copy; 2025 Rev Multimedia. All rights reserved.
         </p>
         <Link
           href="/login"

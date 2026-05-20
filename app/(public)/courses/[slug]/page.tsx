@@ -41,9 +41,9 @@ export async function generateMetadata({
     title: course.title,
     description:
       course.description ||
-      `Study ${course.title} at Rev Multimedia Academy in Accra, Ghana.`,
+      `Study ${course.title} at Rev Multimedia in Accra, Ghana.`,
     openGraph: {
-      title: `${course.title} | Rev Multimedia Academy`,
+      title: `${course.title} | Rev Multimedia`,
       description: course.description || '',
       images: course.thumbnail_r2_key
         ? []
