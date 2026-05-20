@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import Button from '@/components/ui/Button'
 import ReferenceCode from '@/components/ui/ReferenceCode'
 
@@ -15,6 +16,8 @@ export default function ConfirmationScreen({
   email,
   reference,
 }: ConfirmationScreenProps) {
+  const [showPayInfo, setShowPayInfo] = useState(false)
+
   return (
     <div className="mx-auto max-w-lg text-center">
       <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-[#2DBFB8] bg-[#EBF9F8]">
@@ -46,11 +49,91 @@ export default function ConfirmationScreen({
         <p className="mt-1 font-body text-[13px] text-[#9898B8]">
           Non-refundable application processing fee
         </p>
-        <Link href="/portal/application" className="mt-4 block">
-          <Button variant="primary" size="lg" className="w-full">
-            Pay Now
-          </Button>
-        </Link>
+
+        {!showPayInfo ? (
+          <button
+            type="button"
+            onClick={() => setShowPayInfo(true)}
+            className="mt-4 block w-full"
+          >
+            <Button variant="primary" size="lg" className="w-full">
+              Pay Application Fee — GHS 100
+            </Button>
+          </button>
+        ) : (
+          <div
+            style={{
+              backgroundColor: '#EBF9F8',
+              border: '1.5px solid rgba(45,191,184,0.30)',
+              borderRadius: '14px',
+              padding: '20px 24px',
+              marginTop: '16px',
+            }}
+          >
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '15px',
+                fontWeight: 600,
+                color: '#1A1A2E',
+                marginBottom: '8px',
+              }}
+            >
+              Pay via your student portal
+            </p>
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px',
+                color: '#5A5A7A',
+                lineHeight: 1.6,
+                marginBottom: '0',
+              }}
+            >
+              You will need to log in to your portal to pay. Use your Application Reference and the
+              password you created when applying.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+              <Link
+                href="/login"
+                style={{
+                  flex: 1,
+                  minWidth: '140px',
+                  padding: '12px 20px',
+                  backgroundColor: '#C74A86',
+                  color: 'white',
+                  borderRadius: '9999px',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                }}
+              >
+                Log in to portal
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowPayInfo(false)}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '12px 20px',
+                  backgroundColor: 'transparent',
+                  color: '#5A5A7A',
+                  border: '1.5px solid #D8D8E8',
+                  borderRadius: '9999px',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <p className="mt-3 font-body text-[13px] text-[#9898B8]">

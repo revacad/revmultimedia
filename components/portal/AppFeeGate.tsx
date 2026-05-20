@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { PaystackButton } from '@/components/portal/PaystackButton'
 
 interface AppFeeGateProps {
@@ -19,6 +20,24 @@ export function AppFeeGate({
   payerEmail,
   children,
 }: AppFeeGateProps) {
+  const [showInfo, setShowInfo] = useState(true)
+  const [countdown, setCountdown] = useState(10)
+
+  useEffect(() => {
+    if (!showInfo) return
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          setShowInfo(false)
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [showInfo])
+
   if (appFeePaid) return <>{children}</>
 
   const amountGhs = appFeeAmount ?? 100
@@ -92,6 +111,60 @@ export function AppFeeGate({
           }}
         >
           {invoiceRef}
+        </div>
+      )}
+
+      {showInfo && (
+        <div
+          style={{
+            backgroundColor: '#EBF9F8',
+            border: '1.5px solid rgba(45,191,184,0.30)',
+            borderRadius: '14px',
+            padding: '20px 24px',
+            marginBottom: '20px',
+            position: 'relative',
+            maxWidth: '420px',
+            width: '100%',
+          }}
+        >
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '15px',
+              fontWeight: 600,
+              color: '#1A1A2E',
+              marginBottom: '8px',
+            }}
+          >
+            You will be redirected to Paystack
+          </p>
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '14px',
+              color: '#5A5A7A',
+              lineHeight: 1.6,
+              marginBottom: '12px',
+            }}
+          >
+            Click &quot;Pay Now&quot; to pay your GHS {amountGhs} application fee securely via
+            Paystack. After payment, you will be automatically redirected back here.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowInfo(false)}
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '12px',
+              color: '#9898B8',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            Dismiss ({countdown}s)
+          </button>
         </div>
       )}
 

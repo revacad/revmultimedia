@@ -8,6 +8,10 @@ import { generateAndStoreInvoicePdf } from '@/lib/pdf/generate'
 import { sendTuitionInvoice } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
 import { invalidateAdminStats } from '@/lib/redis/invalidate'
+import { runAfterResponse } from '@/lib/background'
+import { logAuditEvent } from '@/lib/audit/log'
+import { getSystemSettings } from '@/lib/settings/cache'
+import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
 
 export async function generateTuitionInvoice(data: {
   applicationId: string
@@ -69,9 +73,6 @@ export async function generateTuitionInvoice(data: {
 
     const totalGhs = Math.max(0, data.amountGhs - data.discountGhs)
 
-    const { data: settings } = await supabase.from('system_settings').select('key, value')
-    const settingsMap = Object.fromEntries((settings ?? []).map((s) => [s.key, s.value ?? '']))
-
     const noteParts = [
       data.notes?.trim(),
       data.allowInstallments
@@ -117,35 +118,55 @@ export async function generateTuitionInvoice(data: {
       }
     }
 
-    void generateAndStoreInvoicePdf(invoice.id).catch((err) => {
-      console.error('Tuition invoice PDF generation failed:', err)
-    })
+    const invoiceId = invoice.id
+    const reference = invoiceRef as string
 
-    await sendTuitionInvoice(application.real_email, {
-      name: application.full_name,
-      reference: invoiceRef as string,
-      amountGhs: totalGhs,
-      dueDate: data.dueDate,
-      isInternational: application.country !== 'Ghana',
-      momoNumber: settingsMap.momo_number_1 || undefined,
-      momoName: settingsMap.momo_name_1 || undefined,
-      bankName: settingsMap.bank_name || undefined,
-      bankAccount: settingsMap.bank_account_number || undefined,
-      bankAccountName: settingsMap.bank_account_name || undefined,
-      swiftCode: settingsMap.bank_swift_code || undefined,
-      pdfUrl: '',
-    })
+    runAfterResponse(async () => {
+      const pdfKey = await generateAndStoreInvoicePdf(invoiceId)
+      let pdfUrl = ''
+      if (pdfKey) {
+        const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
+        if (bucket) {
+          pdfUrl = await generatePresignedDownloadUrl(bucket, pdfKey, 86400)
+        }
+      }
 
-    await sendMessage(
-      application.phone,
-      `Rev Multimedia: Invoice ${invoiceRef} for GHS ${totalGhs.toFixed(2)} generated. Check your email for payment details.`,
-      'sms',
-    )
+      const settings = await getSystemSettings()
+
+      await sendTuitionInvoice(application.real_email, {
+        name: application.full_name,
+        reference,
+        amountGhs: totalGhs,
+        dueDate: data.dueDate,
+        isInternational: application.country !== 'Ghana',
+        momoNumber: settings.momo_number_1 || undefined,
+        momoName: settings.momo_name_1 || undefined,
+        bankName: settings.bank_name || undefined,
+        bankAccount: settings.bank_account_number || undefined,
+        bankAccountName: settings.bank_account_name || undefined,
+        swiftCode: settings.bank_swift_code || undefined,
+        pdfUrl,
+      })
+
+      await sendMessage(
+        application.phone,
+        `Rev Multimedia: Your tuition invoice ${reference} for GHS ${totalGhs.toFixed(2)} is ready. Check your email for payment instructions.`,
+        'sms',
+      )
+
+      await logAuditEvent({
+        adminId: admin.id,
+        action: 'invoice.generated',
+        entityType: 'invoice',
+        entityId: invoiceId,
+        newValue: { reference, amount: totalGhs },
+      })
+    })
 
     invalidateAdminStats()
     revalidatePath(`/admin/applications/${data.applicationId}`)
     revalidatePath('/admin/payments')
-    redirect(`/admin/payments/${invoice.id}`)
+    redirect(`/admin/payments/${invoiceId}`)
   } catch (e) {
     if (e && typeof e === 'object' && 'digest' in e) {
       throw e

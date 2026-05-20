@@ -4,9 +4,7 @@ import type { NextRequest } from 'next/server'
 import { withAuthCookieOptions } from '@/lib/supabase/cookies'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,9 +16,7 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          supabaseResponse = NextResponse.next({ request })
           withAuthCookieOptions(cookiesToSet).forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           )
@@ -33,15 +29,42 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user && request.nextUrl.pathname.startsWith('/portal')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  const path = request.nextUrl.pathname
+
+  const publicPaths = [
+    '/login',
+    '/admin/login',
+    '/admin/accept-invite',
+    '/forgot-password',
+    '/reset-password',
+    '/api/',
+    '/_next/',
+    '/favicon',
+  ]
+
+  const isPublicPath = publicPaths.some((p) => path.startsWith(p))
+
+  if (!isPublicPath && path.startsWith('/portal')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
   }
 
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-pathname', request.nextUrl.pathname)
-  supabaseResponse.headers.set('x-pathname', request.nextUrl.pathname)
+  if (
+    path.startsWith('/admin') &&
+    !path.startsWith('/admin/login') &&
+    !path.startsWith('/admin/accept-invite')
+  ) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  supabaseResponse.headers.set('x-pathname', path)
 
   return supabaseResponse
 }

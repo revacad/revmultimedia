@@ -12,6 +12,7 @@ import {
   sendStatusChanged,
 } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
+import { runAfterResponse } from '@/lib/background'
 import {
   APPLICATION_STATUSES,
   type ApplicationStatus,
@@ -130,19 +131,6 @@ async function runPostSubmitSideEffects(
   if (authError && !authError.message.includes('already registered')) {
     console.error('Auth error:', authError)
   }
-
-  await Promise.allSettled([
-    sendAdminNewApplication({
-      applicantName: data.fullName,
-      reference: rpc.reference!,
-      course: courseTitle,
-    }),
-    sendMessage(
-      normalisedPhone,
-      `Rev Multimedia: Hi ${data.fullName.split(' ')[0]}, your application ${rpc.reference} has been received. Check your email for next steps.`,
-      'sms',
-    ),
-  ])
 
   await storeIdempotencyResult(idempotencyKey, successResult)
 }
@@ -291,7 +279,6 @@ export async function submitApplication(formData: unknown) {
   const courseTitle = courseRow?.title ?? data.courseId
   const intakeName = intakeRow?.name
 
-  const emailTimeout = new Promise<void>((resolve) => setTimeout(resolve, 5000))
   try {
     await Promise.race([
       sendApplicationReceived(data.email, {
@@ -300,23 +287,43 @@ export async function submitApplication(formData: unknown) {
         courseName: courseTitle,
         intakeName,
       }),
-      emailTimeout,
+      new Promise<void>((resolve) => setTimeout(resolve, 5000)),
     ])
   } catch (err) {
     console.error('Application email failed:', err)
   }
 
-  void runPostSubmitSideEffects(
-    supabase,
-    rpc,
-    data,
-    normalisedPhone,
-    data.idempotencyKey,
-    successResult,
-    courseTitle,
-  ).catch((err) => console.error('Post-submit side effects error:', err))
+  runAfterResponse(async () => {
+    await runPostSubmitSideEffects(
+      supabase,
+      rpc,
+      data,
+      normalisedPhone,
+      data.idempotencyKey,
+      successResult,
+      courseTitle,
+    )
+    await Promise.allSettled([
+      sendMessage(
+        normalisedPhone,
+        `Rev Multimedia: Hi ${data.fullName.split(' ')[0]}, your application ${rpc.reference} has been received. Log in to your portal to track it.`,
+        'sms',
+      ),
+      sendAdminNewApplication({
+        applicantName: data.fullName,
+        reference: rpc.reference!,
+        course: courseTitle,
+      }),
+    ])
+  })
 
-  return successResult
+  return {
+    success: true,
+    reference: rpc.reference,
+    invoiceReference: rpc.invoice_reference,
+    applicantName: data.fullName,
+    email: data.email,
+  }
 }
 
 function isApplicationStatus(value: string): value is ApplicationStatus {
@@ -344,37 +351,44 @@ export async function updateApplicationStatus(
       return { error: error.message }
     }
 
-    const { data: app } = await supabase
-      .from('applications')
-      .select('real_email, full_name, reference')
-      .eq('id', applicationId)
-      .single()
+    const newStatus = status
 
-    if (app) {
-      try {
-        await sendStatusChanged(app.real_email, {
-          name: app.full_name,
-          status,
-          reference: app.reference,
-        })
-        await supabase.from('notifications_log').insert({
-          application_id: applicationId,
-          channel: 'email',
-          event_type: 'status_changed',
-          recipient: app.real_email,
-          status: 'sent',
-        })
-      } catch (notifyError) {
-        console.error('Status change notification failed:', notifyError)
-        await supabase.from('notifications_log').insert({
-          application_id: applicationId,
-          channel: 'email',
-          event_type: 'status_changed',
-          recipient: app.real_email,
-          status: 'failed',
-        })
+    runAfterResponse(async () => {
+      const { data: app } = await supabase
+        .from('applications')
+        .select('real_email, full_name, phone, reference')
+        .eq('id', applicationId)
+        .single()
+
+      if (!app) return
+
+      const statusMessages: Record<string, string> = {
+        shortlisted: `Rev Multimedia: Great news ${app.full_name.split(' ')[0]}! Your application ${app.reference} has been shortlisted. Check your email for details.`,
+        accepted: `Rev Multimedia: Congratulations ${app.full_name.split(' ')[0]}! Your application ${app.reference} has been accepted. Check your email for next steps.`,
+        rejected: `Rev Multimedia: Thank you for applying ${app.full_name.split(' ')[0]}. Please check your email for an update on your application.`,
+        deferred: `Rev Multimedia: Your application ${app.reference} has been deferred. Check your email for details.`,
       }
-    }
+
+      const results = await Promise.allSettled([
+        sendStatusChanged(app.real_email, {
+          name: app.full_name,
+          status: newStatus,
+          reference: app.reference,
+        }),
+        statusMessages[newStatus]
+          ? sendMessage(app.phone, statusMessages[newStatus], 'sms')
+          : Promise.resolve(),
+      ])
+
+      const emailFailed = results[0].status === 'rejected'
+      await supabase.from('notifications_log').insert({
+        application_id: applicationId,
+        channel: 'email',
+        event_type: 'status_changed',
+        recipient: app.real_email,
+        status: emailFailed ? 'failed' : 'sent',
+      })
+    })
 
     revalidatePath(`/admin/applications/${applicationId}`)
     revalidatePath('/admin/applications')

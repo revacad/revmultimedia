@@ -6,6 +6,8 @@ import { requireAdmin } from '@/lib/auth/admin'
 import { sendPaymentConfirmed, sendTuitionInvoice, sendAppFeeInvoice } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
 import { invalidateAdminStats } from '@/lib/redis/invalidate'
+import { runAfterResponse } from '@/lib/background'
+import { logAuditEvent } from '@/lib/audit/log'
 
 const PAYMENT_METHODS = [
   'momo',
@@ -113,23 +115,41 @@ export async function confirmPayment(data: {
         courses: { title: string } | { title: string }[] | null
       } | null
 
-      if (application && rpc?.student_id) {
-        const courseTitle = Array.isArray(application.courses)
-          ? application.courses[0]?.title
-          : application.courses?.title
+      const studentId = rpc?.student_id
 
-        await sendPaymentConfirmed(application.real_email, {
-          name: application.full_name,
-          studentId: rpc.student_id,
-          courseName: courseTitle ?? 'your programme',
-        })
+      runAfterResponse(async () => {
+        if (application) {
+          const courseTitle = Array.isArray(application.courses)
+            ? application.courses[0]?.title
+            : application.courses?.title
 
-        await sendMessage(
-          application.phone,
-          `Rev Multimedia: Payment confirmed! Your Student ID is ${rpc.student_id}. Welcome to Rev Multimedia Academy!`,
-          'whatsapp',
-        )
-      }
+          await Promise.allSettled([
+            sendPaymentConfirmed(application.real_email, {
+              name: application.full_name,
+              studentId: studentId,
+              courseName: courseTitle ?? '',
+            }),
+            sendMessage(
+              application.phone,
+              studentId
+                ? `Rev Multimedia: Payment confirmed! Your Student ID is ${studentId}. Welcome to Rev Multimedia Academy! Log in at revmultimedia.com`
+                : `Rev Multimedia: Payment of GHS ${data.amountGhs.toFixed(2)} confirmed for invoice ${data.invoiceId}.`,
+              'sms',
+            ),
+            logAuditEvent({
+              adminId: admin.id,
+              action: 'payment.confirmed',
+              entityType: 'invoice',
+              entityId: data.invoiceId,
+              newValue: {
+                amount: data.amountGhs,
+                method: data.paymentMethod,
+                studentId,
+              },
+            }),
+          ])
+        }
+      })
 
       invalidateAdminStats()
       revalidatePath(`/admin/payments/${data.invoiceId}`)

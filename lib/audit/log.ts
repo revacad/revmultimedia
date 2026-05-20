@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { runAfterResponse } from '@/lib/background'
 
 export type AuditLogParams = {
   adminId?: string | null
@@ -8,6 +9,8 @@ export type AuditLogParams = {
   oldValue?: unknown
   newValue?: unknown
 }
+
+export type AuditLogEntry = AuditLogParams
 
 export async function logAuditEvent(params: AuditLogParams): Promise<void> {
   const supabase = createAdminClient()
@@ -23,4 +26,10 @@ export async function logAuditEvent(params: AuditLogParams): Promise<void> {
   if (error) {
     console.error('[audit] log failed', error)
   }
+}
+
+export function logAuditEventBackground(entry: AuditLogEntry): void {
+  runAfterResponse(async () => {
+    await logAuditEvent(entry)
+  })
 }

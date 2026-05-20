@@ -94,7 +94,7 @@ export default function Footer() {
           &copy; 2025 Rev Multimedia Academy. All rights reserved.
         </p>
         <Link
-          href="/portal/login"
+          href="/login"
           className="font-body text-sm text-gray-400 transition-colors hover:text-primary"
         >
           Student Portal &rarr;
