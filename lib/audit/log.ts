@@ -25,12 +25,10 @@ export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
     })
 
     if (error) {
-      console.error('Audit log insert failed:', error)
-    } else {
-      console.log('Audit log recorded:', entry.action, entry.entityType ?? '')
+      console.error('Audit log INSERT error:', JSON.stringify(error))
     }
   } catch (err) {
-    console.error('Audit log error:', err)
+    console.error('Audit log EXCEPTION:', err)
   }
 }
 

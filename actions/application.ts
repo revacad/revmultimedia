@@ -13,6 +13,7 @@ import {
 } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
 import { runAfterResponse } from '@/lib/background'
+import { logAuditEvent } from '@/lib/audit/log'
 import {
   APPLICATION_STATUSES,
   type ApplicationStatus,
@@ -335,13 +336,32 @@ export async function updateApplicationStatus(
   status: string,
 ): Promise<{ success: true } | { error: string }> {
   try {
-    await requireAdmin()
+    const session = await requireAdmin()
 
     if (!isApplicationStatus(status)) {
       return { error: 'Invalid status' }
     }
 
     const supabase = createAdminClient()
+
+    const { data: admin } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('auth_user_id', session.userId)
+      .single()
+
+    if (!admin) {
+      return { error: 'Not an admin' }
+    }
+
+    const { data: existing } = await supabase
+      .from('applications')
+      .select('status')
+      .eq('id', applicationId)
+      .single()
+
+    const currentStatus = existing?.status
+
     const { error } = await supabase
       .from('applications')
       .update({ status, updated_at: new Date().toISOString() })
@@ -352,6 +372,15 @@ export async function updateApplicationStatus(
     }
 
     const newStatus = status
+
+    await logAuditEvent({
+      adminId: admin.id,
+      action: 'application.status_changed',
+      entityType: 'application',
+      entityId: String(applicationId),
+      oldValue: { status: currentStatus },
+      newValue: { status: newStatus },
+    })
 
     runAfterResponse(async () => {
       const { data: app } = await supabase
