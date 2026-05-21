@@ -33,7 +33,15 @@ export default function GhostCourseCard({
     >
       {imageSrc && (
         <>
-          <Image src={imageSrc} alt="" fill className="object-cover" aria-hidden />
+          <Image
+            src={imageSrc}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover"
+            style={{ objectFit: 'cover' }}
+            aria-hidden
+          />
           <div className="absolute inset-0 bg-white/80" aria-hidden />
         </>
       )}

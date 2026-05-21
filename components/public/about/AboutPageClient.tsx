@@ -1,23 +1,44 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
+import { FeaturedInstructorCard } from './FeaturedInstructorCard'
 import { publicSectionClass } from '@/lib/public-ui'
 import { cn } from '@/lib/utils'
 
-const INSTRUCTORS = [
-  { img: 'person1.webp', name: 'Instructor', role: 'Graphic Design Lead' },
-  { img: 'person2.webp', name: 'Instructor', role: 'Motion Graphics' },
-  { img: 'person3.webp', name: 'Instructor', role: 'Video Editing' },
-  { img: 'person4.webp', name: 'Instructor', role: 'Brand Identity' },
-  { img: 'person5.webp', name: 'Instructor', role: 'Visual Design' },
-  { img: 'person6.webp', name: 'Instructor', role: 'Photography' },
-  { img: 'person7.webp', name: 'Instructor', role: 'Creative Direction' },
-] as const
+const AboutOrbitalAvatars = dynamic(
+  () => import('./AboutOrbitalAvatars').then((m) => m.AboutOrbitalAvatars),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        style={{
+          width: 560,
+          height: 560,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #EFEFF5',
+            borderTop: '3px solid #C74A86',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+      </div>
+    ),
+  },
+)
 
-export default function AboutPageClient() {
+export function AboutPageClient() {
   useEffect(() => {
     let ctx: { revert: () => void } | undefined
 
@@ -74,7 +95,9 @@ export default function AboutPageClient() {
             src="/images/african-creatives-in-class.jpg"
             alt="African creatives in class"
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
+            style={{ objectFit: 'cover' }}
           />
         </div>
       </section>
@@ -136,7 +159,9 @@ export default function AboutPageClient() {
               src="/images/founder-Godfred-Ferdinand.jpg"
               alt="Godfred Ferdinand Appiah"
               fill
+              sizes="(max-width: 768px) 100vw, 40vw"
               className="object-cover"
+              style={{ objectFit: 'cover' }}
             />
           </div>
           <div className="absolute -bottom-4 left-6 rounded-xl bg-surface p-4 shadow-lg">
@@ -175,90 +200,106 @@ export default function AboutPageClient() {
       </section>
 
       <section
-        className="reveal py-16 md:py-20"
-        style={{ backgroundColor: '#F7F8FC' }}
+        className="reveal max-md:px-6 max-md:py-16"
+        style={{
+          padding: '80px 48px',
+          backgroundColor: 'white',
+        }}
       >
-        <div className="mx-auto max-w-[1200px] px-6 md:px-12">
-          <p
-            className="mb-3 font-body text-xs font-semibold uppercase tracking-[0.08em]"
-            style={{ color: '#C74A86' }}
-          >
-            Our Instructors
-          </p>
-          <h2 className="mb-3 font-display text-3xl font-bold text-dark md:text-4xl">
-            Learn from working creatives.
-          </h2>
-          <p
-            className="mb-12 max-w-[520px] font-body text-base leading-relaxed"
-            style={{ color: '#5A5A7A' }}
-          >
-            Our instructors are not theorists. They are practitioners who have built real careers in
-            design, motion, and video production across Ghana and internationally.
-          </p>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {INSTRUCTORS.map((instructor) => (
-              <div
-                key={instructor.img}
-                className="overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-[0_2px_16px_rgba(26,26,46,0.08)] transition-[transform,box-shadow] duration-250 ease-out hover:-translate-y-1 hover:shadow-[0_8px_40px_rgba(26,26,46,0.14)]"
-              >
-                <div className="relative h-[220px] overflow-hidden">
-                  <Image
-                    src={`/members/${instructor.img}`}
-                    alt={instructor.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                </div>
-                <div className="px-5 py-4">
-                  <p className="mb-1 font-display text-base font-semibold text-dark">
-                    {instructor.name}
-                  </p>
-                  <p className="font-body text-[13px] text-primary">{instructor.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className={cn('reveal', publicSectionClass.white)}>
-        <div className="mx-auto max-w-[1200px]">
-          <p className="section-label">Our Alumni</p>
-          <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="max-w-md font-display text-3xl font-bold text-dark md:text-4xl">
-              100+ creatives trained and working.
-            </h2>
-            <Link
-              href="/apply"
-              className={cn(
-                buttonVariants({ variant: 'primary', size: 'md' }),
-                'inline-flex shrink-0 self-start sm:self-auto',
-              )}
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '64px',
+            alignItems: 'center',
+          }}
+          className="max-lg:grid-cols-1"
+        >
+          <div style={{ position: 'relative' }}>
+            <AboutOrbitalAvatars />
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '20px',
+                right: '-20px',
+                zIndex: 20,
+              }}
             >
-              Join them
-            </Link>
+              <FeaturedInstructorCard />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-3">
-            {Array.from({ length: 12 }, (_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'relative overflow-hidden rounded-2xl',
-                  i % 3 === 0 ? 'h-[260px]' : 'h-[200px]',
-                )}
-              >
-                <Image
-                  src={`/alumni/pers${i + 1}.jpg`}
-                  alt={`Alumni ${i + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            ))}
+          <div>
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#C74A86',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: '12px',
+              }}
+            >
+              Our Community
+            </p>
+            <h2
+              style={{
+                fontFamily: 'Clash Display, sans-serif',
+                fontSize: '36px',
+                fontWeight: 700,
+                color: '#1A1A2E',
+                marginBottom: '16px',
+                lineHeight: 1.2,
+              }}
+            >
+              The faces of Rev Multimedia.
+            </h2>
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '16px',
+                color: '#5A5A7A',
+                lineHeight: 1.7,
+                marginBottom: '32px',
+              }}
+            >
+              Students, alumni, and instructors building Ghana&apos;s next generation of creative
+              professionals. We come from different backgrounds with one shared goal — building
+              skills that last.
+            </p>
+
+            <div style={{ display: 'flex', gap: '32px' }}>
+              {[
+                { value: '100+', label: 'Alumni' },
+                { value: '7', label: 'Instructors' },
+                { value: '3', label: 'Disciplines' },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <div
+                    style={{
+                      fontFamily: 'Clash Display, sans-serif',
+                      fontSize: '28px',
+                      fontWeight: 700,
+                      color: '#C74A86',
+                    }}
+                  >
+                    {stat.value}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '13px',
+                      color: '#9898B8',
+                    }}
+                  >
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

@@ -8,21 +8,25 @@ import { formatCategory } from '@/lib/courses/labels'
 import { getCourseThumbnailSrc } from '@/lib/courses/thumbnail'
 import { getSlotIndicator } from '@/lib/courses/slots'
 import type { Course } from '@/lib/courses/types'
+import { formatCourseDuration } from '@/lib/courses/duration'
 import { cn, formatGHS } from '@/lib/utils'
 
 interface CourseCardProps {
   course: Course
   showApplyButton?: boolean
   className?: string
+  priority?: boolean
 }
 
 export default function CourseCard({
   course,
   showApplyButton = true,
   className,
+  priority = false,
 }: CourseCardProps) {
   const thumbnailSrc = getCourseThumbnailSrc(course)
   const slotIndicator = getSlotIndicator(course.intakes)
+  const durationLabel = formatCourseDuration(course)
 
   return (
     <Link
@@ -38,8 +42,10 @@ export default function CourseCard({
           src={thumbnailSrc}
           alt={course.title}
           fill
+          priority={priority}
           className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          style={{ objectFit: 'cover' }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-dark/40 to-transparent" />
 
@@ -59,6 +65,7 @@ export default function CourseCard({
               alt="Instructor"
               width={24}
               height={24}
+              sizes="24px"
               className="object-cover"
             />
           </div>
@@ -69,7 +76,7 @@ export default function CourseCard({
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          12 weeks
+          {durationLabel}
         </div>
       </div>
 

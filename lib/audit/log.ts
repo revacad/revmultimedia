@@ -18,7 +18,10 @@ export async function logAuditEvent(params: AuditLogParams): Promise<void> {
     admin_id: params.adminId ?? null,
     action: params.action,
     entity_type: params.entityType ?? null,
-    entity_id: params.entityId ?? null,
+    entity_id:
+      params.entityId != null && params.entityId !== ''
+        ? String(params.entityId)
+        : null,
     old_value: params.oldValue ?? null,
     new_value: params.newValue ?? null,
   })

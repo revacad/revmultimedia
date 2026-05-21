@@ -1,10 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { withAuthCookieOptions } from '@/lib/supabase/cookies'
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +17,9 @@ export async function proxy(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({
+            request,
+          })
           withAuthCookieOptions(cookiesToSet).forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           )
@@ -31,43 +34,50 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  const publicPaths = [
-    '/login',
-    '/admin/login',
-    '/admin/accept-invite',
-    '/forgot-password',
-    '/reset-password',
-    '/splash',
-    '/api/',
-    '/_next/',
-    '/favicon',
-    '/manifest.json',
-    '/icons/',
-  ]
+  const isPublicPath =
+    path === '/' ||
+    path.startsWith('/courses') ||
+    path.startsWith('/about') ||
+    path.startsWith('/contact') ||
+    path.startsWith('/apply') ||
+    path.startsWith('/privacy') ||
+    path.startsWith('/terms') ||
+    path.startsWith('/login') ||
+    path.startsWith('/admin/login') ||
+    path.startsWith('/admin/accept-invite') ||
+    path.startsWith('/forgot-password') ||
+    path.startsWith('/reset-password') ||
+    path.startsWith('/api/') ||
+    path.startsWith('/_next/') ||
+    path.startsWith('/icons/') ||
+    path.startsWith('/alumni/') ||
+    path.startsWith('/members/') ||
+    path.startsWith('/images/') ||
+    path.startsWith('/manifest.json') ||
+    path.startsWith('/favicon') ||
+    path.startsWith('/splash')
 
-  const isPublicPath = publicPaths.some((p) => path.startsWith(p))
+  if (isPublicPath) {
+    return supabaseResponse
+  }
 
-  if (!isPublicPath && path.startsWith('/portal')) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
+  if (path.startsWith('/portal') && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('redirectTo', path)
+    return NextResponse.redirect(url)
   }
 
   if (
     path.startsWith('/admin') &&
     !path.startsWith('/admin/login') &&
-    !path.startsWith('/admin/accept-invite')
+    !path.startsWith('/admin/accept-invite') &&
+    !user
   ) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin/login'
-      return NextResponse.redirect(url)
-    }
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin/login'
+    return NextResponse.redirect(url)
   }
-
-  supabaseResponse.headers.set('x-pathname', path)
 
   return supabaseResponse
 }

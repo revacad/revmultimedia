@@ -17,6 +17,11 @@ export function ImageGrid({ images, columns = 2 }: ImageGridProps) {
             alt={image.alt || ''}
             width={400}
             height={200}
+            sizes={
+              columns === 3
+                ? '(max-width: 768px) 100vw, 33vw'
+                : '(max-width: 768px) 100vw, 50vw'
+            }
             style={{
               width: '100%',
               height: '200px',

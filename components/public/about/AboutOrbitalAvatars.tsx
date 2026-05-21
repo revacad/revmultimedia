@@ -3,42 +3,49 @@
 import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 
-interface OrbitalRing {
+interface AboutOrbitalRing {
   photos: string[]
   radius: number
   size: number
   startAngle: number
 }
 
-const rings: OrbitalRing[] = [
+const rings: AboutOrbitalRing[] = [
   {
-    photos: ['pers1.jpg', 'pers2.jpg', 'pers3.jpg', 'pers4.jpg', 'pers5.jpg'],
+    photos: ['pers1.jpg', 'person1.webp', 'pers2.jpg', 'person2.webp', 'pers3.jpg'],
     radius: 110,
     size: 54,
     startAngle: 0,
   },
   {
-    photos: ['pers6.jpg', 'pers7.jpg', 'pers8.jpg', 'pers9.jpg', 'pers10.jpg', 'pers11.jpg'],
+    photos: [
+      'pers4.jpg',
+      'person3.webp',
+      'pers5.jpg',
+      'person4.webp',
+      'pers6.jpg',
+      'person5.webp',
+    ],
     radius: 185,
     size: 48,
     startAngle: 30,
   },
   {
-    photos: [
-      'pers12.jpg',
-      'pers13.jpg',
-      'pers14.jpg',
-      'pers15.jpg',
-      'pers16.jpg',
-      'pers17.jpg',
-    ],
+    photos: ['pers7.jpg', 'person6.webp', 'pers8.jpg', 'pers9.jpg', 'pers10.jpg'],
     radius: 255,
     size: 44,
     startAngle: 45,
   },
 ]
 
-export function OrbitalAvatars() {
+function photoSrc(photo: string): string {
+  if (photo.endsWith('.webp')) {
+    return `/members/${photo}`
+  }
+  return `/alumni/${photo}`
+}
+
+export function AboutOrbitalAvatars() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -48,7 +55,7 @@ export function OrbitalAvatars() {
       const { gsap } = await import('gsap')
 
       ctx = gsap.context(() => {
-        const photos = containerRef.current?.querySelectorAll('.orbital-photo')
+        const photos = containerRef.current?.querySelectorAll('.about-orbital-photo')
         photos?.forEach((photo, i) => {
           if (i % 3 !== 0) return
 
@@ -99,57 +106,60 @@ export function OrbitalAvatars() {
         }}
       />
 
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          textAlign: 'center',
-          zIndex: 10,
-          backgroundColor: 'white',
-          borderRadius: '50%',
-          width: '130px',
-          height: '130px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 24px rgba(199,74,134,0.18)',
-          border: '2px solid rgba(199,74,134,0.15)',
-        }}
-      >
-        <span
+      <a href="/apply" style={{ textDecoration: 'none' }}>
+        <div
           style={{
-            fontFamily: 'Clash Display, sans-serif',
-            fontSize: '36px',
-            fontWeight: 700,
-            color: '#C74A86',
-            lineHeight: 1,
-          }}
-        >
-          100+
-        </span>
-        <span
-          style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '10px',
-            color: '#9898B8',
-            marginTop: '4px',
-            lineHeight: 1.4,
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             textAlign: 'center',
+            zIndex: 10,
+            backgroundColor: 'white',
+            borderRadius: '50%',
+            width: '100px',
+            height: '100px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 24px rgba(26,26,46,0.12)',
+            border: '2px solid rgba(199,74,134,0.15)',
+            cursor: 'pointer',
+            gap: '6px',
           }}
         >
-          Alumni
-          <br />
-          99% Grad Rate
-        </span>
-      </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              width: '24px',
+              height: '24px',
+              gap: '4px',
+            }}
+          >
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#C74A86' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F18F3B' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2DBFB8' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#C74A86', opacity: 0.6 }} />
+          </div>
+          <span
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '10px',
+              fontWeight: 600,
+              color: '#C74A86',
+            }}
+          >
+            Apply Now
+          </span>
+        </div>
+      </a>
 
       {rings.map((ring, ringIndex) => (
         <div
           key={ringIndex}
-          className={`orbital-ring-${ringIndex}`}
+          className={`about-orbital-ring-${ringIndex}`}
           style={{
             position: 'absolute',
             top: '50%',
@@ -159,7 +169,7 @@ export function OrbitalAvatars() {
             marginTop: -ring.radius,
             marginLeft: -ring.radius,
             borderRadius: '50%',
-            border: '1.5px solid rgba(199,74,134,0.25)',
+            border: '1.5px solid rgba(199,74,134,0.20)',
           }}
         >
           {ring.photos.map((photo, photoIndex) => {
@@ -172,7 +182,7 @@ export function OrbitalAvatars() {
             return (
               <div
                 key={photo}
-                className="orbital-photo-wrapper"
+                className="about-orbital-photo-wrapper"
                 style={{
                   position: 'absolute',
                   left: x,
@@ -182,7 +192,7 @@ export function OrbitalAvatars() {
                 }}
               >
                 <div
-                  className="orbital-photo"
+                  className="about-orbital-photo"
                   style={{
                     width: ring.size,
                     height: ring.size,
@@ -193,7 +203,7 @@ export function OrbitalAvatars() {
                   }}
                 >
                   <Image
-                    src={`/alumni/${photo}`}
+                    src={photoSrc(photo)}
                     alt="Alumni"
                     width={ring.size}
                     height={ring.size}

@@ -1,10 +1,10 @@
+import { AboutPageClient } from '@/components/public/about/AboutPageClient'
 import type { Metadata } from 'next'
-import AboutPageClient from '@/components/public/about/AboutPageClient'
 
 export const metadata: Metadata = {
-  title: 'About Us',
+  title: 'About',
   description:
-    'Learn about Rev Multimedia, founded by Godfred Ferdinand Appiah, and our partnership with Ghana Technology University College.',
+    'Learn about Rev Multimedia — who we are, what we do, and the team behind the training.',
 }
 
 export default function AboutPage() {

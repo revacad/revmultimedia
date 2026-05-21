@@ -621,42 +621,101 @@ export async function sendAdminNewApplication(params: {
   )
 }
 
-export async function sendContactForm(params: {
-  senderName: string
-  senderEmail: string
-  subject: string
+const contactAdminEmail = 'godfredkojoappiah@gmail.com'
+
+export async function sendContactForm(data: {
+  name: string
+  email: string
+  phone?: string
   message: string
 }): Promise<void> {
-  await sendHtmlEmail(
-    adminEmail,
-    `Contact form: ${params.subject}`,
-    emailTemplate({
-      previewText: `Message from ${params.senderName}`,
-      body: `
-          ${emailGreeting('Team')}
-          ${emailHeading('New contact form message')}
-          ${emailSubheading(params.subject)}
+  const resend = getResend()
+  if (!resend) {
+    console.error('[email] RESEND_API_KEY is not configured — contact form')
+    return
+  }
+
+  const safeMessage = escapeHtml(data.message)
+  const safeName = escapeHtml(data.name)
+
+  await withRetry(async () => {
+    await resend.emails.send({
+      from: fromEmail,
+      to: contactAdminEmail,
+      replyTo: data.email,
+      subject: `New message from ${data.name} — Rev Multimedia Website`,
+      html: emailTemplate({
+        previewText: `${data.name} sent a message via the Rev Multimedia website.`,
+        body: `
+          ${emailHeading('New contact message')}
+          ${emailParagraph('You received a new message from the Rev Multimedia website contact form.')}
 
           ${emailInfoCard([
-            { label: 'From', value: params.senderName },
-            { label: 'Email', value: params.senderEmail },
+            { label: 'Name', value: data.name },
+            { label: 'Email', value: data.email },
+            { label: 'Phone', value: data.phone || 'Not provided' },
           ])}
 
-          <table cellpadding="0" cellspacing="0" role="presentation"
-            width="100%" style="margin:16px 0;">
-            <tr>
-              <td style="background-color:#F7F8FC;border-radius:12px;
-                padding:20px;">
-                <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
-                  font-size:15px;color:#5A5A7A;line-height:1.7;white-space:pre-wrap;">
-                  ${escapeHtml(params.message)}
-                </p>
-              </td>
-            </tr>
-          </table>
+          <div style="
+            background-color: #F7F8FC;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            border-left: 3px solid #C74A86;
+          ">
+            <p style="
+              font-family: DM Sans, sans-serif;
+              font-size: 12px;
+              color: #9898B8;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              margin: 0 0 8px;
+            ">Message</p>
+            <p style="
+              font-family: DM Sans, sans-serif;
+              font-size: 15px;
+              color: #1A1A2E;
+              line-height: 1.7;
+              margin: 0;
+              white-space: pre-wrap;
+            ">${safeMessage}</p>
+          </div>
 
-          ${emailButton('Reply via email', `mailto:${encodeURIComponent(params.senderEmail)}`)}
+          ${emailButton('Reply to ' + safeName, `mailto:${encodeURIComponent(data.email)}`)}
         `,
-    }),
-  )
+      }),
+    })
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: data.email,
+      subject: 'We received your message — Rev Multimedia',
+      html: emailTemplate({
+        previewText: 'Thank you for reaching out. We will be in touch shortly.',
+        body: `
+          ${emailGreeting(data.name)}
+          ${emailHeading('Message received.')}
+          ${emailParagraph('Thank you for reaching out to Rev Multimedia. We have received your message and will get back to you within 1–2 business days.')}
+          ${emailAlert('info', 'If your enquiry is urgent, you can also reach us at <strong>+233 27 581 8525</strong>.')}
+          ${emailDivider()}
+          ${emailParagraph('Here is a copy of your message:')}
+          <div style="
+            background-color: #F7F8FC;
+            border-radius: 12px;
+            padding: 20px 24px;
+            border-left: 3px solid #C74A86;
+          ">
+            <p style="
+              font-family: DM Sans, sans-serif;
+              font-size: 15px;
+              color: #5A5A7A;
+              line-height: 1.7;
+              margin: 0;
+              white-space: pre-wrap;
+            ">${safeMessage}</p>
+          </div>
+        `,
+      }),
+    })
+  }, { maxRetries: 3, baseDelayMs: 1000 })
 }

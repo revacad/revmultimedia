@@ -33,6 +33,8 @@ export interface Course {
   max_slots: number;
   is_published: boolean;
   thumbnail_r2_key: string | null;
+  duration_weeks?: number;
+  duration?: string | null;
   created_at?: string;
   updated_at?: string;
   intakes: Intake[];

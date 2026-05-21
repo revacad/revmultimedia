@@ -98,7 +98,15 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
   return (
     <div>
       <div className="relative h-[45vh] min-h-[360px]">
-        <Image src={thumbnailSrc} alt={course.title} fill priority className="object-cover" />
+        <Image
+          src={thumbnailSrc}
+          alt={course.title}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          style={{ objectFit: 'cover' }}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-dark/70 via-dark/30 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-10 sm:px-12">
           <div className="mb-4 flex flex-wrap gap-2">

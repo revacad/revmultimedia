@@ -2,9 +2,27 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withCache } from "@/lib/redis/cache";
 import type { Course, Intake } from "@/lib/courses/types";
+import { weeksBetweenDates } from "@/lib/courses/duration";
 
 function mapCourse(row: Record<string, unknown>): Course {
   const intakes = (row.intakes as Intake[] | null) ?? [];
+  const openIntakes = intakes
+    .filter((i) => !i.is_closed)
+    .sort(
+      (a, b) =>
+        new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
+    );
+  const firstIntake = openIntakes[0];
+  let duration_weeks: number | undefined;
+  if (row.duration_weeks != null && row.duration_weeks !== "") {
+    duration_weeks = Number(row.duration_weeks);
+  } else if (firstIntake?.start_date && firstIntake?.end_date) {
+    duration_weeks = weeksBetweenDates(
+      firstIntake.start_date,
+      firstIntake.end_date,
+    );
+  }
+  const duration = (row.duration as string | null) ?? null;
   return {
     id: row.id as string,
     title: row.title as string,
@@ -18,14 +36,11 @@ function mapCourse(row: Record<string, unknown>): Course {
     max_slots: row.max_slots as number,
     is_published: row.is_published as boolean,
     thumbnail_r2_key: (row.thumbnail_r2_key as string | null) ?? null,
+    duration_weeks,
+    duration,
     created_at: row.created_at as string | undefined,
     updated_at: row.updated_at as string | undefined,
-    intakes: intakes
-      .filter((i) => !i.is_closed)
-      .sort(
-        (a, b) =>
-          new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
-      ),
+    intakes: openIntakes,
   };
 }
 

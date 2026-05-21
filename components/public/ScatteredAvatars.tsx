@@ -84,6 +84,7 @@ export default function ScatteredAvatars({
             alt={`Community member ${a.id}`}
             width={a.size}
             height={a.size}
+            sizes={`${a.size}px`}
             className="h-full w-full object-cover"
           />
         </div>
@@ -111,6 +112,7 @@ export default function ScatteredAvatars({
             alt="Featured student"
             width={36}
             height={36}
+            sizes="36px"
             className="object-cover"
           />
         </div>

@@ -52,11 +52,19 @@ function buildFeaturedSlots(courses: Course[]) {
   return slots
 }
 
-interface HomePageClientProps {
-  courses: Course[]
+export type NextIntakePreview = {
+  id: string
+  name: string
+  start_date: string
+  courses: { title: string } | null
 }
 
-export default function HomePageClient({ courses }: HomePageClientProps) {
+interface HomePageClientProps {
+  courses: Course[]
+  nextIntake?: NextIntakePreview | null
+}
+
+export default function HomePageClient({ courses, nextIntake }: HomePageClientProps) {
   const heroLeftRef = useRef<HTMLDivElement>(null)
   const heroCardRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLElement>(null)
@@ -130,6 +138,9 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
   }, [])
 
   const featuredSlots = buildFeaturedSlots(courses)
+  const firstFeaturedCourseId = featuredSlots.find(
+    (slot): slot is { kind: 'course'; course: Course } => slot.kind === 'course',
+  )?.course.id
 
   return (
     <div>
@@ -178,22 +189,128 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             >
               <Image
                 src="/images/african-creatives-in-class.jpg"
-                alt=""
+                alt="African creatives in class"
                 fill
-                className="object-cover opacity-25 mix-blend-luminosity"
+                priority
+                loading="eager"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                style={{ objectFit: 'cover' }}
+                className="opacity-25 mix-blend-luminosity"
               />
-              <span className="relative z-10 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary">
-                50% Off
-              </span>
+              {nextIntake && (
+                <div
+                  className="absolute z-20"
+                  style={{
+                    top: '16px',
+                    right: '16px',
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    padding: '8px 14px',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '9px',
+                      color: '#9898B8',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    Next Intake
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'Clash Display, sans-serif',
+                      fontSize: '16px',
+                      fontWeight: 700,
+                      color: '#1A1A2E',
+                      lineHeight: 1,
+                      marginBottom: '2px',
+                    }}
+                  >
+                    {new Date(nextIntake.start_date).toLocaleDateString('en-GB', {
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </p>
+                  {nextIntake.courses?.title && (
+                    <p
+                      style={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '9px',
+                        color: '#C74A86',
+                        marginTop: '2px',
+                      }}
+                    >
+                      {nextIntake.courses.title}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div
+                className="relative z-10"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '9999px',
+                    padding: '4px 12px',
+                    fontFamily: 'Clash Display, sans-serif',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#C74A86',
+                  }}
+                >
+                  50% Off
+                </div>
+                <span
+                  style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '9px',
+                    color: 'rgba(255,255,255,0.6)',
+                    marginTop: '3px',
+                    paddingLeft: '4px',
+                  }}
+                >
+                  T&amp;C apply
+                </span>
+              </div>
               <div className="relative z-10 mt-6">
                 <h2 className="font-display text-[28px] font-semibold text-white">Graphic Design</h2>
                 <p className="mt-1 text-sm text-white/80">Master the art of visual communication</p>
               </div>
               <div className="relative z-10 mt-8 flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-8 w-8 overflow-hidden rounded-full border-2 border-white">
-                      <Image src={`/members/person${i}.webp`} alt="" width={32} height={32} className="object-cover" />
+                <div className="flex items-center">
+                  {['/alumni/pers1.jpg', '/alumni/pers2.jpg', '/alumni/pers3.jpg'].map((src, i) => (
+                    <div
+                      key={src}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '2px solid white',
+                        marginLeft: i === 0 ? 0 : -8,
+                        position: 'relative',
+                        zIndex: 2 - i,
+                      }}
+                    >
+                      <Image
+                        src={src}
+                        alt="Student"
+                        width={28}
+                        height={28}
+                        sizes="28px"
+                        className="object-cover"
+                      />
                     </div>
                   ))}
                 </div>
@@ -202,17 +319,12 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
                 </span>
               </div>
             </div>
-
-            <div className="float-card absolute -right-2 -top-4 w-48 rounded-2xl bg-surface p-4 shadow-lg">
-              <p className="text-[11px] uppercase text-gray-400">Next Intake</p>
-              <p className="font-display text-xl font-semibold text-dark">Sept 2025</p>
-            </div>
             <div className="float-card absolute -bottom-6 -left-6 w-52 rounded-2xl bg-surface p-4 shadow-lg">
               <p className="text-[11px] text-gray-400">Students Enrolled</p>
               <div className="mt-2 flex -space-x-2">
-                {[4, 5, 6].map((i) => (
-                  <div key={i} className="h-8 w-8 overflow-hidden rounded-full border-2 border-white">
-                    <Image src={`/members/person${i}.webp`} alt="" width={32} height={32} className="object-cover" />
+                {['/alumni/pers1.jpg', '/alumni/pers2.jpg', '/alumni/pers3.jpg', '/alumni/pers4.jpg', '/alumni/pers5.jpg'].map((src) => (
+                  <div key={src} className="h-8 w-8 overflow-hidden rounded-full border-2 border-white">
+                    <Image src={src} alt="" width={32} height={32} sizes="32px" className="object-cover" />
                   </div>
                 ))}
               </div>
@@ -228,30 +340,69 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
       {/* Stats bar */}
       <section ref={statsRef} className={cn('reveal-section', publicSectionClass.muted)}>
         <div className="mx-auto max-w-5xl rounded-[20px] bg-surface-2 px-6 py-8">
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div
+          className="flex flex-col gap-6 md:flex-row md:items-stretch"
+          style={{ display: 'flex' }}
+        >
           {[
-            { m: '3', l: 'Disciplines offered' },
-            { m: '100%', l: 'Practical curriculum' },
-            { m: '2', l: 'Delivery modes' },
-            { m: '1', l: 'Shared mission' },
-          ].map((s, i) => (
+            { value: '3', label: 'Disciplines offered' },
+            { value: '100%', label: 'Practical curriculum' },
+            { value: '2', label: 'Delivery modes' },
+            { value: '1', label: 'Shared mission' },
+          ].map((stat, i) => (
             <div
-              key={s.l}
-              className={cn(
-                'stat-item text-center',
-                i > 0 && 'md:border-l md:border-dark/[0.08]',
-              )}
+              key={stat.label}
+              className={cn('stat-item flex-1', i > 0 && 'md:border-l md:border-dark/[0.08]')}
+              style={{
+                textAlign: 'center',
+                flex: 1,
+              }}
             >
-              <p className="stat-number font-display text-4xl font-bold text-primary md:text-5xl">{s.m}</p>
-              <p className="mt-1 font-body text-xs text-gray-400 md:text-sm">{s.l}</p>
+              <div
+                style={{
+                  fontFamily: 'Clash Display, sans-serif',
+                  fontSize: '40px',
+                  fontWeight: 700,
+                  color: '#C74A86',
+                  lineHeight: 1,
+                }}
+              >
+                {stat.value}
+              </div>
+              <div
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px',
+                  color: '#9898B8',
+                  marginTop: '6px',
+                }}
+              >
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <div className="flex -space-x-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-12 w-12 overflow-hidden rounded-full border-2 border-surface-2">
-                <Image src={`/members/person${i}.webp`} alt="" width={48} height={48} className="object-cover" />
+          <div className="flex items-center">
+            {['pers1.jpg', 'pers2.jpg', 'pers3.jpg', 'pers4.jpg', 'pers5.jpg'].map((img, i) => (
+              <div
+                key={img}
+                className="relative overflow-hidden rounded-full border-2 border-surface-2"
+                style={{
+                  width: 32,
+                  height: 32,
+                  marginLeft: i === 0 ? 0 : -8,
+                  zIndex: 5 - i,
+                }}
+              >
+                <Image
+                  src={`/alumni/${img}`}
+                  alt="Alumni"
+                  width={32}
+                  height={32}
+                  sizes="32px"
+                  className="object-cover"
+                />
               </div>
             ))}
           </div>
@@ -280,22 +431,99 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             people committed to building real creative careers &mdash; not just collecting certificates.
           </p>
           <div
-            className="mt-8 grid grid-cols-2"
-            style={{ gap: '16px' }}
+            className="mt-8"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+            }}
           >
             {[
-              { m: '50+', l: 'Alumni trained' },
-              { m: '3', l: 'Active disciplines' },
-              { m: '2', l: 'Study modes' },
-              { m: '1', l: 'Mission' },
-            ].map((s) => (
+              {
+                value: '50+',
+                label: 'Alumni trained',
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                ),
+              },
+              {
+                value: '3',
+                label: 'Active disciplines',
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                    <polyline points="2 17 12 22 22 17" />
+                    <polyline points="2 12 12 17 22 12" />
+                  </svg>
+                ),
+              },
+              {
+                value: '2',
+                label: 'Study modes',
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                ),
+              },
+              {
+                value: '1',
+                label: 'Mission',
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                ),
+              },
+            ].map((stat) => (
               <div
-                key={s.l}
-                className="rounded-2xl border border-gray-100 bg-surface-2 shadow-sm"
-                style={{ padding: '20px 24px' }}
+                key={stat.label}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '16px',
+                  padding: '20px 24px',
+                  border: '1px solid #EFEFF5',
+                  boxShadow: '0 2px 8px rgba(26,26,46,0.06)',
+                }}
               >
-                <p className="font-display text-3xl font-bold text-primary">{s.m}</p>
-                <p className="mt-1 text-sm text-gray-600">{s.l}</p>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: 'Clash Display, sans-serif',
+                      fontSize: '32px',
+                      fontWeight: 700,
+                      color: '#C74A86',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {stat.value}
+                  </span>
+                  <div style={{ opacity: 0.85, flexShrink: 0 }}>{stat.icon}</div>
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '13px',
+                    color: '#9898B8',
+                  }}
+                >
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -329,7 +557,11 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
               className="min-w-0 w-full"
             >
               {slot.kind === 'course' ? (
-                <CourseCard course={slot.course} className="h-full w-full" />
+                <CourseCard
+                  course={slot.course}
+                  className="h-full w-full"
+                  priority={slot.course.id === firstFeaturedCourseId}
+                />
               ) : (
                 <GhostCourseCard
                   title={slot.ghost.title}
@@ -358,7 +590,9 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
                 src="/images/students-working-together.jpg"
                 alt="Students working together"
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
+                style={{ objectFit: 'cover' }}
               />
             </div>
             <div className="absolute -bottom-6 -right-4 rounded-2xl bg-surface p-4 shadow-lg">
@@ -375,21 +609,81 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
               Training built for how the industry actually works.
             </h2>
             {[
-              { t: 'Practitioner-led', b: 'primary', d: 'Learn from working creatives, not theorists.' },
-              { t: 'Project-based', b: 'accent', d: 'Every module ends in portfolio-ready work.' },
-              { t: 'Career-focused', b: 'secondary', d: 'Skills that stay valuable in the AI era.' },
-            ].map((f) => (
+              {
+                title: 'Practitioner-led',
+                body: 'Learn from working creatives, not theorists.',
+                color: '#C74A86',
+                icon: (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'Project-based',
+                body: 'Every module ends in portfolio-ready work.',
+                color: '#2DBFB8',
+                icon: (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2DBFB8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                    <polyline points="2 17 12 22 22 17" />
+                    <polyline points="2 12 12 17 22 12" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'Career-focused',
+                body: 'Skills that stay valuable in the AI era.',
+                color: '#F18F3B',
+                icon: (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F18F3B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                    <polyline points="17 6 23 6 23 12" />
+                  </svg>
+                ),
+              },
+            ].map((feature) => (
               <div
-                key={f.t}
-                className={cn(
-                  'mb-4 rounded-xl border-l-[3px] bg-white p-5 shadow-sm',
-                  f.b === 'primary' && 'border-primary',
-                  f.b === 'accent' && 'border-accent',
-                  f.b === 'secondary' && 'border-secondary',
-                )}
+                key={feature.title}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  border: '1px solid #EFEFF5',
+                  borderLeft: `3px solid ${feature.color}`,
+                  boxShadow: '0 2px 8px rgba(26,26,46,0.06)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: '16px',
+                  marginBottom: '12px',
+                }}
               >
-                <p className="font-body text-base font-semibold text-[#1A1A2E]">{f.t}</p>
-                <p className="mt-1 font-body text-[15px] leading-relaxed text-[#5A5A7A]">{f.d}</p>
+                <div style={{ flex: 1 }}>
+                  <p
+                    style={{
+                      fontFamily: 'Clash Display, sans-serif',
+                      fontSize: '17px',
+                      fontWeight: 600,
+                      color: '#1A1A2E',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    {feature.title}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '14px',
+                      color: '#5A5A7A',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {feature.body}
+                  </p>
+                </div>
+                <div style={{ flexShrink: 0 }}>{feature.icon}</div>
               </div>
             ))}
           </div>
@@ -436,6 +730,7 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
                   alt="Alumni testimonial"
                   width={40}
                   height={40}
+                  sizes="40px"
                   className="h-10 w-10 shrink-0 rounded-full object-cover"
                 />
                 <div>
@@ -468,7 +763,9 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
           src="/images/graduated-student.jpg"
           alt=""
           fill
+          sizes="100vw"
           className="object-cover opacity-[0.08]"
+          style={{ objectFit: 'cover' }}
         />
         <div className="relative z-10" style={{ textAlign: 'center' }}>
           <div style={{ maxWidth: '720px', margin: '0 auto' }}>

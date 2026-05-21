@@ -51,9 +51,13 @@ function buildDisplaySlots(courses: Course[]) {
 
 interface CoursesPageClientProps {
   courses: Course[]
+  priorityCourseId?: string
 }
 
-export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
+export default function CoursesPageClient({
+  courses,
+  priorityCourseId,
+}: CoursesPageClientProps) {
   const [category, setCategory] = useState<CourseCategory | 'all'>('all')
   const [mode, setMode] = useState<CourseMode | 'all'>('all')
 
@@ -126,7 +130,9 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
               src="/images/color-scheme.jpg"
               alt="Graphic design"
               fill
+              sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover"
+              style={{ objectFit: 'cover' }}
             />
           </div>
           <div className="absolute -bottom-4 -left-4 rounded-2xl bg-surface p-4 shadow-lg">
@@ -159,11 +165,15 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
         ) : (
           <>
             <div className="grid w-full grid-cols-1 gap-6 md:hidden">
-              {filteredCourses.map((course) => (
+              {filteredCourses.map((course, index) => (
                 <CourseCard
                   key={course.id}
                   course={course}
                   className="h-full min-h-[380px] w-full"
+                  priority={
+                    course.id === priorityCourseId ||
+                    (priorityCourseId == null && index === 0)
+                  }
                 />
               ))}
             </div>
@@ -177,6 +187,7 @@ export default function CoursesPageClient({ courses }: CoursesPageClientProps) {
                     <CourseCard
                       course={slot.course}
                       className="h-full min-h-[380px] w-full"
+                      priority={slot.course.id === priorityCourseId}
                     />
                   ) : (
                     <GhostCourseCard

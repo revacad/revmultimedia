@@ -72,6 +72,7 @@ export default function ContactPageClient() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState(false)
@@ -82,7 +83,12 @@ export default function ContactPageClient() {
     setFormError(null)
     setFormSuccess(false)
     startTransition(async () => {
-      const result = await submitContactForm({ name, email, message })
+      const result = await submitContactForm({
+        name,
+        email,
+        phone: phone || undefined,
+        message,
+      })
       if (result.error) {
         setFormError(result.error)
         return
@@ -90,6 +96,7 @@ export default function ContactPageClient() {
       setFormSuccess(true)
       setName('')
       setEmail('')
+      setPhone('')
       setMessage('')
     })
   }
@@ -135,6 +142,7 @@ export default function ContactPageClient() {
 
       <section className={cn('grid grid-cols-1 gap-10 lg:grid-cols-2', publicSectionClass.white)}>
         <form
+          autoComplete="off"
           className="rounded-2xl border border-gray-100 bg-surface p-8 shadow-md"
           onSubmit={handleContactSubmit}
         >
@@ -147,6 +155,8 @@ export default function ContactPageClient() {
               <span className="text-sm font-medium text-dark">Name</span>
               <input
                 type="text"
+                name="name"
+                autoComplete="name"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -158,6 +168,8 @@ export default function ContactPageClient() {
               <span className="text-sm font-medium text-dark">Email</span>
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -166,8 +178,21 @@ export default function ContactPageClient() {
               />
             </label>
             <label className="block">
+              <span className="text-sm font-medium text-dark">Phone (optional)</span>
+              <input
+                type="tel"
+                name="phone"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                placeholder="+233 …"
+              />
+            </label>
+            <label className="block">
               <span className="text-sm font-medium text-dark">Message</span>
               <textarea
+                name="message"
                 rows={5}
                 required
                 value={message}

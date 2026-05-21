@@ -93,7 +93,15 @@ export default function ProfilePhotoUpload({
         aria-label="Update profile photo"
       >
         {photoUrl ? (
-          <Image src={photoUrl} alt="" fill className="object-cover" unoptimized />
+          <Image
+            src={photoUrl}
+            alt=""
+            fill
+            sizes="96px"
+            className="object-cover"
+            style={{ objectFit: 'cover' }}
+            unoptimized
+          />
         ) : (
           <span className="font-body text-2xl font-bold">{getInitials(fullName)}</span>
         )}

@@ -13,5 +13,10 @@ export const metadata: Metadata = {
 export default async function CoursesPage() {
   const courses = await getPublishedCourses();
 
-  return <CoursesPageClient courses={courses} />;
+  return (
+    <CoursesPageClient
+      courses={courses}
+      priorityCourseId={courses[0]?.id}
+    />
+  );
 }
