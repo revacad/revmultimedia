@@ -8,6 +8,7 @@ interface OrbitalRing {
   radius: number
   size: number
   duration: number
+  startAngle: number
 }
 
 const rings: OrbitalRing[] = [
@@ -16,24 +17,28 @@ const rings: OrbitalRing[] = [
     radius: 100,
     size: 56,
     duration: 20,
+    startAngle: 0,
   },
   {
     photos: ['pers4.jpg', 'pers5.jpg', 'pers6.jpg', 'pers7.jpg'],
     radius: 165,
     size: 52,
     duration: 28,
+    startAngle: 45,
   },
   {
     photos: ['pers8.jpg', 'pers9.jpg', 'pers10.jpg', 'pers11.jpg', 'pers12.jpg'],
     radius: 230,
     size: 48,
     duration: 36,
+    startAngle: 18,
   },
   {
     photos: ['pers13.jpg', 'pers14.jpg', 'pers15.jpg'],
     radius: 295,
     size: 44,
     duration: 44,
+    startAngle: 60,
   },
 ]
 
@@ -167,10 +172,15 @@ export function OrbitalAvatars() {
           }}
         >
           {ring.photos.map((photo, photoIndex) => {
-            const angle = (photoIndex / ring.photos.length) * 360
+            const angle =
+              (ring.startAngle || 0) + (photoIndex / ring.photos.length) * 360
             const rad = (angle * Math.PI) / 180
-            const x = ring.radius + ring.radius * Math.cos(rad) - ring.size / 2
-            const y = ring.radius + ring.radius * Math.sin(rad) - ring.size / 2
+            const x = Math.round(
+              ring.radius + ring.radius * Math.cos(rad) - ring.size / 2,
+            )
+            const y = Math.round(
+              ring.radius + ring.radius * Math.sin(rad) - ring.size / 2,
+            )
 
             return (
               <div
@@ -200,11 +210,8 @@ export function OrbitalAvatars() {
                     alt={`Alumni ${photoIndex + 1}`}
                     width={ring.size}
                     height={ring.size}
-                    style={{
-                      objectFit: 'cover',
-                      width: '100%',
-                      height: '100%',
-                    }}
+                    sizes={`${ring.size}px`}
+                    className="h-full w-full object-cover"
                   />
                 </div>
               </div>

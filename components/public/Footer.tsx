@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { FooterSocialIcons } from '@/components/public/FooterSocialIcons'
 
 export default function Footer() {
   const navigationLinks = ['Home', 'Courses', 'About', 'Apply', 'Contact']
@@ -16,90 +17,7 @@ export default function Footer() {
           <p className="max-w-[240px] text-sm leading-relaxed text-gray-600">
             Equipping African creatives with skills that last.
           </p>
-          <div className="mt-4 flex gap-3">
-            {[
-              {
-                href: 'https://instagram.com/revmultimedia',
-                label: 'Instagram',
-                svg: (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                    <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" />
-                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-                  </svg>
-                ),
-              },
-              {
-                href: 'https://facebook.com/revmultimedia',
-                label: 'Facebook',
-                svg: (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
-                  </svg>
-                ),
-              },
-              {
-                href: 'https://twitter.com/revmultimedia',
-                label: 'X (Twitter)',
-                svg: (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                ),
-              },
-              {
-                href: 'https://youtube.com/@revmultimedia',
-                label: 'YouTube',
-                svg: (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58z" />
-                    <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" />
-                  </svg>
-                ),
-              },
-            ].map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={social.label}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 no-underline transition-colors duration-200 hover:bg-primary hover:text-white"
-              >
-                {social.svg}
-              </a>
-            ))}
-          </div>
+          <FooterSocialIcons />
         </div>
 
         <div>

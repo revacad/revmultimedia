@@ -208,7 +208,7 @@ export default function AboutPageClient() {
                     alt={instructor.name}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
                 <div className="px-5 py-4">
@@ -255,7 +255,7 @@ export default function AboutPageClient() {
                   alt={`Alumni ${i + 1}`}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
+                  sizes="(max-width: 768px) 100vw, 50vw"
                 />
               </div>
             ))}

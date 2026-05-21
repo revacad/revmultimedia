@@ -1,13 +1,18 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useRef } from 'react'
 import { publicSectionClass } from '@/lib/public-ui'
 import Image from 'next/image'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
 import CourseCard from '@/components/public/CourseCard'
-import { OrbitalAvatars } from '@/components/public/OrbitalAvatars'
 import GhostCourseCard from '@/components/public/home/GhostCourseCard'
+
+const OrbitalAvatars = dynamic(
+  () => import('@/components/public/OrbitalAvatars').then((m) => m.OrbitalAvatars),
+  { ssr: false },
+)
 import type { Course } from '@/lib/courses/types'
 import { cn } from '@/lib/utils'
 
@@ -258,14 +263,14 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
       {/* Community */}
       <section
         className={cn(
-          'reveal-section grid grid-cols-1 items-center gap-12 lg:grid-cols-[45%_55%]',
+          'reveal-section grid min-h-0 grid-cols-1 items-center gap-12 py-16 md:py-20 lg:grid-cols-[45%_55%]',
           publicSectionClass.white,
         )}
       >
         <div className="hidden justify-center lg:flex">
           <OrbitalAvatars />
         </div>
-        <div className="w-full lg:pl-8">
+        <div className="w-full min-w-0 flex-1 px-4 md:px-8 lg:pl-8 lg:pr-12">
           <p className="section-label">Our Community</p>
           <h2 className="section-headline mt-3 font-display text-4xl font-bold text-[#1A1A2E]">
             Join a growing community of African creatives.
@@ -274,7 +279,10 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             From first-time learners to working professionals, Rev Multimedia brings together
             people committed to building real creative careers &mdash; not just collecting certificates.
           </p>
-          <div className="mt-8 grid grid-cols-2 gap-4">
+          <div
+            className="mt-8 grid grid-cols-2"
+            style={{ gap: '16px' }}
+          >
             {[
               { m: '50+', l: 'Alumni trained' },
               { m: '3', l: 'Active disciplines' },
@@ -283,7 +291,8 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
             ].map((s) => (
               <div
                 key={s.l}
-                className="rounded-2xl border border-gray-100 bg-surface-2 p-5 shadow-sm"
+                className="rounded-2xl border border-gray-100 bg-surface-2 shadow-sm"
+                style={{ padding: '20px 24px' }}
               >
                 <p className="font-display text-3xl font-bold text-primary">{s.m}</p>
                 <p className="mt-1 text-sm text-gray-600">{s.l}</p>
