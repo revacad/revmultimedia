@@ -13,14 +13,15 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = (await headers()).get('x-pathname') ?? ''
-  const isLoginPage = pathname === '/admin/login'
+  const isAuthPage =
+    pathname === '/admin/login' || pathname.startsWith('/admin/accept-invite')
 
-  // Protect all admin routes except login (required for production).
-  if (!isLoginPage) {
+  // Protect all admin routes except login / invite acceptance.
+  if (!isAuthPage) {
     await requireAdminPage()
   }
 
-  if (isLoginPage) {
+  if (isAuthPage) {
     return <>{children}</>
   }
 

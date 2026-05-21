@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logAuditEvent } from '@/lib/audit/log'
 import { s3Client } from '@/lib/r2/client'
 
 export async function POST(request: NextRequest) {
@@ -60,6 +61,17 @@ export async function POST(request: NextRequest) {
         ContentType: 'application/json',
       }),
     )
+
+    await logAuditEvent({
+      adminId: null,
+      action: 'system.db_export',
+      entityType: 'system',
+      entityId: 'r2-backup',
+      newValue: {
+        exportedAt: exportData.exportedAt,
+        tables: ['applications', 'students', 'invoices'],
+      },
+    })
 
     return NextResponse.json({
       success: true,

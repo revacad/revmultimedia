@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { runAfterResponse } from '@/lib/background'
 
 export type AuditLogParams = {
   adminId?: string | null
@@ -12,27 +11,30 @@ export type AuditLogParams = {
 
 export type AuditLogEntry = AuditLogParams
 
-export async function logAuditEvent(params: AuditLogParams): Promise<void> {
-  const supabase = createAdminClient()
-  const { error } = await supabase.from('audit_logs').insert({
-    admin_id: params.adminId ?? null,
-    action: params.action,
-    entity_type: params.entityType ?? null,
-    entity_id:
-      params.entityId != null && params.entityId !== ''
-        ? String(params.entityId)
-        : null,
-    old_value: params.oldValue ?? null,
-    new_value: params.newValue ?? null,
-  })
+export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
+  try {
+    const supabase = createAdminClient()
 
-  if (error) {
-    console.error('[audit] log failed', error)
+    const { error } = await supabase.from('audit_logs').insert({
+      admin_id: entry.adminId || null,
+      action: entry.action,
+      entity_type: entry.entityType ?? null,
+      entity_id: entry.entityId ? String(entry.entityId) : null,
+      old_value: entry.oldValue ?? null,
+      new_value: entry.newValue ?? null,
+    })
+
+    if (error) {
+      console.error('Audit log insert failed:', error)
+    } else {
+      console.log('Audit log recorded:', entry.action, entry.entityType ?? '')
+    }
+  } catch (err) {
+    console.error('Audit log error:', err)
   }
 }
 
-export function logAuditEventBackground(entry: AuditLogEntry): void {
-  runAfterResponse(async () => {
-    await logAuditEvent(entry)
-  })
+/** @deprecated Use await logAuditEvent() synchronously instead. */
+export async function logAuditEventBackground(entry: AuditLogEntry): Promise<void> {
+  await logAuditEvent(entry)
 }

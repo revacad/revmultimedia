@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
-import { logAuditEventBackground } from '@/lib/audit/log'
+import { logAuditEvent } from '@/lib/audit/log'
 import { runAfterResponse } from '@/lib/background'
 import { sendApplicationReceived } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
@@ -145,7 +145,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     })
   }
 
-  logAuditEventBackground({
+  await logAuditEvent({
     action: 'payment.paystack_webhook',
     entityType: 'invoice',
     entityId: invoice.id,

@@ -121,6 +121,14 @@ export async function generateTuitionInvoice(data: {
     const invoiceId = invoice.id
     const reference = invoiceRef as string
 
+    await logAuditEvent({
+      adminId: admin.id,
+      action: 'invoice.generated',
+      entityType: 'invoice',
+      entityId: invoiceId,
+      newValue: { reference, amount: totalGhs },
+    })
+
     runAfterResponse(async () => {
       const pdfKey = await generateAndStoreInvoicePdf(invoiceId)
       let pdfUrl = ''
@@ -153,14 +161,6 @@ export async function generateTuitionInvoice(data: {
         `Rev Multimedia: Your tuition invoice ${reference} for GHS ${totalGhs.toFixed(2)} is ready. Check your email for payment instructions.`,
         'sms',
       )
-
-      await logAuditEvent({
-        adminId: admin.id,
-        action: 'invoice.generated',
-        entityType: 'invoice',
-        entityId: invoiceId,
-        newValue: { reference, amount: totalGhs },
-      })
     })
 
     invalidateAdminStats()

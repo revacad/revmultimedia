@@ -1,6 +1,7 @@
 'use server'
 
 import { randomUUID } from 'crypto'
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
@@ -52,6 +53,7 @@ export async function loginAdmin(
     return { error: 'This account has been deactivated.' }
   }
 
+  revalidatePath('/', 'layout')
   redirect('/admin')
 }
 
@@ -75,7 +77,6 @@ export async function portalLogin(
   const admin = createAdminClient()
 
   let internalEmail: string | null = null
-  let redirectTo = '/portal/application'
 
   if (STUDENT_ID_RE.test(trimmed)) {
     const { data: student } = await admin
@@ -92,7 +93,6 @@ export async function portalLogin(
         .maybeSingle()
 
       internalEmail = application?.internal_email ?? null
-      redirectTo = '/portal/dashboard'
     }
   } else {
     const { data: application } = await admin
@@ -102,7 +102,6 @@ export async function portalLogin(
       .maybeSingle()
 
     internalEmail = application?.internal_email ?? null
-    redirectTo = '/portal/application'
   }
 
   if (!internalEmail) {
@@ -119,6 +118,24 @@ export async function portalLogin(
     return { error: 'Invalid ID or password' }
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let redirectTo = '/portal/application'
+  if (user) {
+    const { data: student } = await admin
+      .from('students')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+
+    if (student) {
+      redirectTo = '/portal/dashboard'
+    }
+  }
+
+  revalidatePath('/', 'layout')
   redirect(redirectTo)
 }
 

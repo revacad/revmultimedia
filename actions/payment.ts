@@ -117,6 +117,18 @@ export async function confirmPayment(data: {
 
       const studentId = rpc?.student_id
 
+      await logAuditEvent({
+        adminId: admin.id,
+        action: 'payment.confirmed',
+        entityType: 'invoice',
+        entityId: data.invoiceId,
+        newValue: {
+          amount: data.amountGhs,
+          method: data.paymentMethod,
+          studentId,
+        },
+      })
+
       runAfterResponse(async () => {
         if (application) {
           const courseTitle = Array.isArray(application.courses)
@@ -136,17 +148,6 @@ export async function confirmPayment(data: {
                 : `Rev Multimedia: Payment of GHS ${data.amountGhs.toFixed(2)} confirmed for invoice ${data.invoiceId}.`,
               'sms',
             ),
-            logAuditEvent({
-              adminId: admin.id,
-              action: 'payment.confirmed',
-              entityType: 'invoice',
-              entityId: data.invoiceId,
-              newValue: {
-                amount: data.amountGhs,
-                method: data.paymentMethod,
-                studentId,
-              },
-            }),
           ])
         }
       })
@@ -204,8 +205,14 @@ export async function resendInvoiceEmail(
   invoiceId: string,
 ): Promise<{ success: true } | { error: string }> {
   try {
-    await requireAdmin()
+    const session = await requireAdmin()
     const supabase = createAdminClient()
+
+    const { data: admin } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('auth_user_id', session.userId)
+      .single()
 
     const { data: invoice } = await supabase
       .from('invoices')
@@ -249,6 +256,16 @@ export async function resendInvoiceEmail(
         reference: invoice.reference,
         amountGhs: Number(invoice.total_ghs),
         paystackLink: '',
+      })
+    }
+
+    if (admin) {
+      await logAuditEvent({
+        adminId: admin.id,
+        action: 'invoice.email_resent',
+        entityType: 'invoice',
+        entityId: String(invoiceId),
+        newValue: { resentAt: new Date().toISOString() },
       })
     }
 

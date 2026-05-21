@@ -2,6 +2,40 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { withAuthCookieOptions } from '@/lib/supabase/cookies'
 
+function applySessionCookies(from: NextResponse, to: NextResponse): void {
+  from.cookies.getAll().forEach((cookie) => {
+    to.cookies.set(cookie.name, cookie.value, cookie)
+  })
+}
+
+function nextWithPathname(
+  request: NextRequest,
+  supabaseResponse: NextResponse,
+  path: string,
+): NextResponse {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', path)
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  })
+  applySessionCookies(supabaseResponse, response)
+  return response
+}
+
+function redirectWithPathname(
+  request: NextRequest,
+  supabaseResponse: NextResponse,
+  pathname: string,
+  pathForHeader: string,
+): NextResponse {
+  const url = request.nextUrl.clone()
+  url.pathname = pathname
+  const response = NextResponse.redirect(url)
+  applySessionCookies(supabaseResponse, response)
+  response.headers.set('x-pathname', pathForHeader)
+  return response
+}
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -34,15 +68,29 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
+  if (user) {
+    if (path === '/admin/login') {
+      return redirectWithPathname(request, supabaseResponse, '/admin', path)
+    }
+    if (path === '/login') {
+      const redirectTo = request.nextUrl.searchParams.get('redirectTo')
+      const destination =
+        redirectTo?.startsWith('/portal') ? redirectTo : '/portal/application'
+      return redirectWithPathname(request, supabaseResponse, destination, path)
+    }
+  }
+
   const isPublicPath =
     path === '/' ||
+    path === '/manifest.json' ||
+    path.endsWith('.json') ||
     path.startsWith('/courses') ||
     path.startsWith('/about') ||
     path.startsWith('/contact') ||
     path.startsWith('/apply') ||
     path.startsWith('/privacy') ||
     path.startsWith('/terms') ||
-    path.startsWith('/login') ||
+    path === '/login' ||
     path.startsWith('/admin/login') ||
     path.startsWith('/admin/accept-invite') ||
     path.startsWith('/forgot-password') ||
@@ -50,22 +98,24 @@ export async function proxy(request: NextRequest) {
     path.startsWith('/api/') ||
     path.startsWith('/_next/') ||
     path.startsWith('/icons/') ||
+    path.startsWith('/sw.js') ||
     path.startsWith('/alumni/') ||
     path.startsWith('/members/') ||
     path.startsWith('/images/') ||
-    path.startsWith('/manifest.json') ||
     path.startsWith('/favicon') ||
     path.startsWith('/splash')
 
   if (isPublicPath) {
-    return supabaseResponse
+    return nextWithPathname(request, supabaseResponse, path)
   }
 
   if (path.startsWith('/portal') && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirectTo', path)
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    applySessionCookies(supabaseResponse, response)
+    return response
   }
 
   if (
@@ -74,12 +124,12 @@ export async function proxy(request: NextRequest) {
     !path.startsWith('/admin/accept-invite') &&
     !user
   ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin/login'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(new URL('/admin/login', request.url))
+    applySessionCookies(supabaseResponse, response)
+    return response
   }
 
-  return supabaseResponse
+  return nextWithPathname(request, supabaseResponse, path)
 }
 
 export const config = {

@@ -21,7 +21,7 @@ export default async function AuditLogPage() {
   const [{ data: logs }, { data: adminList }] = await Promise.all([
     supabase
       .from('audit_logs')
-      .select('*, admins(full_name, email), students(full_name, student_id)')
+      .select('*, admins(full_name, email)')
       .order('created_at', { ascending: false })
       .limit(100),
     supabase.from('admins').select('id, full_name').order('full_name'),
@@ -37,9 +37,7 @@ export default async function AuditLogPage() {
     new_value: row.new_value,
     created_at: row.created_at,
     admins: firstRelation(row.admins as AuditLogRow['admins'] | AuditLogRow['admins'][] | null),
-    students: firstRelation(
-      row.students as AuditLogRow['students'] | AuditLogRow['students'][] | null,
-    ),
+    students: null,
   }))
 
   const actionTypes = [...new Set(rows.map((r) => r.action))].sort()

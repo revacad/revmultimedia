@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
+import { logAuditEvent } from '@/lib/audit/log'
 
 function relationOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
@@ -17,12 +18,8 @@ function toCsv(headers: string[], rows: unknown[][]): string {
   return [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n')
 }
 
-async function ensureAdmin() {
-  await requireAdmin()
-}
-
 export async function exportApplicationsCSV(): Promise<string> {
-  await ensureAdmin()
+  const session = await requireAdmin()
   const supabase = createAdminClient()
 
   const { data } = await supabase
@@ -72,7 +69,7 @@ export async function exportApplicationsCSV(): Promise<string> {
     ]
   })
 
-  return toCsv(
+  const csv = toCsv(
     [
       'Reference',
       'Name',
@@ -87,10 +84,23 @@ export async function exportApplicationsCSV(): Promise<string> {
     ],
     rows,
   )
+
+  await logAuditEvent({
+    adminId: session.adminId,
+    action: 'report.exported',
+    entityType: 'report',
+    entityId: 'csv-export',
+    newValue: {
+      exportedAt: new Date().toISOString(),
+      type: 'applications_csv',
+    },
+  })
+
+  return csv
 }
 
 export async function exportStudentsCSV(): Promise<string> {
-  await ensureAdmin()
+  await requireAdmin()
   const supabase = createAdminClient()
 
   const { data } = await supabase
@@ -127,7 +137,7 @@ export async function exportStudentsCSV(): Promise<string> {
 }
 
 export async function exportPaymentsCSV(): Promise<string> {
-  await ensureAdmin()
+  await requireAdmin()
   const supabase = createAdminClient()
 
   const { data } = await supabase
@@ -168,7 +178,7 @@ export async function exportPaymentsCSV(): Promise<string> {
 }
 
 export async function exportEnrollmentsCSV(): Promise<string> {
-  await ensureAdmin()
+  await requireAdmin()
   const supabase = createAdminClient()
 
   const { data } = await supabase
