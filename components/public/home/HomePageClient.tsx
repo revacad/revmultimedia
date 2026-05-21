@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
 import CourseCard from '@/components/public/CourseCard'
-import ScatteredAvatars from '@/components/public/ScatteredAvatars'
+import { OrbitalAvatars } from '@/components/public/OrbitalAvatars'
 import GhostCourseCard from '@/components/public/home/GhostCourseCard'
 import type { Course } from '@/lib/courses/types'
 import { cn } from '@/lib/utils'
@@ -257,10 +257,15 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
 
       {/* Community */}
       <section
-        className={cn('reveal-section grid grid-cols-1 items-center gap-12 lg:grid-cols-2', publicSectionClass.white)}
+        className={cn(
+          'reveal-section grid grid-cols-1 items-center gap-12 lg:grid-cols-[45%_55%]',
+          publicSectionClass.white,
+        )}
       >
-        <ScatteredAvatars />
-        <div className="lg:pl-8">
+        <div className="hidden justify-center lg:flex">
+          <OrbitalAvatars />
+        </div>
+        <div className="w-full lg:pl-8">
           <p className="section-label">Our Community</p>
           <h2 className="section-headline mt-3 font-display text-4xl font-bold text-[#1A1A2E]">
             Join a growing community of African creatives.
@@ -390,16 +395,40 @@ export default function HomePageClient({ courses }: HomePageClientProps) {
         </h2>
         <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
           {[
-            { name: 'Ama K.', course: 'Graphic Design', border: 'border-primary', quote: 'The structure changed how I approach client work.' },
-            { name: 'Kwesi M.', course: 'Motion Graphics', border: 'border-secondary', quote: 'Real projects, real feedback. Exactly what I needed.' },
-            { name: 'Efua T.', course: 'Video Editing', border: 'border-accent', quote: 'I finally feel confident charging professional rates.' },
+            {
+              name: 'Ama K.',
+              course: 'Graphic Design',
+              border: 'border-primary',
+              quote: 'The structure changed how I approach client work.',
+              avatar: '/alumni/pers5.jpg',
+            },
+            {
+              name: 'Kwesi M.',
+              course: 'Motion Graphics',
+              border: 'border-secondary',
+              quote: 'Real projects, real feedback. Exactly what I needed.',
+              avatar: '/alumni/pers6.jpg',
+            },
+            {
+              name: 'Efua T.',
+              course: 'Video Editing',
+              border: 'border-accent',
+              quote: 'I finally feel confident charging professional rates.',
+              avatar: '/alumni/pers7.jpg',
+            },
           ].map((t) => (
             <article
               key={t.name}
               className={cn('rounded-2xl border-t-[3px] bg-surface p-6 shadow-card', t.border)}
             >
               <div className="flex items-center gap-3">
-                <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary-light to-accent-light" />
+                <Image
+                  src={t.avatar}
+                  alt="Alumni testimonial"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                />
                 <div>
                   <p className="font-semibold text-dark">{t.name}</p>
                   <p className="text-sm text-gray-600">{t.course}</p>

@@ -4,9 +4,18 @@ import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
-import ScatteredAvatars from '@/components/public/ScatteredAvatars'
 import { publicSectionClass } from '@/lib/public-ui'
 import { cn } from '@/lib/utils'
+
+const INSTRUCTORS = [
+  { img: 'person1.webp', name: 'Instructor', role: 'Graphic Design Lead' },
+  { img: 'person2.webp', name: 'Instructor', role: 'Motion Graphics' },
+  { img: 'person3.webp', name: 'Instructor', role: 'Video Editing' },
+  { img: 'person4.webp', name: 'Instructor', role: 'Brand Identity' },
+  { img: 'person5.webp', name: 'Instructor', role: 'Visual Design' },
+  { img: 'person6.webp', name: 'Instructor', role: 'Photography' },
+  { img: 'person7.webp', name: 'Instructor', role: 'Creative Direction' },
+] as const
 
 export default function AboutPageClient() {
   useEffect(() => {
@@ -165,14 +174,91 @@ export default function AboutPageClient() {
         </div>
       </section>
 
+      <section
+        className="reveal py-16 md:py-20"
+        style={{ backgroundColor: '#F7F8FC' }}
+      >
+        <div className="mx-auto max-w-[1200px] px-6 md:px-12">
+          <p
+            className="mb-3 font-body text-xs font-semibold uppercase tracking-[0.08em]"
+            style={{ color: '#C74A86' }}
+          >
+            Our Instructors
+          </p>
+          <h2 className="mb-3 font-display text-3xl font-bold text-dark md:text-4xl">
+            Learn from working creatives.
+          </h2>
+          <p
+            className="mb-12 max-w-[520px] font-body text-base leading-relaxed"
+            style={{ color: '#5A5A7A' }}
+          >
+            Our instructors are not theorists. They are practitioners who have built real careers in
+            design, motion, and video production across Ghana and internationally.
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {INSTRUCTORS.map((instructor) => (
+              <div
+                key={instructor.img}
+                className="overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-[0_2px_16px_rgba(26,26,46,0.08)] transition-[transform,box-shadow] duration-250 ease-out hover:-translate-y-1 hover:shadow-[0_8px_40px_rgba(26,26,46,0.14)]"
+              >
+                <div className="relative h-[220px] overflow-hidden">
+                  <Image
+                    src={`/members/${instructor.img}`}
+                    alt={instructor.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  />
+                </div>
+                <div className="px-5 py-4">
+                  <p className="mb-1 font-display text-base font-semibold text-dark">
+                    {instructor.name}
+                  </p>
+                  <p className="font-body text-[13px] text-primary">{instructor.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className={cn('reveal', publicSectionClass.white)}>
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-          <ScatteredAvatars featuredLabel="Community" featuredName="50+ Trained" />
-          <div>
-            <h2 className="font-display text-4xl font-bold text-dark">The faces of Rev Multimedia</h2>
-            <p className="mt-4 text-gray-600 leading-relaxed">
-              Students, alumni, and instructors building Ghana&apos;s next generation of creative professionals.
-            </p>
+        <div className="mx-auto max-w-[1200px]">
+          <p className="section-label">Our Alumni</p>
+          <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="max-w-md font-display text-3xl font-bold text-dark md:text-4xl">
+              100+ creatives trained and working.
+            </h2>
+            <Link
+              href="/apply"
+              className={cn(
+                buttonVariants({ variant: 'primary', size: 'md' }),
+                'inline-flex shrink-0 self-start sm:self-auto',
+              )}
+            >
+              Join them
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-3">
+            {Array.from({ length: 12 }, (_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'relative overflow-hidden rounded-2xl',
+                  i % 3 === 0 ? 'h-[260px]' : 'h-[200px]',
+                )}
+              >
+                <Image
+                  src={`/alumni/pers${i + 1}.jpg`}
+                  alt={`Alumni ${i + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
+              </div>
+            ))}
           </div>
         </div>
       </section>
