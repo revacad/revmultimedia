@@ -194,7 +194,7 @@ export function OrbitalAvatars() {
                 >
                   <Image
                     src={`/alumni/${photo}`}
-                    alt="Alumni"
+                    alt="Rev Multimedia alumni trained in Accra Ghana"
                     width={ring.size}
                     height={ring.size}
                     sizes={`${ring.size}px`}

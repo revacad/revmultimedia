@@ -24,8 +24,8 @@ function ModeCallout({ course }: { course: Course }) {
       <div className="rounded-xl border border-accent/25 bg-accent-light p-5">
         <p className="mb-2 font-semibold text-accent-hover">Fully online</p>
         <p className="text-sm leading-relaxed text-gray-600">
-          Study from anywhere in the world. Live sessions and project reviews happen remotely
-          &mdash; ideal for international students.
+          Study from anywhere in the world. Live sessions and project reviews happen remotely,
+          ideal for international students.
         </p>
       </div>
     )
@@ -48,7 +48,7 @@ function ModeCallout({ course }: { course: Course }) {
       <p className="mb-2 font-semibold text-dark">In-person in Accra</p>
       <p className="text-sm leading-relaxed text-gray-600">
         This programme requires physical attendance at our Accra campus. International applicants
-        are welcome &mdash; our admissions team will discuss logistics during review.
+        are welcome. Our admissions team will discuss logistics during review.
       </p>
     </div>
   )
@@ -100,7 +100,7 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
       <div className="relative h-[45vh] min-h-[360px]">
         <Image
           src={thumbnailSrc}
-          alt={course.title}
+          alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
           fill
           priority
           sizes="100vw"

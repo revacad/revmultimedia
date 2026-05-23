@@ -10,7 +10,7 @@ export default function InternationalWelcomeNote() {
       <p className="font-body text-[14px] leading-relaxed text-gray-600">
         Rev Multimedia welcomes applicants from Ghana and around the
         world. Online courses are open worldwide. Hybrid and in-person courses
-        may require travel to Accra for scheduled sessions &mdash; we never block
+        may require travel to Accra for scheduled sessions. We never block
         international applications; our team reviews each profile individually.
       </p>
     </div>

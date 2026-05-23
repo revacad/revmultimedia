@@ -1,5 +1,16 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageContainer } from '@/components/ui/PageContainer'
+
+export const metadata: Metadata = {
+  title: 'Page Not Found | Rev Multimedia',
+  description:
+    'The page you requested could not be found on Rev Multimedia. Browse our creative design courses in Accra, Ghana, or return to the homepage.',
+  robots: {
+    index: false,
+    follow: true,
+  },
+}
 
 export default function NotFound() {
   return (

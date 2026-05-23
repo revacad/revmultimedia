@@ -83,7 +83,7 @@ export function FeaturedInstructorCard() {
         >
           <Image
             src="/members/founder.jpg"
-            alt="Join Rev Multimedia"
+            alt="Godfred Ferdinand Appiah, Lead Instructor at Rev Multimedia"
             width={52}
             height={52}
             sizes="52px"

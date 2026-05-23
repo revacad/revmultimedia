@@ -146,9 +146,86 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
     <div>
       {/* Hero */}
       <section
-        className={cn('reveal-section grid min-h-[520px] grid-cols-1 lg:grid-cols-[55%_45%]', publicSectionClass.white)}
+        className={cn(
+          'reveal-section relative overflow-hidden grid min-h-[520px] grid-cols-1 lg:grid-cols-[55%_45%]',
+          publicSectionClass.white,
+        )}
       >
-        <div ref={heroLeftRef} className="flex flex-col justify-center px-6 pb-8 pt-12 sm:px-8 lg:pl-10">
+        {/* Floating design tool SVGs */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            zIndex: 0,
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '12%',
+              right: '3%',
+              opacity: 0.08,
+              animation: 'heroFloat1 9s ease-in-out infinite',
+            }}
+          >
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 19l7-7 3 3-7 7-3-3z" />
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+              <path d="M2 2l7.586 7.586" />
+              <circle cx="11" cy="11" r="2" />
+            </svg>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              top: '45%',
+              left: '1%',
+              opacity: 0.07,
+              animation: 'heroFloat2 11s ease-in-out infinite 1.5s',
+            }}
+          >
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#2DBFB8" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '15%',
+              right: '5%',
+              opacity: 0.07,
+              animation: 'heroFloat3 13s ease-in-out infinite 3s',
+            }}
+          >
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#F18F3B" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="4 7 4 4 20 4 20 7" />
+              <line x1="9" y1="20" x2="15" y2="20" />
+              <line x1="12" y1="4" x2="12" y2="20" />
+            </svg>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              top: '8%',
+              left: '2%',
+              opacity: 0.06,
+              animation: 'heroFloat1 15s ease-in-out infinite 2s',
+            }}
+          >
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#C74A86" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+          </div>
+        </div>
+
+        <div ref={heroLeftRef} className="relative z-[1] flex flex-col justify-center px-6 pb-8 pt-12 sm:px-8 lg:pl-10">
           <h1 className="hero-headline section-headline font-display text-[36px] font-bold leading-[1.15] text-[#1A1A2E] sm:text-[44px] sm:leading-[1.05] lg:text-[52px]">
             <span className="block">Build Skills</span>
             <span className="block">That Cannot Be</span>
@@ -156,7 +233,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
           </h1>
           <p className="mt-4 max-w-md font-body text-[15px] leading-relaxed text-[#5A5A7A] sm:text-base">
             Rev Multimedia trains the next generation of Ghanaian and African creatives
-            in Graphic Design, Motion Graphics, and Video Editing &mdash; with the depth and
+            in Graphic Design, Motion Graphics, and Video Editing, with the depth and
             discipline the industry actually demands.
           </p>
           <div className="mt-6 flex w-full max-w-[280px] flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
@@ -181,7 +258,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
           </div>
         </div>
 
-        <div className="relative hidden items-center justify-center px-4 pb-10 pt-8 lg:flex lg:pr-8">
+        <div className="relative z-[1] hidden items-center justify-center px-4 pb-10 pt-8 lg:flex lg:pr-8">
           <div ref={heroCardRef} className="relative w-full max-w-[420px]">
             <div
               className="relative h-[380px] overflow-hidden rounded-[28px] p-8 shadow-xl"
@@ -189,7 +266,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
             >
               <Image
                 src="/images/african-creatives-in-class.jpg"
-                alt="African creatives in class"
+                alt="African creatives in class at Rev Multimedia, Accra Ghana"
                 fill
                 priority
                 loading="eager"
@@ -305,7 +382,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
                     >
                       <Image
                         src={src}
-                        alt="Student"
+                        alt="Graphic design student at Rev Multimedia, Accra Ghana"
                         width={28}
                         height={28}
                         sizes="28px"
@@ -324,7 +401,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
               <div className="mt-2 flex -space-x-2">
                 {['/alumni/pers1.jpg', '/alumni/pers2.jpg', '/alumni/pers3.jpg', '/alumni/pers4.jpg', '/alumni/pers5.jpg'].map((src) => (
                   <div key={src} className="h-8 w-8 overflow-hidden rounded-full border-2 border-white">
-                    <Image src={src} alt="" width={32} height={32} sizes="32px" className="object-cover" />
+                    <Image src={src} alt="Rev Multimedia alumni trained in Accra Ghana" width={32} height={32} sizes="32px" className="object-cover" />
                   </div>
                 ))}
               </div>
@@ -397,7 +474,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
               >
                 <Image
                   src={`/alumni/${img}`}
-                  alt="Alumni"
+                  alt="Rev Multimedia alumni trained in Accra Ghana"
                   width={32}
                   height={32}
                   sizes="32px"
@@ -428,7 +505,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-600">
             From first-time learners to working professionals, Rev Multimedia brings together
-            people committed to building real creative careers &mdash; not just collecting certificates.
+            people committed to building real creative careers, not just collecting certificates.
           </p>
           <div
             className="mt-8"
@@ -588,7 +665,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
             <div className="relative h-[250px] overflow-hidden rounded-2xl shadow-lg md:h-[400px]">
               <Image
                 src="/images/students-working-together.jpg"
-                alt="Students working together"
+                alt="Students learning graphic design at Rev Multimedia, Accra Ghana"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
@@ -727,7 +804,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
               <div className="flex items-center gap-3">
                 <Image
                   src={t.avatar}
-                  alt="Alumni testimonial"
+                  alt={`${t.name}, ${t.course} student testimonial at Rev Multimedia Ghana`}
                   width={40}
                   height={40}
                   sizes="40px"
@@ -753,49 +830,141 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
 
       {/* Final CTA */}
       <section
-        className={cn(
-          'reveal-section relative overflow-hidden max-md:!px-6 max-md:!py-12',
-          publicSectionClass.gradient,
-        )}
-        style={{ borderRadius: '0 0 32px 32px', textAlign: 'center' }}
+        className="reveal-section"
+        style={{
+          background: 'linear-gradient(135deg, #1A1A2E 0%, #2F2F52 100%)',
+          padding: '80px 48px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
       >
-        <Image
-          src="/images/graduated-student.jpg"
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover opacity-[0.08]"
-          style={{ objectFit: 'cover' }}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'radial-gradient(circle, rgba(199,74,134,0.15) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+            pointerEvents: 'none',
+          }}
         />
-        <div className="relative z-10" style={{ textAlign: 'center' }}>
-          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-          <h2 className="section-headline font-display text-[32px] font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
-            Your creative career starts with one decision.
+
+        <div
+          style={{
+            maxWidth: '800px',
+            margin: '0 auto',
+            textAlign: 'center',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: 'Clash Display, sans-serif',
+              fontSize: '48px',
+              fontWeight: 700,
+              color: 'white',
+              marginBottom: '16px',
+              lineHeight: 1.15,
+            }}
+          >
+            Your creative career starts
+            <br />
+            with one decision.
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-white/80 sm:text-lg">
-            Applications are open for our upcoming cohorts. Spots are limited &mdash; we keep
-            class sizes intentionally small so every student gets real attention.
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '16px',
+              color: 'rgba(255,255,255,0.65)',
+              marginBottom: '40px',
+              maxWidth: '520px',
+              margin: '0 auto 40px',
+              lineHeight: 1.7,
+            }}
+          >
+            Applications are open for our upcoming cohorts. Spots are limited: we keep class
+            sizes small intentionally, so every student gets the attention they deserve.
           </p>
-          <div className="mx-auto mt-10 flex w-full max-w-[280px] flex-col items-center gap-3 sm:max-w-none sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4">
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              marginBottom: '40px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '9999px',
+                padding: '10px 24px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.75)',
+              }}
+            >
+              Application fee: GHS 100 per application
+            </div>
+            <div
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '9999px',
+                padding: '10px 24px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.75)',
+              }}
+            >
+              Career-focused · Skills that last
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
             <Link
               href="/apply"
-              className={cn(
-                buttonVariants({ variant: 'ghost-on-dark', size: 'md' }),
-                'w-full justify-center border-2 border-white/50 px-5 py-3 text-sm sm:w-auto',
-              )}
+              style={{
+                backgroundColor: 'white',
+                color: '#1A1A2E',
+                padding: '16px 40px',
+                borderRadius: '9999px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '16px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                display: 'inline-block',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.20)',
+              }}
             >
-              Apply Now &mdash; It Takes 10 Minutes
+              Apply Now, Join the Next Cohort
             </Link>
             <Link
-              href="/contact"
-              className="w-full text-center font-body text-sm text-white/80 underline hover:text-white sm:w-auto"
+              href="/courses"
+              style={{
+                backgroundColor: 'transparent',
+                color: 'white',
+                padding: '16px 32px',
+                borderRadius: '9999px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '16px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                display: 'inline-block',
+                border: '1.5px solid rgba(255,255,255,0.30)',
+              }}
             >
-              Have questions? Talk to us &rarr;
+              View our courses →
             </Link>
-          </div>
-          <p className="mt-8 text-sm text-white/50">
-            Application fee: GHS 100 &middot; Non-refundable &middot; Secures your place in the review process
-          </p>
           </div>
         </div>
       </section>

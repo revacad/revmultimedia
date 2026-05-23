@@ -25,7 +25,7 @@ export default function Step4Documents({ formData, draftId, onChange }: Step4Doc
       <div className="flex flex-col gap-6">
         <DocumentUploadSlot
           label={idLabel}
-          subtext="PDF, JPG, or PNG — max 5MB"
+          subtext="PDF, JPG, or PNG, max 5MB"
           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
           maxSizeBytes={5 * 1024 * 1024}
           draftId={draftId}
@@ -36,7 +36,7 @@ export default function Step4Documents({ formData, draftId, onChange }: Step4Doc
 
         <DocumentUploadSlot
           label="Passport Photograph"
-          subtext="JPG or PNG only — max 2MB. This will be used as your profile photo if accepted."
+          subtext="JPG or PNG only, max 2MB. This will be used as your profile photo if accepted."
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           maxSizeBytes={2 * 1024 * 1024}
           draftId={draftId}
@@ -146,7 +146,7 @@ function CertificatesUpload({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[13px] font-medium text-gray-600">Supporting Certificates (optional)</p>
-      <p className="text-xs text-gray-400">PDF, JPG, or PNG — max 5MB each (up to 3 files)</p>
+      <p className="text-xs text-gray-400">PDF, JPG, or PNG, max 5MB each (up to 3 files)</p>
 
       {certificates.map((file, index) => (
         <CertificateFileRow

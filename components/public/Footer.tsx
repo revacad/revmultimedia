@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { FooterSocialIcons } from '@/components/public/FooterSocialIcons'
-
 export default function Footer() {
   const navigationLinks = ['Home', 'Courses', 'About', 'Apply', 'Contact']
 
@@ -79,14 +78,14 @@ export default function Footer() {
             Academic partner
           </h4>
           <p className="mb-3 font-body text-sm text-gray-600">In collaboration with</p>
-          <p className="mb-3 font-body text-sm font-medium text-dark">Ghana Technology University College</p>
+          <p className="mb-3 font-body text-sm font-medium text-dark">Ghana Communication Technology University</p>
           <a
-            href="https://gtuc.edu.gh"
+            href="https://gctu.edu.gh"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-accent/30 px-3 py-1.5 font-body text-xs font-semibold text-accent transition-colors hover:bg-accent-light"
           >
-            GTUC
+            GCTU
           </a>
         </div>
       </div>

@@ -30,7 +30,7 @@ function intakeOptionLabel(intake: ApplyCourse['intakes'][0]): string {
   const remaining = intakeSlotsRemaining(intake)
   if (remaining !== null) {
     const full = remaining <= 0
-    return `${intake.name} — ${full ? 'Full' : `${remaining} spots left`}`
+    return `${intake.name}, ${full ? 'Full' : `${remaining} spots left`}`
   }
   return intake.name
 }

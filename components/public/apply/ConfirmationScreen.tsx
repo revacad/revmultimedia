@@ -57,7 +57,7 @@ export default function ConfirmationScreen({
             className="mt-4 block w-full"
           >
             <Button variant="primary" size="lg" className="w-full">
-              Pay Application Fee — GHS 100
+              Pay Application Fee: GHS 100
             </Button>
           </button>
         ) : (

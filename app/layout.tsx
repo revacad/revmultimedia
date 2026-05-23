@@ -1,15 +1,50 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { LocalBusinessJsonLd } from '@/components/seo/JsonLd'
 import { PageTransitionLoader } from '@/components/ui/PageTransitionLoader'
+import { siteDescription, siteKeywords, siteUrl } from '@/lib/seo'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Rev Multimedia',
-  description: 'Creative Education for the AI Era — Graphic Design, Motion Graphics, Video Editing',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'Rev Multimedia | Creative Design School in Accra, Ghana',
+    template: '%s | Rev Multimedia',
+  },
+  description: siteDescription,
+  keywords: siteKeywords,
+  authors: [{ name: 'Rev Multimedia', url: siteUrl }],
+  creator: 'Rev Multimedia',
+  publisher: 'Rev Multimedia',
   manifest: '/manifest.json',
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/icons/icon-180.png', sizes: '180x180', type: 'image/png' }],
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_GH',
+    url: siteUrl,
+    siteName: 'Rev Multimedia',
+    title: 'Rev Multimedia | Creative Design School in Accra, Ghana',
+    description: siteDescription,
+    images: [
+      {
+        url: `${siteUrl}/images/og-default.jpg`,
+        width: 1200,
+        height: 630,
+        alt: 'Rev Multimedia, Creative Design School in Accra Ghana',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@revmultimedia',
+    creator: '@revmultimedia',
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 }
 
@@ -21,6 +56,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <LocalBusinessJsonLd />
+        <meta name="author" content="Rev Multimedia" />
+        <meta name="publisher" content="Rev Multimedia" />
+        <meta name="copyright" content="Rev Multimedia" />
+        <meta name="language" content="English" />
+        <meta name="geo.region" content="GH-AA" />
+        <meta name="geo.placename" content="Accra, Ghana" />
+        <meta name="geo.position" content="5.5913;-0.3417" />
+        <meta name="ICBM" content="5.5913, -0.3417" />
         <link
           rel="preconnect"
           href="https://api.fontshare.com"

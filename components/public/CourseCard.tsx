@@ -40,7 +40,7 @@ export default function CourseCard({
       <div className="relative h-[220px] overflow-hidden">
         <Image
           src={thumbnailSrc}
-          alt={course.title}
+          alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
           fill
           priority={priority}
           className="object-cover"
@@ -62,7 +62,7 @@ export default function CourseCard({
           <div className="relative h-6 w-6 overflow-hidden rounded-full">
             <Image
               src="/members/person4.webp"
-              alt="Instructor"
+              alt="Godfred Ferdinand Appiah, Lead Instructor at Rev Multimedia"
               width={24}
               height={24}
               sizes="24px"

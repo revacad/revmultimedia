@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 const FAQ = [
   {
     q: 'Who can apply to Rev Multimedia?',
-    a: 'Anyone who wants to build a professional creative career. You do not need any prior experience — just commitment and a willingness to put in the work. We have students who started with zero design background and went on to work with clients professionally.',
+    a: 'Anyone who wants to build a professional creative career. You do not need any prior experience, just commitment and a willingness to put in the work. We have students who started with zero design background and went on to work with clients professionally.',
   },
   {
     q: 'Are the courses available online?',
@@ -26,11 +26,11 @@ const FAQ = [
   },
   {
     q: 'What is the tuition fee?',
-    a: 'Tuition fees vary by course. You will find the fee for each course on its detail page. We offer structured payment plans — speak to us if you need flexibility.',
+    a: 'Tuition fees vary by course. You will find the fee for each course on its detail page. We offer structured payment plans. Speak to us if you need flexibility.',
   },
   {
     q: 'Can I pay in installments?',
-    a: 'Yes. We understand that paying a full tuition upfront is not always possible. Installment arrangements are available — contact us at info@revmultimediagh.com to discuss your situation.',
+    a: 'Yes. We understand that paying a full tuition upfront is not always possible. Installment arrangements are available. Contact us at info@revmultimediagh.com to discuss your situation.',
   },
   {
     q: 'Is the application fee refundable?',
@@ -42,7 +42,7 @@ const FAQ = [
   },
   {
     q: 'Does Rev Multimedia issue certificates?',
-    a: 'Yes. Students who complete a course receive an official Rev Multimedia certificate. Our academic collaboration with Ghana Technology University College adds further institutional credibility to your training.',
+    a: 'Yes. Students who complete a course receive an official Rev Multimedia certificate. Our partnership with Ghana Communication Technology University (GCTU) adds further institutional credibility to your training.',
   },
 ]
 
@@ -207,7 +207,7 @@ export default function ContactPageClient() {
               </p>
             )}
             {formSuccess && (
-              <p className="text-sm text-[#1E9990]">Thank you — we received your message.</p>
+              <p className="text-sm text-[#1E9990]">Thank you. We received your message.</p>
             )}
             <button
               type="submit"

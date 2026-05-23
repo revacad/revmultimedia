@@ -30,7 +30,7 @@ function labelFor<T extends { value: string; label: string }>(
   options: readonly T[],
   value?: string,
 ): string {
-  return options.find((o) => o.value === value)?.label ?? value ?? '—'
+  return options.find((o) => o.value === value)?.label ?? value ?? 'Not provided'
 }
 
 export default function Step5Review({
@@ -105,19 +105,19 @@ export default function Step5Review({
                 <Badge variant={course.category}>{formatCategory(course.category)}</Badge>
               </span>
             ) : (
-              '—'
+              'Not provided'
             )
           }
         />
         <ReviewRow
           label="Intake"
-          value={intake ? `${intake.name} — ${formatDate(intake.start_date)}` : '—'}
+          value={intake ? `${intake.name}, ${formatDate(intake.start_date)}` : 'Not provided'}
         />
         <ReviewRow
           label="Mode"
-          value={course ? <ModeBadge mode={course.mode} /> : '—'}
+          value={course ? <ModeBadge mode={course.mode} /> : 'Not provided'}
         />
-        <ReviewRow label="Tuition" value={course ? formatGHS(course.tuition_fee_ghs) : '—'} />
+        <ReviewRow label="Tuition" value={course ? formatGHS(course.tuition_fee_ghs) : 'Not provided'} />
         {showHybridCheckbox && hybridWarningAccepted && (
           <ReviewRow label="Hybrid attendance" value="Confirmed" />
         )}
@@ -246,7 +246,7 @@ function ReviewRow({ label, value }: { label: string; value?: React.ReactNode })
   return (
     <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-3">
       <dt className="text-gray-500">{label}</dt>
-      <dd className="sm:col-span-2 text-dark">{value ?? '—'}</dd>
+      <dd className="sm:col-span-2 text-dark">{value ?? 'Not provided'}</dd>
     </div>
   )
 }
@@ -272,7 +272,7 @@ function DocRow({
         </span>
       ) : (
         <span className={required ? 'text-red-500' : 'text-gray-400'}>
-          {required ? 'Missing' : '—'}
+          {required ? 'Missing' : 'Not provided'}
         </span>
       )}
     </div>

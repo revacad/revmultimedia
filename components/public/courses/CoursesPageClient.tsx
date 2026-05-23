@@ -86,7 +86,7 @@ export default function CoursesPageClient({
           <p className="section-label">Programmes</p>
           <h1 className="mt-3 font-display text-5xl font-bold text-dark md:text-6xl">Our courses</h1>
           <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-600">
-            Structured pathways in graphic design, motion graphics, and video editing &mdash; taught
+            Structured pathways in graphic design, motion graphics, and video editing, taught
             by practitioners, not theorists.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -128,7 +128,7 @@ export default function CoursesPageClient({
           <div className="relative h-[260px] overflow-hidden rounded-2xl shadow-lg">
             <Image
               src="/images/color-scheme.jpg"
-              alt="Graphic design"
+              alt="Graphic design course materials and color wheels at Rev Multimedia"
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover"

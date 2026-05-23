@@ -85,7 +85,7 @@ export function AboutPageClient() {
           </h1>
           <p className="mt-6 text-base leading-relaxed text-white/85">
             Too many talented people across Ghana and West Africa were teaching themselves from
-            YouTube tutorials &mdash; picking up bad habits, missing foundations, and struggling to
+            YouTube tutorials, picking up bad habits, missing foundations, and struggling to
             compete professionally. Rev Multimedia was built to change that with deep,
             structured, industry-relevant creative education.
           </p>
@@ -93,7 +93,7 @@ export function AboutPageClient() {
         <div className="reveal relative mx-auto h-[320px] w-full max-w-lg overflow-hidden rounded-2xl shadow-xl lg:h-[360px]">
           <Image
             src="/images/african-creatives-in-class.jpg"
-            alt="African creatives in class"
+            alt="African creatives in class at Rev Multimedia, Accra Ghana"
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
@@ -178,22 +178,23 @@ export function AboutPageClient() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="section-label">Academic partner</p>
           <h2 className="mt-3 font-display text-4xl font-bold text-dark">
-            Partnered with Ghana Technology University College
+            Partnered with Ghana Communication Technology University
           </h2>
           <p className="mt-6 text-base leading-relaxed text-gray-600">
-            Rev Multimedia operates in academic collaboration with GTUC &mdash; one of
-            Ghana&apos;s foremost technology-focused institutions.
+            Rev Multimedia operates in partnership with GCTU, one of
+            Ghana&apos;s foremost technology-focused institutions. We are based in Weija, Accra,
+            and our classes are held at the GCTU campus.
           </p>
           <div className="mx-auto mt-10 max-w-lg rounded-2xl bg-surface p-8 shadow-md">
-            <p className="font-display text-5xl font-bold text-primary">GTUC</p>
-            <p className="mt-2 text-sm text-gray-600">Ghana Technology University College</p>
+            <p className="font-display text-5xl font-bold text-primary">GCTU</p>
+            <p className="mt-2 text-sm text-gray-600">Ghana Communication Technology University</p>
             <a
-              href="https://gtuc.edu.gh"
+              href="https://gctu.edu.gh"
               target="_blank"
               rel="noopener noreferrer"
               className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'mt-6 inline-flex')}
             >
-              Visit GTUC
+              Visit GCTU
             </a>
           </div>
         </div>
@@ -267,7 +268,7 @@ export function AboutPageClient() {
               }}
             >
               Students, alumni, and instructors building Ghana&apos;s next generation of creative
-              professionals. We come from different backgrounds with one shared goal — building
+              professionals. We come from different backgrounds with one shared goal: building
               skills that last.
             </p>
 
@@ -311,7 +312,7 @@ export function AboutPageClient() {
             {[
               { label: 'Phone', value: '+233 27 581 8525', href: 'tel:+233275818525' },
               { label: 'Email', value: 'info@revmultimediagh.com', href: 'mailto:info@revmultimediagh.com' },
-              { label: 'Location', value: 'Weija, Accra, Ghana' },
+              { label: 'Location', value: 'Weija, Accra, Ghana (classes at GCTU campus)' },
             ].map((item) => (
               <div key={item.label} className="rounded-xl border border-gray-100 bg-surface-2 p-4">
                 <p className="text-xs text-gray-400">{item.label}</p>
@@ -336,6 +337,107 @@ export function AboutPageClient() {
             referrerPolicy="no-referrer-when-downgrade"
             className="border-0"
           />
+        </div>
+      </section>
+
+      {/* FAQ Section — subtle */}
+      <section
+        className="reveal"
+        style={{
+          padding: '80px 48px',
+          backgroundColor: '#F7F8FC',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '720px',
+            margin: '0 auto',
+          }}
+        >
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#C74A86',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: '8px',
+            }}
+          >
+            Questions
+          </p>
+
+          <h2
+            style={{
+              fontFamily: 'Clash Display, sans-serif',
+              fontSize: '28px',
+              fontWeight: 700,
+              color: '#1A1A2E',
+              marginBottom: '48px',
+            }}
+          >
+            Common questions about Rev Multimedia.
+          </h2>
+
+          {[
+            {
+              q: 'Where is Rev Multimedia located?',
+              a: 'Rev Multimedia is based in Weija, Accra, Ghana. Our classes are held at the Ghana Communication Technology University (GCTU) campus.',
+            },
+            {
+              q: 'What courses do you offer?',
+              a: 'We offer Graphic Design (covering Brand Identity Design, Packaging Design, Advertising Design, Editorial Design, and Print Design), Motion Graphics, and Video Editing. All courses are practitioner-led and built around real portfolio work.',
+            },
+            {
+              q: 'Is Rev Multimedia accredited?',
+              a: 'Yes. Rev Multimedia operates in partnership with Ghana Communication Technology University (GCTU), giving students access to recognised qualifications alongside practical industry training.',
+            },
+            {
+              q: 'How much does it cost to apply?',
+              a: 'The application fee is GHS 100. Tuition fees vary by course and intake. Installment payment plans are available for enrolled students.',
+            },
+            {
+              q: 'Who teaches at Rev Multimedia?',
+              a: 'All instructors are working creative professionals. Lead Instructor Godfred Ferdinand Appiah and the team teach from real industry experience, not theory. Every module ends in portfolio-ready work.',
+            },
+            {
+              q: 'How do I apply?',
+              a: 'Apply online at revmultimedia.com/apply. Complete the five-step application form, verify your email, upload your documents, and pay the GHS 100 application fee. Our admissions team reviews applications within 5 to 7 working days.',
+            },
+          ].map((faq, i, arr) => (
+            <div
+              key={faq.q}
+              style={{
+                paddingBottom: '28px',
+                marginBottom: '28px',
+                borderBottom: i < arr.length - 1 ? '1px solid #EFEFF5' : 'none',
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: 'Clash Display, sans-serif',
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  color: '#1A1A2E',
+                  marginBottom: '10px',
+                }}
+              >
+                {faq.q}
+              </p>
+              <p
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '15px',
+                  color: '#5A5A7A',
+                  lineHeight: 1.75,
+                  margin: 0,
+                }}
+              >
+                {faq.a}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
     </div>

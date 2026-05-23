@@ -85,17 +85,17 @@ export function PrivacyPolicyContent() {
         <LegalList
           items={[
             <>
-              <strong style={{ color: '#1A1A2E' }}>Ghana Technology University College (GTUC)</strong>{' '}
-              — our academic partner, for enrollment verification
+              <strong style={{ color: '#1A1A2E' }}>Ghana Communication Technology University (GCTU)</strong>
+              , our academic partner, for enrollment verification
             </>,
             <>
-              <strong style={{ color: '#1A1A2E' }}>Paystack</strong> — for payment processing
+              <strong style={{ color: '#1A1A2E' }}>Paystack</strong>: for payment processing
             </>,
             <>
-              <strong style={{ color: '#1A1A2E' }}>Cloudflare</strong> — for secure file storage
+              <strong style={{ color: '#1A1A2E' }}>Cloudflare</strong>: for secure file storage
             </>,
             <>
-              <strong style={{ color: '#1A1A2E' }}>Resend</strong> — for email delivery
+              <strong style={{ color: '#1A1A2E' }}>Resend</strong>: for email delivery
             </>,
           ]}
         />
