@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isLegacyMarketingPath } from '@/lib/legacy-paths'
 import { withAuthCookieOptions } from '@/lib/supabase/cookies'
 
 function applySessionCookies(from: NextResponse, to: NextResponse): void {
@@ -37,6 +38,11 @@ function redirectWithPathname(
 }
 
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  if (isLegacyMarketingPath(path)) {
+    return new NextResponse(null, { status: 404 })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -64,9 +70,13 @@ export async function proxy(request: NextRequest) {
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
+  // Stale cookies from an old session, different Supabase project, or cleared server-side session
+  if (authError?.code === 'refresh_token_not_found') {
+    await supabase.auth.signOut()
+  }
 
   if (user) {
     if (path === '/admin/login') {
@@ -102,6 +112,7 @@ export async function proxy(request: NextRequest) {
     path.startsWith('/alumni/') ||
     path.startsWith('/members/') ||
     path.startsWith('/images/') ||
+    path.startsWith('/monitoring') ||
     path.startsWith('/favicon') ||
     path.startsWith('/splash')
 
@@ -134,6 +145,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
