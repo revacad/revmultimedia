@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { completePaystackCharge } from '@/lib/payments/complete-paystack-charge'
+import { resolvePaystackInvoiceRef } from '@/lib/payments/paystack-invoice'
 import { verifyTransaction } from '@/lib/payments/paystack'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
@@ -30,12 +31,16 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const verified = await verifyTransaction(body.reference)
 
-    const invoiceRef =
-      typeof verified.metadata.invoiceRef === 'string'
-        ? verified.metadata.invoiceRef
-        : null
+    const invoiceRef = resolvePaystackInvoiceRef(
+      verified.metadata,
+      body.reference,
+    )
 
     if (!invoiceRef) {
+      console.error('[paystack:verify] could not resolve invoice', {
+        reference: body.reference,
+        metadata: verified.metadata,
+      })
       return NextResponse.json(
         { error: 'Payment could not be matched to an invoice.' },
         { status: 400 },

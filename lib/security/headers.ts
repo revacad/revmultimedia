@@ -34,6 +34,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     "'self'",
     "'unsafe-inline'",
     'https://js.paystack.co',
+    'https://www.googletagmanager.com',
     ...(isDev ? ["'unsafe-eval'"] : []),
   ]
 
@@ -48,6 +49,8 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     'https://*.ingest.sentry.io',
     'https://api.paystack.co',
     'https://standard.paystack.co',
+    'https://www.google-analytics.com',
+    'https://www.googletagmanager.com',
     ...(siteHost ? [`https://${siteHost}`, `wss://${siteHost}`] : []),
     ...(isDev ? ['ws://localhost:3000', 'wss://localhost:3000'] : []),
   ]
@@ -59,11 +62,11 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     "default-src 'self'",
     `script-src ${scriptSrc.join(' ')}`,
     `worker-src ${workerSrc.join(' ')}`,
-    "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://cdn.fontshare.com https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://cdn.fontshare.com https://fonts.googleapis.com https://paystack.com https://js.paystack.co",
     "font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com data:",
     `img-src ${imgSrc.join(' ')}`,
     `connect-src ${connectSrc.join(' ')}`,
-    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com",
+    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com",
     "media-src 'self' https: blob:",
     "object-src 'none'",
     "base-uri 'self'",

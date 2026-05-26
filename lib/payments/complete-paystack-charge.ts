@@ -3,25 +3,11 @@ import { logAuditEvent } from '@/lib/audit/log'
 import { runAfterResponse } from '@/lib/background'
 import { sendApplicationReceived } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
-import { canPaystackSettleInvoice } from '@/lib/payments/paystack-invoice'
+import {
+  canPaystackSettleInvoice,
+  resolvePaystackInvoiceRef,
+} from '@/lib/payments/paystack-invoice'
 import { settlePaystackCharge, type PaystackSettleInvoice } from '@/lib/payments/paystack-settle'
-import { isPaystackInvoiceReference } from '@/lib/payments/paystack-invoice'
-
-export function invoiceRefFromPaystackMetadata(
-  metadata: Record<string, unknown> | undefined,
-  paystackReference: string,
-): string | null {
-  if (metadata) {
-    const fromMeta = metadata.invoiceRef
-    if (typeof fromMeta === 'string' && isPaystackInvoiceReference(fromMeta)) {
-      return fromMeta
-    }
-  }
-  if (isPaystackInvoiceReference(paystackReference)) {
-    return paystackReference
-  }
-  return null
-}
 
 export type CompletePaystackResult =
   | { ok: true; alreadyPaid: boolean; invoiceRef: string }
@@ -37,7 +23,7 @@ export async function completePaystackCharge(
     auditAdminId?: string | null
   },
 ): Promise<CompletePaystackResult> {
-  const invoiceRef = invoiceRefFromPaystackMetadata(
+  const invoiceRef = resolvePaystackInvoiceRef(
     params.metadata,
     params.paystackReference,
   )

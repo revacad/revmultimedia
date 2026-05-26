@@ -96,7 +96,10 @@ export function PaystackButton({
         applicationRef,
       },
       callback: (response: PaystackCallbackResponse) => {
-        const reference = response?.reference ?? paystackRef
+        const reference =
+          (typeof response === 'object' && response?.reference) ||
+          (typeof response === 'string' ? response : null) ||
+          paystackRef
         void confirmPaymentOnServer(reference)
       },
       onClose: () => {},
