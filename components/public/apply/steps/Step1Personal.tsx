@@ -4,12 +4,17 @@ import { useEffect, useState } from 'react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
+import FormFieldLabel from '@/components/public/apply/FormFieldLabel'
 import { COUNTRIES, GHANA_REGIONS, GENDER_OPTIONS } from '@/lib/apply/constants'
+import type { ApplyFieldErrors } from '@/lib/apply/validation'
+import { applyFieldId } from '@/lib/apply/validation'
 import type { ApplicationFormData } from '@/lib/apply/types'
 
 interface Step1PersonalProps {
   formData: Partial<ApplicationFormData>
   emailVerified: boolean
+  fieldErrors?: ApplyFieldErrors
+  showValidation?: boolean
   onChange: (patch: Partial<ApplicationFormData>) => void
   onEmailVerified: (verified: boolean) => void
 }
@@ -17,9 +22,12 @@ interface Step1PersonalProps {
 export default function Step1Personal({
   formData,
   emailVerified,
+  fieldErrors = {},
+  showValidation = false,
   onChange,
   onEmailVerified,
 }: Step1PersonalProps) {
+  const err = (key: keyof ApplyFieldErrors) => (showValidation ? fieldErrors[key] : undefined)
   const [otpSent, setOtpSent] = useState(false)
   const [otpCode, setOtpCode] = useState('')
   const [isSendingOtp, setIsSendingOtp] = useState(false)
@@ -105,27 +113,35 @@ export default function Step1Personal({
       </p>
 
       <div className="flex flex-col gap-4">
-        <Input
-          surface="light"
-          label="Full legal name"
-          required
-          value={formData.fullName ?? ''}
-          onChange={(e) => onChange({ fullName: e.target.value })}
-        />
+        <div id={applyFieldId('fullName')}>
+          <Input
+            surface="light"
+            label="Full legal name"
+            required
+            error={err('fullName')}
+            value={formData.fullName ?? ''}
+            onChange={(e) => onChange({ fullName: e.target.value })}
+          />
+        </div>
 
-        <Input
-          surface="light"
-          label="Date of birth"
-          type="date"
-          required
-          value={formData.dateOfBirth ?? ''}
-          onChange={(e) => onChange({ dateOfBirth: e.target.value })}
-        />
+        <div id={applyFieldId('dateOfBirth')}>
+          <Input
+            surface="light"
+            label="Date of birth"
+            type="date"
+            required
+            error={err('dateOfBirth')}
+            value={formData.dateOfBirth ?? ''}
+            onChange={(e) => onChange({ dateOfBirth: e.target.value })}
+          />
+        </div>
 
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-gray-600">Gender</label>
+        <div id={applyFieldId('gender')}>
+          <FormFieldLabel required>Gender</FormFieldLabel>
           <Select
             required
+            aria-invalid={Boolean(err('gender'))}
+            className={err('gender') ? 'border-[#E84A4A] focus:border-[#E84A4A] focus:ring-red-500/15' : undefined}
             value={formData.gender ?? ''}
             onChange={(e) =>
               onChange({ gender: e.target.value as ApplicationFormData['gender'] })
@@ -140,14 +156,15 @@ export default function Step1Personal({
               </option>
             ))}
           </Select>
+          {err('gender') && <p className="mt-1.5 text-sm text-[#E84A4A]">{err('gender')}</p>}
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-gray-600">
-            Country of residence
-          </label>
+        <div id={applyFieldId('country')}>
+          <FormFieldLabel required>Country of residence</FormFieldLabel>
           <Select
             required
+            aria-invalid={Boolean(err('country'))}
+            className={err('country') ? 'border-[#E84A4A] focus:border-[#E84A4A] focus:ring-red-500/15' : undefined}
             value={formData.country ?? ''}
             onChange={(e) =>
               onChange({
@@ -166,18 +183,22 @@ export default function Step1Personal({
               </option>
             ))}
           </Select>
+          {err('country') && <p className="mt-1.5 text-sm text-[#E84A4A]">{err('country')}</p>}
         </div>
 
-        <Input
-          surface="light"
-          label="Phone number"
-          required
-          value={formData.phone ?? ''}
-          placeholder={isGhana ? '05X XXX XXXX' : '+1 234 567 8900'}
-          onChange={(e) => onChange({ phone: e.target.value })}
-        />
+        <div id={applyFieldId('phone')}>
+          <Input
+            surface="light"
+            label="Phone number"
+            required
+            error={err('phone')}
+            value={formData.phone ?? ''}
+            placeholder={isGhana ? '05X XXX XXXX' : '+1 234 567 8900'}
+            onChange={(e) => onChange({ phone: e.target.value })}
+          />
+        </div>
 
-        <div>
+        <div id={applyFieldId('email')}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="flex-1">
               <Input
@@ -185,6 +206,7 @@ export default function Step1Personal({
                 label="Email address"
                 type="email"
                 required
+                error={err('email')}
                 disabled={emailVerified}
                 value={formData.email ?? ''}
                 onChange={(e) => {
@@ -211,6 +233,13 @@ export default function Step1Personal({
               >
                 {isSendingOtp ? 'Sending…' : otpSent ? 'Resend Code' : 'Send Code'}
               </button>
+            )}
+          </div>
+          <div id={applyFieldId('emailVerified')}>
+            {err('emailVerified') && !emailVerified && (
+              <p className="mt-1.5 text-sm text-[#E84A4A]" role="alert">
+                {err('emailVerified')}
+              </p>
             )}
           </div>
           {emailVerified && (
@@ -259,19 +288,28 @@ export default function Step1Personal({
           )}
         </div>
 
-        <Input
-          surface="light"
-          label="Residential address"
-          required
-          value={formData.address ?? ''}
-          onChange={(e) => onChange({ address: e.target.value })}
-        />
+        <div id={applyFieldId('address')}>
+          <Input
+            surface="light"
+            label="Residential address"
+            required
+            error={err('address')}
+            value={formData.address ?? ''}
+            onChange={(e) => onChange({ address: e.target.value })}
+          />
+        </div>
 
         {isGhana ? (
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-gray-600">Region</label>
+          <div id={applyFieldId('stateRegion')}>
+            <FormFieldLabel required>Region</FormFieldLabel>
             <Select
               required
+              aria-invalid={Boolean(err('stateRegion'))}
+              className={
+                err('stateRegion')
+                  ? 'border-[#E84A4A] focus:border-[#E84A4A] focus:ring-red-500/15'
+                  : undefined
+              }
               value={formData.stateRegion ?? ''}
               onChange={(e) => onChange({ stateRegion: e.target.value })}
             >
@@ -284,23 +322,32 @@ export default function Step1Personal({
                 </option>
               ))}
             </Select>
+            {err('stateRegion') && (
+              <p className="mt-1.5 text-sm text-[#E84A4A]">{err('stateRegion')}</p>
+            )}
           </div>
         ) : formData.country ? (
           <>
-            <Input
-              surface="light"
-              label="State / Province"
-              required
-              value={formData.stateRegion ?? ''}
-              onChange={(e) => onChange({ stateRegion: e.target.value })}
-            />
-            <Input
-              surface="light"
-              label="City"
-              required
-              value={formData.city ?? ''}
-              onChange={(e) => onChange({ city: e.target.value })}
-            />
+            <div id={applyFieldId('stateRegion')}>
+              <Input
+                surface="light"
+                label="State / Province"
+                required
+                error={err('stateRegion')}
+                value={formData.stateRegion ?? ''}
+                onChange={(e) => onChange({ stateRegion: e.target.value })}
+              />
+            </div>
+            <div id={applyFieldId('city')}>
+              <Input
+                surface="light"
+                label="City"
+                required
+                error={err('city')}
+                value={formData.city ?? ''}
+                onChange={(e) => onChange({ city: e.target.value })}
+              />
+            </div>
           </>
         ) : null}
       </div>

@@ -12,6 +12,7 @@ const baseLinks = [
   { href: '/admin/resources', label: 'Resources', icon: 'folder' },
   { href: '/admin/reports', label: 'Reports', icon: 'chart' },
   { href: '/admin/payments', label: 'Payments', icon: 'payments' },
+  { href: '/admin/payment-types', label: 'Payment Types', icon: 'layers' },
   { href: '/admin/courses', label: 'Courses', icon: 'courses' },
   { href: '/admin/intakes', label: 'Intakes', icon: 'calendar' },
   { href: '/admin/promo-codes', label: 'Promo Codes', icon: 'tag' },
@@ -26,6 +27,7 @@ const superadminLinks = [
 type NavIconName =
   | (typeof baseLinks)[number]['icon']
   | (typeof superadminLinks)[number]['icon']
+  | 'layers'
 
 function NavIcon({ name }: { name: NavIconName }) {
   if (name === 'shield') {
@@ -88,6 +90,13 @@ function NavIcon({ name }: { name: NavIconName }) {
     return (
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    )
+  }
+  if (name === 'layers') {
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
       </svg>
     )
   }
@@ -164,8 +173,18 @@ export default function AdminSidebar({ adminName, adminRole }: AdminSidebarProps
         })}
       </nav>
       <div className="mt-6 border-t border-white/10 pt-6">
-        <p className="font-body text-sm font-semibold text-white">{adminName}</p>
-        <p className="font-body text-xs capitalize text-white/50">{adminRole}</p>
+        <Link
+          href="/admin/profile"
+          className={cn(
+            'block rounded-md px-3 py-2 transition-colors',
+            pathname === '/admin/profile'
+              ? 'bg-primary/10 text-white'
+              : 'text-white/80 hover:bg-white/5 hover:text-white',
+          )}
+        >
+          <p className="font-body text-sm font-semibold">{adminName}</p>
+          <p className="font-body text-xs capitalize text-white/50">{adminRole}</p>
+        </Link>
         <Link href="/" className="mt-4 block text-sm text-white/45 hover:text-white">
           Back to public site
         </Link>

@@ -9,8 +9,25 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic'
 
-export default function AdminLoginPage() {
+const LOGIN_MESSAGES: Record<string, string> = {
+  session:
+    'Your session was ended for security reasons. Please sign in again.',
+  not_admin:
+    'This account does not have admin access. Use the student portal or an admin invite link.',
+}
+
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string; reason?: string }>
+}) {
+  const params = await searchParams
   const quote = pickRandomQuote()
+  const resetSuccess = params.reset === 'success'
+  const notice =
+    params.reason && LOGIN_MESSAGES[params.reason]
+      ? LOGIN_MESSAGES[params.reason]
+      : null
 
   return (
     <AuthLayout quote={quote}>
@@ -19,7 +36,7 @@ export default function AdminLoginPage() {
         subtitle="Sign in to manage Rev Multimedia"
         footerNote="Admin access only"
       >
-        <LoginForm />
+        <LoginForm resetSuccess={resetSuccess} notice={notice} />
       </AuthPageShell>
     </AuthLayout>
   )

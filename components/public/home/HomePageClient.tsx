@@ -963,7 +963,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
                 border: '1.5px solid rgba(255,255,255,0.30)',
               }}
             >
-              View our courses →
+              View our courses
             </Link>
           </div>
         </div>

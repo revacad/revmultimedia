@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { s3Client } from "@/lib/r2/client";
+import { APPLICATION_DOCUMENT_TYPES } from "@/lib/security/files";
+import { applicationUploadLimit } from "@/lib/redis/ratelimit";
+import { getRequestIp, rateLimitOrNull } from "@/lib/security/rate-limit-request";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const PASSPORT_MAX_SIZE = 2 * 1024 * 1024;
@@ -9,7 +12,7 @@ const PASSPORT_MAX_SIZE = 2 * 1024 * 1024;
 const applicationContextSchema = z.object({
   type: z.literal("application_document"),
   draftId: z.string().uuid(),
-  documentType: z.string().min(1),
+  documentType: z.enum(APPLICATION_DOCUMENT_TYPES),
 });
 
 const allowedTypes = [
@@ -20,6 +23,9 @@ const allowedTypes = [
 ];
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const limited = await rateLimitOrNull(applicationUploadLimit, [getRequestIp(request)]);
+  if (limited) return limited;
+
   try {
     const formData = await request.formData();
     const file = formData.get("file");

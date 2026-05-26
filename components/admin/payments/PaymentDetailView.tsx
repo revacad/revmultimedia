@@ -3,14 +3,15 @@ import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
 import RecordPaymentForm from '@/components/admin/payments/RecordPaymentForm'
 import ResendInvoiceButton from '@/components/admin/payments/ResendInvoiceButton'
+import { getEffectiveInvoiceBalance } from '@/lib/payments/guards'
+import { PAYMENT_METHOD_LABELS } from '@/lib/payments/status'
 import {
   formatAmountGhs,
   formatPaymentDate,
   formatPaymentDateTime,
   isOverdue,
-  sumInstallments,
 } from '@/lib/payments/format'
-import { PAYMENT_METHOD_LABELS } from '@/lib/payments/status'
+import { paymentTypeLabelFromSlug } from '@/lib/payments/payment-types'
 import type { InvoiceDetail } from '@/lib/payments/types'
 import { cn } from '@/lib/utils'
 
@@ -20,9 +21,19 @@ interface PaymentDetailViewProps {
 
 export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
   const application = invoice.applications
-  const paid = sumInstallments(invoice.installments)
-  const remaining = Math.max(0, invoice.total_ghs - paid)
-  const progress = invoice.total_ghs > 0 ? Math.min(100, (paid / invoice.total_ghs) * 100) : 0
+  const paymentForLabel =
+    invoice.payment_type?.label ?? paymentTypeLabelFromSlug(invoice.type)
+  const { paid, remaining, overpaid } = getEffectiveInvoiceBalance(
+    {
+      status: invoice.status,
+      total_ghs: invoice.total_ghs,
+      payment_method: invoice.payment_method,
+      paystack_reference: invoice.paystack_reference,
+    },
+    invoice.installments,
+  )
+  const progress =
+    invoice.total_ghs > 0 ? Math.min(100, (paid / invoice.total_ghs) * 100) : 0
   const overdue = isOverdue(invoice.due_date, invoice.status)
   const fillColor = progress >= 100 ? '#C74A86' : '#2DBFB8'
 
@@ -32,7 +43,7 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
         href="/admin/payments"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        ← Payment Tracker
+        {'<'} Payment Tracker
       </Link>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
@@ -40,7 +51,10 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
           <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
             <p className="font-mono text-2xl font-medium text-[#C74A86]">{invoice.reference}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <InvoiceTypeBadge type={invoice.type} />
+              <InvoiceTypeBadge
+                type={invoice.type}
+                label={invoice.payment_type?.label}
+              />
               <InvoiceStatusBadge status={invoice.status} />
             </div>
             <p className="mt-4 font-display text-xl font-semibold text-[#1A1A2E]">
@@ -83,6 +97,14 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
                 {formatAmountGhs(remaining)}
               </span>
             </div>
+            {overpaid > 0 && (
+              <div className="flex justify-between font-body text-sm">
+                <span className="text-[#9898B8]">Overpaid</span>
+                <span className="font-semibold text-[#C74A86]">
+                  {formatAmountGhs(overpaid)}
+                </span>
+              </div>
+            )}
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[#EFEFF5]">
               <div
                 className="h-full rounded-full transition-all"
@@ -95,7 +117,21 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
             <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">
               Payment History
             </h2>
-            {invoice.installments.length === 0 ? (
+            {invoice.installments.length === 0 &&
+            invoice.payment_method === 'paystack' &&
+            invoice.paystack_reference ? (
+              <div className="py-2">
+                <p className="font-body text-[15px] font-semibold text-[#1A1A2E]">
+                  {formatAmountGhs(invoice.total_ghs)}
+                </p>
+                <span className="mt-1 inline-flex rounded-full bg-[#F7F8FC] px-2 py-0.5 font-body text-xs font-semibold text-[#5A5A7A]">
+                  Paystack
+                </span>
+                <p className="mt-1 font-mono text-xs text-[#9898B8]">
+                  {invoice.paystack_reference}
+                </p>
+              </div>
+            ) : invoice.installments.length === 0 ? (
               <p className="font-body text-sm text-[#9898B8]">No payments recorded yet</p>
             ) : (
               <ul>
@@ -136,6 +172,10 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
               invoiceId={invoice.id}
               remainingGhs={remaining}
               status={invoice.status}
+              paymentForLabel={paymentForLabel}
+              invoiceType={invoice.type}
+              studentName={application?.full_name ?? '—'}
+              applicationReference={application?.reference ?? invoice.reference}
             />
           </section>
         </div>

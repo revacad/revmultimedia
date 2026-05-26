@@ -14,7 +14,10 @@ export default async function AdminLayout({
 }) {
   const pathname = (await headers()).get('x-pathname') ?? ''
   const isAuthPage =
-    pathname === '/admin/login' || pathname.startsWith('/admin/accept-invite')
+    pathname === '/admin/login' ||
+    pathname.startsWith('/admin/accept-invite') ||
+    pathname === '/admin/forgot-password' ||
+    pathname.startsWith('/admin/reset-password')
 
   // Protect all admin routes except login / invite acceptance.
   if (!isAuthPage) {

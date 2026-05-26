@@ -183,7 +183,10 @@ export default function PaymentsPageClient({ invoices }: PaymentsPageClientProps
                         </p>
                       </td>
                       <td className="px-4 py-4">
-                        <InvoiceTypeBadge type={inv.type} />
+                        <InvoiceTypeBadge
+                          type={inv.type}
+                          label={inv.payment_type_label}
+                        />
                       </td>
                       <td className="px-4 py-4">
                         {inv.discount_ghs > 0 ? (

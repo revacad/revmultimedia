@@ -8,6 +8,13 @@ import { sendAdminInvite } from '@/lib/notifications/email'
 import { createServerClient } from '@/lib/supabase/server'
 import { logAuditEvent } from '@/lib/audit/log'
 import { requireAdmin as requireAdminSession } from '@/lib/auth/admin'
+import { inviteAdminSchema } from '@/lib/validations/admin'
+import {
+  acceptAdminInviteSchema,
+  adminIdActivateSchema,
+  adminInviteIdSchema,
+  validateAdminInviteTokenSchema,
+} from '@/lib/validations/admin-actions'
 
 function appBaseUrl(): string {
   return (
@@ -42,16 +49,24 @@ export async function inviteAdmin(data: {
     return { error: 'Only superadmins can invite admins' }
   }
 
+  const parsed = inviteAdminSchema.safeParse(data)
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? 'Invalid invite details',
+    }
+  }
+
+  const payload = parsed.data
   const supabase = createAdminClient()
-  const email = data.email.trim().toLowerCase()
+  const email = payload.email
   const token = randomBytes(32).toString('hex')
   const expiresAt = new Date()
   expiresAt.setHours(expiresAt.getHours() + 48)
 
   const { error } = await supabase.from('admin_invites').insert({
     email,
-    full_name: data.fullName.trim(),
-    role: data.role,
+    full_name: payload.fullName,
+    role: payload.role,
     token,
     invited_by: callerAdminId,
     expires_at: expiresAt.toISOString(),
@@ -72,8 +87,8 @@ export async function inviteAdmin(data: {
 
   const inviteUrl = `${appBaseUrl()}/admin/accept-invite?token=${token}`
   await sendAdminInvite(email, {
-    fullName: data.fullName.trim(),
-    role: data.role,
+    fullName: payload.fullName,
+    role: payload.role,
     inviteUrl,
     invitedBy: inviter?.full_name ?? 'Rev Multimedia',
   })
@@ -82,7 +97,7 @@ export async function inviteAdmin(data: {
     adminId: callerAdminId,
     action: 'admin.invited',
     entityType: 'admin_invite',
-    newValue: { email, role: data.role },
+    newValue: { email, role: payload.role },
   })
 
   revalidatePath('/admin/admins')
@@ -92,6 +107,11 @@ export async function inviteAdmin(data: {
 export async function resendAdminInvite(
   inviteId: string,
 ): Promise<{ error?: string; success?: boolean }> {
+  const parsed = adminInviteIdSchema.safeParse({ inviteId })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid invite id' }
+  }
+
   let callerAdminId: string
 
   try {
@@ -105,7 +125,7 @@ export async function resendAdminInvite(
   const { data: invite } = await supabase
     .from('admin_invites')
     .select('*')
-    .eq('id', inviteId)
+    .eq('id', parsed.data.inviteId)
     .eq('used', false)
     .single()
 
@@ -120,7 +140,7 @@ export async function resendAdminInvite(
   const { error } = await supabase
     .from('admin_invites')
     .update({ token, expires_at: expiresAt.toISOString() })
-    .eq('id', inviteId)
+    .eq('id', parsed.data.inviteId)
 
   if (error) {
     return { error: 'Failed to refresh invite' }
@@ -145,7 +165,7 @@ export async function resendAdminInvite(
     adminId: callerAdminId,
     action: 'admin.invite_resent',
     entityType: 'admin_invite',
-    entityId: inviteId,
+    entityId: parsed.data.inviteId,
     newValue: { email: invite.email },
   })
 
@@ -156,6 +176,11 @@ export async function resendAdminInvite(
 export async function cancelAdminInvite(
   inviteId: string,
 ): Promise<{ error?: string; success?: boolean }> {
+  const parsed = adminInviteIdSchema.safeParse({ inviteId })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid invite id' }
+  }
+
   let callerAdminId: string
 
   try {
@@ -169,10 +194,10 @@ export async function cancelAdminInvite(
   const { data: invite } = await supabase
     .from('admin_invites')
     .select('email')
-    .eq('id', inviteId)
+    .eq('id', parsed.data.inviteId)
     .single()
 
-  const { error } = await supabase.from('admin_invites').delete().eq('id', inviteId)
+  const { error } = await supabase.from('admin_invites').delete().eq('id', parsed.data.inviteId)
 
   if (error) {
     return { error: 'Failed to cancel invite' }
@@ -182,7 +207,7 @@ export async function cancelAdminInvite(
     adminId: callerAdminId,
     action: 'admin.invite_cancelled',
     entityType: 'admin_invite',
-    entityId: inviteId,
+    entityId: parsed.data.inviteId,
     oldValue: invite ? { email: invite.email } : undefined,
   })
 
@@ -194,6 +219,11 @@ export async function toggleAdminActive(
   adminId: string,
   activate: boolean,
 ): Promise<{ error?: string; success?: boolean }> {
+  const parsed = adminIdActivateSchema.safeParse({ adminId, activate })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid request' }
+  }
+
   let callerAdminId: string
 
   try {
@@ -207,7 +237,7 @@ export async function toggleAdminActive(
   const { data: target } = await supabase
     .from('admins')
     .select('id, role, email, is_active')
-    .eq('id', adminId)
+    .eq('id', parsed.data.adminId)
     .single()
 
   if (!target) {
@@ -220,8 +250,8 @@ export async function toggleAdminActive(
 
   const { error } = await supabase
     .from('admins')
-    .update({ is_active: activate })
-    .eq('id', adminId)
+    .update({ is_active: parsed.data.activate })
+    .eq('id', parsed.data.adminId)
 
   if (error) {
     return { error: 'Failed to update admin' }
@@ -229,11 +259,11 @@ export async function toggleAdminActive(
 
   await logAuditEvent({
     adminId: callerAdminId,
-    action: activate ? 'admin.reactivated' : 'admin.deactivated',
+    action: parsed.data.activate ? 'admin.reactivated' : 'admin.deactivated',
     entityType: 'admin',
-    entityId: adminId,
+    entityId: parsed.data.adminId,
     oldValue: { is_active: target.is_active },
-    newValue: { is_active: activate, email: target.email },
+    newValue: { is_active: parsed.data.activate, email: target.email },
   })
 
   revalidatePath('/admin/admins')
@@ -244,8 +274,9 @@ export async function acceptAdminInvite(
   token: string,
   password: string,
 ): Promise<{ error?: string }> {
-  if (!token || password.length < 8) {
-    return { error: 'Password must be at least 8 characters' }
+  const parsed = acceptAdminInviteSchema.safeParse({ token, password })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid invitation details' }
   }
 
   const supabase = createAdminClient()
@@ -254,7 +285,7 @@ export async function acceptAdminInvite(
   const { data: invite } = await supabase
     .from('admin_invites')
     .select('*')
-    .eq('token', token)
+    .eq('token', parsed.data.token)
     .eq('used', false)
     .gt('expires_at', now)
     .single()
@@ -265,7 +296,7 @@ export async function acceptAdminInvite(
 
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email: invite.email,
-    password,
+    password: parsed.data.password,
     email_confirm: true,
     app_metadata: { role: invite.role },
   })
@@ -302,13 +333,14 @@ export async function acceptAdminInvite(
 export async function validateAdminInviteToken(
   token: string,
 ): Promise<{ valid: boolean; fullName?: string }> {
-  if (!token) return { valid: false }
+  const parsed = validateAdminInviteTokenSchema.safeParse({ token })
+  if (!parsed.success) return { valid: false }
 
   const supabase = createAdminClient()
   const { data: invite } = await supabase
     .from('admin_invites')
     .select('full_name')
-    .eq('token', token)
+    .eq('token', parsed.data.token)
     .eq('used', false)
     .gt('expires_at', new Date().toISOString())
     .maybeSingle()

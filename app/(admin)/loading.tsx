@@ -1,5 +1,5 @@
-import { LogoLoader } from '@/components/ui/LogoLoader'
+import { DelayedLoader } from '@/components/ui/DelayedLoader'
 
-export default function Loading() {
-  return <LogoLoader fullScreen variant="admin" text="Loading..." />
+export default function AdminLoading() {
+  return <DelayedLoader variant="admin" text="Loading..." />
 }

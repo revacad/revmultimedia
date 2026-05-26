@@ -124,6 +124,7 @@ export default function PromoCodesPageClient({ promoCodes }: PromoCodesPageClien
                 id="discountValue"
                 type="number"
                 min={0}
+                max={discountType === 'percentage' ? 100 : undefined}
                 step="0.01"
                 required
                 value={discountValue}

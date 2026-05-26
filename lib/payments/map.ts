@@ -1,5 +1,12 @@
 import type { InvoiceDetail, PaymentListRow } from '@/lib/payments/types'
 
+type PaymentTypeRow = {
+  id: string
+  slug: string
+  label: string
+  description: string | null
+}
+
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? (value[0] ?? null) : value
@@ -13,11 +20,15 @@ export function mapPaymentListRow(row: Record<string, unknown>): PaymentListRow 
     row.admins as PaymentListRow['admins'] | PaymentListRow['admins'][] | null,
   )
   const installments = (row.installments as PaymentListRow['installments']) ?? []
+  const paymentTypeRaw = firstRelation(
+    row.payment_types as PaymentTypeRow | PaymentTypeRow[] | null,
+  )
 
   return {
     id: row.id as string,
     reference: row.reference as string,
-    type: row.type as PaymentListRow['type'],
+    type: row.type as string,
+    payment_type_label: paymentTypeRaw?.label ?? null,
     amount_ghs: Number(row.amount_ghs),
     discount_ghs: Number(row.discount_ghs),
     total_ghs: Number(row.total_ghs),
@@ -70,16 +81,29 @@ export function mapInvoiceDetail(row: Record<string, unknown>): InvoiceDetail {
   }))
     .sort((a, b) => new Date(b.paid_at).getTime() - new Date(a.paid_at).getTime())
 
+  const paymentTypeRaw = firstRelation(
+    row.payment_types as PaymentTypeRow | PaymentTypeRow[] | null,
+  )
+
   return {
     id: row.id as string,
     reference: row.reference as string,
     type: row.type as InvoiceDetail['type'],
+    payment_type: paymentTypeRaw
+      ? {
+          id: paymentTypeRaw.id as string,
+          slug: paymentTypeRaw.slug as string,
+          label: paymentTypeRaw.label as string,
+          description: (paymentTypeRaw.description as string | null) ?? null,
+        }
+      : null,
     amount_ghs: Number(row.amount_ghs),
     discount_ghs: Number(row.discount_ghs),
     total_ghs: Number(row.total_ghs),
     due_date: (row.due_date as string | null) ?? null,
     status: row.status as InvoiceDetail['status'],
     payment_method: (row.payment_method as string | null) ?? null,
+    paystack_reference: (row.paystack_reference as string | null) ?? null,
     discount_note: (row.discount_note as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { submitContactForm } from '@/actions/contact'
+import HoneypotField from '@/components/public/HoneypotField'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
 import { publicSectionClass } from '@/lib/public-ui'
@@ -74,6 +75,7 @@ export default function ContactPageClient() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
+  const [website, setWebsite] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -84,6 +86,7 @@ export default function ContactPageClient() {
     setFormSuccess(false)
     startTransition(async () => {
       const result = await submitContactForm({
+        website,
         name,
         email,
         phone: phone || undefined,
@@ -98,6 +101,7 @@ export default function ContactPageClient() {
       setEmail('')
       setPhone('')
       setMessage('')
+      setWebsite('')
     })
   }
 
@@ -143,9 +147,10 @@ export default function ContactPageClient() {
       <section className={cn('grid grid-cols-1 gap-10 lg:grid-cols-2', publicSectionClass.white)}>
         <form
           autoComplete="off"
-          className="rounded-2xl border border-gray-100 bg-surface p-8 shadow-md"
+          className="relative rounded-2xl border border-gray-100 bg-surface p-8 shadow-md"
           onSubmit={handleContactSubmit}
         >
+          <HoneypotField value={website} onChange={setWebsite} />
           <h2 className="font-display text-2xl font-bold text-dark">Send a message</h2>
           <p className="mt-2 text-sm text-gray-600">
             We typically respond within one business day.
@@ -158,6 +163,7 @@ export default function ContactPageClient() {
                 name="name"
                 autoComplete="name"
                 required
+                maxLength={200}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
@@ -171,6 +177,7 @@ export default function ContactPageClient() {
                 name="email"
                 autoComplete="email"
                 required
+                maxLength={254}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
@@ -183,6 +190,7 @@ export default function ContactPageClient() {
                 type="tel"
                 name="phone"
                 autoComplete="tel"
+                maxLength={30}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
@@ -195,6 +203,7 @@ export default function ContactPageClient() {
                 name="message"
                 rows={5}
                 required
+                maxLength={5000}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-surface-2 px-4 py-3 text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"

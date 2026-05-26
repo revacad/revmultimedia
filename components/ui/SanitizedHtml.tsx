@@ -1,27 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-
-const SANITIZE_OPTIONS = {
-  ALLOWED_TAGS: [
-    'h2',
-    'h3',
-    'p',
-    'ul',
-    'ol',
-    'li',
-    'strong',
-    'em',
-    'u',
-    'blockquote',
-    'hr',
-    'br',
-    'img',
-    'a',
-    'div',
-  ],
-  ALLOWED_ATTR: ['src', 'alt', 'href', 'target', 'class', 'style', 'id'],
-}
+import { RICH_HTML_SANITIZE_OPTIONS } from '@/lib/security/rich-html-config'
 
 interface SanitizedHtmlProps {
   html: string
@@ -37,7 +17,7 @@ export default function SanitizedHtml({ html, className }: SanitizedHtmlProps) {
       return
     }
     void import('dompurify').then((mod) => {
-      setClean(mod.default.sanitize(html, SANITIZE_OPTIONS))
+      setClean(mod.default.sanitize(html, RICH_HTML_SANITIZE_OPTIONS))
     })
   }, [html])
 

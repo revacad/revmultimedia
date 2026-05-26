@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { redis } from "@/lib/redis/client";
-import { checkRateLimit, loginLimit } from "@/lib/redis/ratelimit";
-
-const bodySchema = z.object({
-  email: z.email(),
-  code: z.string().length(6),
-});
+import { checkRateLimit, loginLimit, otpVerifyEmailLimit } from "@/lib/redis/ratelimit";
+import { getRequestIp } from "@/lib/security/rate-limit-request";
+import { otpVerifyBodySchema } from "@/lib/validations/api";
 
 type OtpRecord = {
   code: string;
@@ -19,19 +15,22 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const json: unknown = await request.json();
-    const parsed = bodySchema.parse(json);
-    email = parsed.email.toLowerCase();
-    code = parsed.code;
+    const parsed = otpVerifyBodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+    email = parsed.data.email;
+    code = parsed.data.code;
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "anonymous";
-  const { allowed } = await checkRateLimit(loginLimit, ip);
-  if (!allowed) {
+  const ip = getRequestIp(request);
+  const [byIp, byEmail] = await Promise.all([
+    checkRateLimit(loginLimit, ip),
+    checkRateLimit(otpVerifyEmailLimit, email),
+  ]);
+  if (!byIp.allowed || !byEmail.allowed) {
     return NextResponse.json({ valid: false, reason: "rate_limited" }, { status: 429 });
   }
 

@@ -116,6 +116,38 @@ export default function MessagingSettingsSection({
               className={adminFieldClassName}
             />
           </div>
+          <div>
+            <AdminLabel htmlFor="sentdm_whatsapp_template_id">
+              WhatsApp template ID
+            </AdminLabel>
+            <input
+              id="sentdm_whatsapp_template_id"
+              value={draft.sentdm_whatsapp_template_id ?? ''}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  sentdm_whatsapp_template_id: e.target.value,
+                }))
+              }
+              className={adminFieldClassName}
+              placeholder="Required for WhatsApp (Sent.dm approved template)"
+            />
+          </div>
+          <div>
+            <AdminLabel htmlFor="sentdm_sms_template_id">SMS template ID</AdminLabel>
+            <input
+              id="sentdm_sms_template_id"
+              value={draft.sentdm_sms_template_id ?? ''}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  sentdm_sms_template_id: e.target.value,
+                }))
+              }
+              className={adminFieldClassName}
+              placeholder="Used when Sent.dm is the SMS provider"
+            />
+          </div>
         </div>
 
         <div className="space-y-4 rounded-lg border border-[#EFEFF5] p-4">

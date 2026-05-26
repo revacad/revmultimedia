@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { uploadCertificate } from '@/actions/certificate'
 import { uploadViaPresign } from '@/lib/portal/upload'
 
@@ -25,6 +26,7 @@ export default function CertificateUploadSlot({
   courseSlug,
   existing,
 }: CertificateUploadSlotProps) {
+  const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +60,8 @@ export default function CertificateUploadSlot({
 
       if (result.error) {
         setError(result.error)
+      } else if (result.success) {
+        router.refresh()
       }
     } catch {
       setError('Upload failed. Please try again.')

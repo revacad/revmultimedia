@@ -12,7 +12,8 @@ export type InvoiceType = 'application_fee' | 'tuition'
 export type PaymentListRow = {
   id: string
   reference: string
-  type: InvoiceType
+  type: string
+  payment_type_label: string | null
   amount_ghs: number
   discount_ghs: number
   total_ghs: number
@@ -42,16 +43,25 @@ export type InstallmentRow = {
   admins: { full_name: string } | null
 }
 
+export type PaymentTypeInfo = {
+  id: string
+  slug: string
+  label: string
+  description: string | null
+}
+
 export type InvoiceDetail = {
   id: string
   reference: string
-  type: InvoiceType
+  type: string
+  payment_type: PaymentTypeInfo | null
   amount_ghs: number
   discount_ghs: number
   total_ghs: number
   due_date: string | null
   status: InvoiceStatus
   payment_method: string | null
+  paystack_reference: string | null
   discount_note: string | null
   created_at: string
   updated_at: string

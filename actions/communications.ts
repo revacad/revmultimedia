@@ -7,11 +7,16 @@ import { requireAdmin } from '@/lib/auth/admin'
 import { sendMessage } from '@/lib/notifications/sms'
 import { sendCampaignMessage } from '@/lib/messaging/send'
 import { resolveCampaignRecipients } from '@/lib/messaging/recipients'
+import { z } from 'zod'
 import type {
   CampaignFilters,
   CampaignRecipient,
   CommunicationChannel,
 } from '@/lib/messaging/types'
+import {
+  createCampaignInputSchema,
+  sendDirectMessageInputSchema,
+} from '@/lib/validations/communications'
 
 async function getAdminRecord() {
   const session = await requireAdmin()
@@ -36,27 +41,35 @@ export async function sendDirectMessage(data: {
   message: string
 }): Promise<{ success: true } | { error: string }> {
   try {
+    const parsed = sendDirectMessageInputSchema.safeParse(data)
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message ?? 'Invalid message',
+      }
+    }
+
     const { admin, supabase } = await getAdminRecord()
+    const payload = parsed.data
 
     const { data: student } = await supabase
       .from('students')
       .select('real_email, phone, full_name')
-      .eq('id', data.studentId)
+      .eq('id', payload.studentId)
       .single()
 
     if (!student) return { error: 'Student not found' }
 
     const filters: CampaignFilters = {
       audience: 'direct',
-      studentId: data.studentId,
+      studentId: payload.studentId,
     }
 
     const { data: campaign, error: campaignError } = await supabase
       .from('communication_campaigns')
       .insert({
-        channel: data.channel,
-        subject: data.subject || null,
-        message: data.message,
+        channel: payload.channel,
+        subject: payload.subject || null,
+        message: payload.message,
         filters,
         recipient_count: 1,
         status: 'queued',
@@ -71,12 +84,12 @@ export async function sendDirectMessage(data: {
     }
 
     const recipient =
-      data.channel === 'email' ? student.real_email : student.phone
+      payload.channel === 'email' ? student.real_email : student.phone
 
     const sendResult = await sendCampaignMessage({
-      channel: data.channel,
-      subject: data.subject,
-      message: data.message,
+      channel: payload.channel,
+      subject: payload.subject,
+      message: payload.message,
       recipientName: student.full_name,
       recipientAddress: recipient,
     })
@@ -89,9 +102,9 @@ export async function sendDirectMessage(data: {
 
     await supabase.from('communication_logs').insert({
       campaign_id: campaign.id,
-      student_id: data.studentId,
+      student_id: payload.studentId,
       recipient,
-      channel: data.channel,
+      channel: payload.channel,
       status: logStatus,
       error_message: sendResult.error ?? null,
     })
@@ -110,7 +123,7 @@ export async function sendDirectMessage(data: {
       return { error: sendResult.error ?? 'Failed to send message' }
     }
 
-    revalidatePath(`/admin/students/${data.studentId}`)
+    revalidatePath(`/admin/students/${payload.studentId}`)
     revalidatePath('/admin/communications')
     revalidatePath(`/admin/communications/${campaign.id}`)
     return { success: true }
@@ -128,9 +141,17 @@ export async function createCampaign(data: {
   filters: CampaignFilters
 }): Promise<{ success: true; campaignId: string } | { error: string }> {
   try {
-    const { admin, supabase } = await getAdminRecord()
+    const parsed = createCampaignInputSchema.safeParse(data)
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message ?? 'Invalid campaign',
+      }
+    }
 
-    const recipients = await resolveCampaignRecipients(supabase, data.filters)
+    const { admin, supabase } = await getAdminRecord()
+    const payload = parsed.data
+
+    const recipients = await resolveCampaignRecipients(supabase, payload.filters)
     if (recipients.length === 0) {
       return { error: 'No recipients match the selected audience' }
     }
@@ -138,10 +159,10 @@ export async function createCampaign(data: {
     const { data: campaign, error: campaignError } = await supabase
       .from('communication_campaigns')
       .insert({
-        channel: data.channel,
-        subject: data.subject || null,
-        message: data.message,
-        filters: data.filters,
+        channel: payload.channel,
+        subject: payload.subject || null,
+        message: payload.message,
+        filters: payload.filters,
         recipient_count: recipients.length,
         status: 'queued',
         created_by: admin.id,
@@ -158,8 +179,8 @@ export async function createCampaign(data: {
       campaign_id: campaign.id,
       student_id: recipient.studentId,
       recipient:
-        data.channel === 'email' ? recipient.email : recipient.phone,
-      channel: data.channel,
+        payload.channel === 'email' ? recipient.email : recipient.phone,
+      channel: payload.channel,
       status: 'pending' as const,
     }))
 
@@ -175,9 +196,9 @@ export async function createCampaign(data: {
       await processSingleRecipientCampaign(
         supabase,
         campaign.id,
-        data.channel,
-        data.subject,
-        data.message,
+        payload.channel,
+        payload.subject,
+        payload.message,
         recipients[0],
       )
     } else {
@@ -260,10 +281,16 @@ export async function sendTestSms(
 ): Promise<{ success: true } | { error: string }> {
   try {
     await requireAdmin()
-    const normalized = phone.trim()
-    if (!normalized) {
-      return { error: 'Enter a phone number for the test SMS' }
+    const parsed = z
+      .string()
+      .trim()
+      .min(5, 'Enter a valid phone number for the test SMS')
+      .max(32, 'Phone number is too long')
+      .safeParse(phone)
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Invalid phone number' }
     }
+    const normalized = parsed.data
 
     const result = await sendMessage(
       normalized,

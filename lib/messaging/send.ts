@@ -3,13 +3,7 @@ import { sendMessage } from '@/lib/notifications/sms'
 import { withRetry } from '@/lib/retry'
 import type { CommunicationChannel } from '@/lib/messaging/types'
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
+import { escapeHtml } from '@/lib/security/escape-html'
 
 export async function sendCampaignMessage(params: {
   channel: CommunicationChannel

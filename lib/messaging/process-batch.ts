@@ -62,16 +62,25 @@ export async function processCampaignBatch(campaignId: string): Promise<{
 
   const nameByContact = new Map<string, string>()
   if (applicantRecipients.length > 0) {
-    const { data: applications } = await supabase
-      .from('applications')
-      .select('full_name, real_email, phone')
-      .or(
-        applicantRecipients
-          .flatMap((r) => [`real_email.eq.${r}`, `phone.eq.${r}`])
-          .join(','),
-      )
+    const emails = applicantRecipients.filter((r) => r.includes('@'))
+    const phones = applicantRecipients.filter((r) => !r.includes('@'))
 
-    for (const app of applications ?? []) {
+    const [byEmail, byPhone] = await Promise.all([
+      emails.length > 0
+        ? supabase
+            .from('applications')
+            .select('full_name, real_email, phone')
+            .in('real_email', emails)
+        : Promise.resolve({ data: [] as { full_name: string; real_email: string; phone: string }[] }),
+      phones.length > 0
+        ? supabase
+            .from('applications')
+            .select('full_name, real_email, phone')
+            .in('phone', phones)
+        : Promise.resolve({ data: [] as { full_name: string; real_email: string; phone: string }[] }),
+    ])
+
+    for (const app of [...(byEmail.data ?? []), ...(byPhone.data ?? [])]) {
       nameByContact.set(app.real_email, app.full_name)
       nameByContact.set(app.phone, app.full_name)
     }

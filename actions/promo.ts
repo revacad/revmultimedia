@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
+import {
+  createPromoCodeSchema,
+  setPromoCodeActiveSchema,
+} from '@/lib/validations/promo'
 
 export async function createPromoCode(data: {
   code: string
@@ -12,8 +16,16 @@ export async function createPromoCode(data: {
   expiresAt?: string | null
 }): Promise<{ success: true } | { error: string }> {
   try {
+    const parsed = createPromoCodeSchema.safeParse(data)
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message ?? 'Invalid promo code',
+      }
+    }
+
     const session = await requireAdmin()
     const supabase = createAdminClient()
+    const payload = parsed.data
 
     const { data: admin } = await supabase
       .from('admins')
@@ -26,11 +38,11 @@ export async function createPromoCode(data: {
     }
 
     const { error } = await supabase.from('promo_codes').insert({
-      code: data.code.trim().toUpperCase(),
-      discount_type: data.discountType,
-      discount_value: data.discountValue,
-      max_uses: data.maxUses ?? null,
-      expires_at: data.expiresAt || null,
+      code: payload.code,
+      discount_type: payload.discountType,
+      discount_value: payload.discountValue,
+      max_uses: payload.maxUses ?? null,
+      expires_at: payload.expiresAt || null,
       created_by_admin_id: admin.id,
     })
 
@@ -52,13 +64,20 @@ export async function setPromoCodeActive(
   isActive: boolean,
 ): Promise<{ success: true } | { error: string }> {
   try {
+    const parsed = setPromoCodeActiveSchema.safeParse({ promoId, isActive })
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message ?? 'Invalid request',
+      }
+    }
+
     await requireAdmin()
     const supabase = createAdminClient()
 
     const { error } = await supabase
       .from('promo_codes')
-      .update({ is_active: isActive })
-      .eq('id', promoId)
+      .update({ is_active: parsed.data.isActive })
+      .eq('id', parsed.data.promoId)
 
     if (error) {
       return { error: error.message }

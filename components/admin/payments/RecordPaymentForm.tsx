@@ -6,18 +6,27 @@ import Button from '@/components/ui/Button'
 import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
 import { confirmPayment, waiveInvoice } from '@/actions/payment'
 import { formatAmountGhs } from '@/lib/payments/format'
+import { paymentTypeLabelFromSlug } from '@/lib/payments/payment-types'
 import type { InvoiceStatus } from '@/lib/payments/types'
 
 interface RecordPaymentFormProps {
   invoiceId: string
   remainingGhs: number
   status: InvoiceStatus
+  paymentForLabel: string
+  invoiceType: string
+  studentName: string
+  applicationReference: string
 }
 
 export default function RecordPaymentForm({
   invoiceId,
   remainingGhs,
   status,
+  paymentForLabel,
+  invoiceType,
+  studentName,
+  applicationReference,
 }: RecordPaymentFormProps) {
   const router = useRouter()
   const [amountGhs, setAmountGhs] = useState(remainingGhs > 0 ? remainingGhs : 0)
@@ -29,12 +38,17 @@ export default function RecordPaymentForm({
   const [success, setSuccess] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  const closed = status === 'paid' || status === 'waived'
+  const closed =
+    status === 'paid' || status === 'waived' || remainingGhs <= 0
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setSuccess(null)
+    if (amountGhs > remainingGhs) {
+      setError(`Amount cannot exceed remaining balance of ${formatAmountGhs(remainingGhs)}.`)
+      return
+    }
     startTransition(async () => {
       const result = await confirmPayment({
         invoiceId,
@@ -78,8 +92,26 @@ export default function RecordPaymentForm({
     )
   }
 
+  const paystackNote =
+    invoiceType === 'application_fee'
+      ? 'Applicants normally pay the application fee online via Paystack. Use this form only for cash or other in-person payments at the academy.'
+      : 'Tuition is usually paid via Paystack or bank transfer. Record cash or manual payments here.'
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="rounded-lg border border-[#EFEFF5] bg-[#F7F8FC] px-4 py-3">
+        <p className="font-body text-xs font-semibold uppercase tracking-wide text-[#9898B8]">
+          Payment for
+        </p>
+        <p className="mt-1 font-body text-base font-semibold text-[#1A1A2E]">
+          {paymentForLabel || paymentTypeLabelFromSlug(invoiceType)}
+        </p>
+        <p className="mt-1 font-body text-sm text-[#5A5A7A]">
+          {studentName} · <span className="font-mono text-[#C74A86]">{applicationReference}</span>
+        </p>
+        <p className="mt-2 font-body text-xs leading-relaxed text-[#9898B8]">{paystackNote}</p>
+      </div>
+
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {error}
@@ -99,6 +131,7 @@ export default function RecordPaymentForm({
             id="amountGhs"
             type="number"
             min={0.01}
+            max={remainingGhs > 0 ? remainingGhs : undefined}
             step="0.01"
             required
             value={amountGhs}
@@ -134,6 +167,7 @@ export default function RecordPaymentForm({
           value={transactionRef}
           onChange={(e) => setTransactionRef(e.target.value)}
           placeholder="MoMo transaction ID or bank ref"
+          maxLength={100}
           className={adminFieldClassName}
         />
       </div>
@@ -146,6 +180,7 @@ export default function RecordPaymentForm({
           value={paymentNote}
           onChange={(e) => setPaymentNote(e.target.value)}
           placeholder="Any notes about this payment..."
+          maxLength={500}
           className={adminFieldClassName}
         />
       </div>

@@ -12,6 +12,7 @@ import { processCurriculum, getVimeoId, getYouTubeId } from '@/lib/courses/curri
 import { getSlotIndicator } from '@/lib/courses/slots'
 import type { Course } from '@/lib/courses/types'
 import { publicSectionClass } from '@/lib/public-ui'
+import { isRichHtmlContent } from '@/lib/security/html'
 import { cn, formatDate, formatGHS } from '@/lib/utils'
 
 interface CourseDetailViewProps {
@@ -93,7 +94,9 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
   const slotIndicator = getSlotIndicator(course.intakes)
 
   const { html: processedCurriculum, toc: tocItems } = processCurriculum(course.curriculum)
-  const descriptionIsHtml = Boolean(course.description?.includes('<'))
+  const descriptionIsHtml = Boolean(
+    course.description && isRichHtmlContent(course.description),
+  )
 
   return (
     <div>

@@ -20,6 +20,7 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
     .select(
       `
       *,
+      payment_types(id, slug, label, description),
       applications(*, courses(title), intakes(name, start_date)),
       installments(*, admins(full_name)),
       promo_codes(code, discount_type, discount_value),

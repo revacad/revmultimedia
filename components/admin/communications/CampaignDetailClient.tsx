@@ -47,7 +47,7 @@ export default function CampaignDetailClient({
         href="/admin/communications"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        ← Communications
+        {'<'} Communications
       </Link>
 
       <header className="mb-8 rounded-xl bg-white p-6 shadow-card">

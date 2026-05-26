@@ -1,9 +1,10 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import ApplyPageClient from '@/components/public/apply/ApplyPageClient'
 import { mapApplyCourses } from '@/lib/apply/map-courses'
 import { withCache } from '@/lib/redis/cache'
 import { siteUrl } from '@/lib/seo'
 import { createServerClient } from '@/lib/supabase/server'
+import { applySearchParamsSchema } from '@/lib/validations/common'
 
 export const metadata: Metadata = {
   title: 'Apply Now | Creative Design Courses in Ghana, Rev Multimedia',
@@ -47,7 +48,9 @@ export default async function ApplyPage({
 }: {
   searchParams: Promise<{ course?: string; intake?: string }>
 }) {
-  const params = await searchParams
+  const rawParams = await searchParams
+  const parsedParams = applySearchParamsSchema.safeParse(rawParams)
+  const params = parsedParams.success ? parsedParams.data : {}
   const courses = await withCache('courses:published', 300, fetchPublishedCourses)
 
   return (

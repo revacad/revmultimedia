@@ -30,7 +30,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
       courses(id, title, category, mode, tuition_fee_ghs),
       intakes(id, name, start_date, end_date, max_slots, enrolled_count),
       documents(*),
-      invoices(*),
+      invoices(*, payment_types(label), installments(amount_ghs)),
       admin_notes(*, admins(full_name))
     `,
     )
@@ -41,9 +41,16 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     notFound()
   }
 
+  const { data: studentRow } = await supabase
+    .from('students')
+    .select('id')
+    .eq('application_id', id)
+    .maybeSingle()
+
   return (
     <ApplicationDetailView
       application={mapApplicationDetail(application as Record<string, unknown>)}
+      hasStudentRecord={Boolean(studentRow)}
     />
   )
 }

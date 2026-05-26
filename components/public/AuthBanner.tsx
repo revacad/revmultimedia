@@ -112,7 +112,7 @@ export function AuthBanner() {
           borderRadius: '9999px',
         }}
       >
-        Go to portal →
+        Go to portal
       </Link>
 
       <button

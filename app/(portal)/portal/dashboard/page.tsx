@@ -7,6 +7,7 @@ import ProfilePhotoUpload from '@/components/portal/ProfilePhotoUpload'
 import PaymentInstructions from '@/components/portal/PaymentInstructions'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import { formatApplicationDate } from '@/lib/applications/format'
+import { fetchPortalInvoicesForUser } from '@/lib/portal/invoices'
 import { getPaymentSettings } from '@/lib/portal/settings'
 import { firstName } from '@/lib/portal/timeline'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
@@ -57,18 +58,11 @@ export default async function StudentDashboardPage() {
 
   if (!student) redirect('/portal/application')
 
-  const { data: invoices } = await supabase
-    .from('invoices')
-    .select('*, installments(*)')
-    .eq('student_id', student.id)
-    .order('created_at', { ascending: false })
-
-  const { data: certificates } = await supabase
-    .from('certificates')
-    .select('*')
-    .eq('student_id', student.id)
-
-  const settings = await getPaymentSettings()
+  const [invoices, { data: certificates }, settings] = await Promise.all([
+    fetchPortalInvoicesForUser(supabase, user.id),
+    supabase.from('certificates').select('*').eq('student_id', student.id),
+    getPaymentSettings(),
+  ])
   const enrollments = (student.enrollments ?? []) as {
     id: string
     status: string
@@ -128,7 +122,7 @@ export default async function StudentDashboardPage() {
                   )}
                   {intake && (
                     <p className="mt-2 font-body text-sm text-[#5A5A7A]">
-                      {intake.name} · {formatApplicationDate(intake.start_date)} →{' '}
+                      {intake.name} · {formatApplicationDate(intake.start_date)} -{' '}
                       {formatApplicationDate(intake.end_date)}
                     </p>
                   )}
@@ -155,15 +149,21 @@ export default async function StudentDashboardPage() {
 
       <section className="mb-6">
         <h2 className="mb-4 font-body text-lg font-semibold text-[#1A1A2E]">Payment History</h2>
-        {(invoices ?? []).length === 0 ? (
+        {invoices.length === 0 ? (
           <p className="font-body text-sm text-[#9898B8]">No invoices yet.</p>
         ) : (
-          (invoices ?? []).map((invoice) => {
-            const installments = (invoice.installments as { amount_ghs: number }[]) ?? []
-            const paidAmount = installments.reduce((sum, row) => sum + Number(row.amount_ghs), 0)
-            const total = Number(invoice.total_ghs ?? invoice.amount_ghs)
+          invoices.map((invoice) => {
+            const paidAmount = invoice.installments.reduce(
+              (sum, row) => sum + Number(row.amount_ghs),
+              0,
+            )
+            const total = invoice.total_ghs
             const progress = total > 0 ? Math.min(100, (paidAmount / total) * 100) : 0
             const status = invoice.status as InvoiceStatus
+            const typeLabel =
+              invoice.payment_types?.label ??
+              INVOICE_TYPE_LABELS[invoice.type] ??
+              invoice.type
 
             return (
               <article key={invoice.id} className="mb-4 rounded-xl bg-white p-5 shadow-card">
@@ -179,7 +179,7 @@ export default async function StudentDashboardPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#F0F0F8] px-3 py-1 font-body text-xs font-semibold text-[#5A5A7A]">
-                      {INVOICE_TYPE_LABELS[invoice.type] ?? invoice.type}
+                      {typeLabel}
                     </span>
                     <InvoiceStatusBadge status={status} />
                   </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { searchQuerySchema } from '@/lib/validations/api'
 
 export async function GET(request: NextRequest) {
   const supabase = await createServerClient()
@@ -24,10 +25,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const query = request.nextUrl.searchParams.get('q')?.trim()
-  if (!query || query.length < 2) {
+  const rawQ = request.nextUrl.searchParams.get('q') ?? ''
+  const parsed = searchQuerySchema.safeParse({ q: rawQ })
+  if (!parsed.success) {
     return NextResponse.json({ results: { students: [], applications: [], courses: [] } })
   }
+  const query = parsed.data.q
 
   const [students, applications, courses] = await Promise.all([
     adminClient

@@ -4,17 +4,25 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
-import { generateAndStoreInvoicePdf } from '@/lib/pdf/generate'
-import { sendTuitionInvoice } from '@/lib/notifications/email'
-import { sendMessage } from '@/lib/notifications/sms'
 import { invalidateAdminStats } from '@/lib/redis/invalidate'
 import { runAfterResponse } from '@/lib/background'
-import { logAuditEvent } from '@/lib/audit/log'
-import { getSystemSettings } from '@/lib/settings/cache'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import { calculatePromoDiscount } from '@/lib/promo/calculate'
+import {
+  createApplicationInvoice,
+  sendApplicationInvoiceNotifications,
+} from '@/lib/invoices/create-application-invoice'
+import {
+  createTuitionInvoice,
+  sendTuitionInvoiceNotifications,
+} from '@/lib/promo/create-tuition-invoice'
+import {
+  createApplicationInvoiceSchema,
+  generateTuitionInvoiceSchema,
+} from '@/lib/validations/invoice'
 
-export async function generateTuitionInvoice(data: {
+export async function createAndSendApplicationInvoice(data: {
   applicationId: string
+  paymentTypeId: string
   amountGhs: number
   discountGhs: number
   promoCodeId?: string
@@ -24,8 +32,32 @@ export async function generateTuitionInvoice(data: {
   notes?: string
 }): Promise<{ error: string } | void> {
   try {
+    const parsed = createApplicationInvoiceSchema.safeParse(data)
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message ?? 'Invalid invoice details',
+      }
+    }
+
     const session = await requireAdmin()
     const supabase = createAdminClient()
+    const payload = parsed.data
+
+    const { data: paymentType } = await supabase
+      .from('payment_types')
+      .select('id, slug, label, is_active')
+      .eq('id', payload.paymentTypeId)
+      .maybeSingle()
+
+    if (!paymentType?.is_active) {
+      return { error: 'Payment type not found or inactive' }
+    }
+
+    if (paymentType.slug === 'application_fee') {
+      return {
+        error: 'Application fee invoices are created automatically when a student applies',
+      }
+    }
 
     const { data: admin } = await supabase
       .from('admins')
@@ -40,7 +72,143 @@ export async function generateTuitionInvoice(data: {
     const { data: application } = await supabase
       .from('applications')
       .select('*, courses(title, tuition_fee_ghs), intakes(name, start_date)')
-      .eq('id', data.applicationId)
+      .eq('id', payload.applicationId)
+      .single()
+
+    if (!application) {
+      return { error: 'Application not found' }
+    }
+
+    if (application.status !== 'accepted') {
+      return {
+        error: 'Only accepted applications can receive invoices. Accept the application first.',
+      }
+    }
+
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('application_id', payload.applicationId)
+      .eq('type', paymentType.slug)
+      .maybeSingle()
+
+    if (
+      existingInvoice &&
+      (paymentType.slug === 'tuition' || paymentType.slug === 'application_fee')
+    ) {
+      redirect(`/admin/payments/${existingInvoice.id}`)
+    }
+
+    let discountGhs = payload.discountGhs
+    if (payload.promoCodeId && paymentType.slug === 'tuition') {
+      const { data: promo } = await supabase
+        .from('promo_codes')
+        .select('id, code, discount_type, discount_value')
+        .eq('id', payload.promoCodeId)
+        .single()
+      if (promo) {
+        discountGhs = calculatePromoDiscount(payload.amountGhs, {
+          id: promo.id,
+          code: promo.code,
+          discount_type: promo.discount_type as 'percentage' | 'flat_ghs',
+          discount_value: Number(promo.discount_value),
+        })
+      }
+    } else if (payload.promoCodeId && paymentType.slug !== 'tuition') {
+      return { error: 'Promo codes apply to tuition invoices only' }
+    }
+
+    const noteParts = [
+      payload.notes?.trim(),
+      payload.allowInstallments
+        ? `Installment plan: ${payload.installmentCount ?? 2} payments allowed`
+        : null,
+    ].filter(Boolean)
+
+    const invoiceResult = await createApplicationInvoice(supabase, application, {
+      applicationId: payload.applicationId,
+      adminId: admin.id,
+      paymentTypeSlug: paymentType.slug,
+      paymentTypeLabel: paymentType.label,
+      amountGhs: payload.amountGhs,
+      discountGhs,
+      promoCodeId: paymentType.slug === 'tuition' ? payload.promoCodeId || null : null,
+      dueDate: payload.dueDate,
+      notes: noteParts.length > 0 ? noteParts.join('\n') : undefined,
+      allowInstallments:
+        paymentType.slug === 'tuition' ? payload.allowInstallments : false,
+      installmentCount: payload.installmentCount,
+    })
+
+    if ('error' in invoiceResult) {
+      return { error: invoiceResult.error }
+    }
+
+    if (!invoiceResult.created) {
+      redirect(`/admin/payments/${invoiceResult.invoiceId}`)
+    }
+
+    runAfterResponse(async () => {
+      await sendApplicationInvoiceNotifications(
+        application,
+        invoiceResult.reference,
+        invoiceResult.totalGhs,
+        payload.dueDate,
+        invoiceResult.invoiceId,
+        paymentType.label,
+      )
+    })
+
+    invalidateAdminStats()
+    revalidatePath(`/admin/applications/${payload.applicationId}`)
+    revalidatePath('/admin/payments')
+    redirect(`/admin/payments/${invoiceResult.invoiceId}`)
+  } catch (e) {
+    if (e && typeof e === 'object' && 'digest' in e) {
+      throw e
+    }
+    return {
+      error: e instanceof Error ? e.message : 'Failed to create invoice',
+    }
+  }
+}
+
+export async function generateTuitionInvoice(data: {
+  applicationId: string
+  amountGhs: number
+  discountGhs: number
+  promoCodeId?: string
+  dueDate: string
+  allowInstallments: boolean
+  installmentCount?: number
+  notes?: string
+}): Promise<{ error: string } | void> {
+  try {
+    const parsed = generateTuitionInvoiceSchema.safeParse(data)
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message ?? 'Invalid invoice details',
+      }
+    }
+
+    const session = await requireAdmin()
+    const supabase = createAdminClient()
+    const payload = parsed.data
+
+    const { data: admin } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('auth_user_id', session.userId)
+      .single()
+
+    if (!admin) {
+      return { error: 'Not an admin' }
+    }
+
+    const { data: application } = await supabase
+      .from('applications')
+      .select('*, courses(title, tuition_fee_ghs), intakes(name, start_date)')
+      .eq('id', payload.applicationId)
       .single()
 
     if (!application) {
@@ -54,7 +222,7 @@ export async function generateTuitionInvoice(data: {
     const { data: existingTuition } = await supabase
       .from('invoices')
       .select('id')
-      .eq('application_id', data.applicationId)
+      .eq('application_id', payload.applicationId)
       .eq('type', 'tuition')
       .maybeSingle()
 
@@ -62,111 +230,62 @@ export async function generateTuitionInvoice(data: {
       redirect(`/admin/payments/${existingTuition.id}`)
     }
 
-    const { data: invoiceRef, error: refError } = await supabase.rpc('generate_invoice_ref', {
-      p_type: 'inv',
-    })
-
-    if (refError || !invoiceRef) {
-      console.error('generate_invoice_ref error:', refError)
-      return { error: 'Failed to generate invoice reference' }
+    let discountGhs = payload.discountGhs
+    if (payload.promoCodeId) {
+      const { data: promo } = await supabase
+        .from('promo_codes')
+        .select('id, code, discount_type, discount_value')
+        .eq('id', payload.promoCodeId)
+        .single()
+      if (promo) {
+        discountGhs = calculatePromoDiscount(payload.amountGhs, {
+          id: promo.id,
+          code: promo.code,
+          discount_type: promo.discount_type as 'percentage' | 'flat_ghs',
+          discount_value: Number(promo.discount_value),
+        })
+      }
     }
 
-    const totalGhs = Math.max(0, data.amountGhs - data.discountGhs)
-
     const noteParts = [
-      data.notes?.trim(),
-      data.allowInstallments
-        ? `Installment plan: ${data.installmentCount ?? 2} payments allowed`
+      payload.notes?.trim(),
+      payload.allowInstallments
+        ? `Installment plan: ${payload.installmentCount ?? 2} payments allowed`
         : null,
     ].filter(Boolean)
 
-    const { data: invoice, error } = await supabase
-      .from('invoices')
-      .insert({
-        reference: invoiceRef as string,
-        type: 'tuition',
-        application_id: data.applicationId,
-        amount_ghs: data.amountGhs,
-        discount_ghs: data.discountGhs,
-        promo_code_id: data.promoCodeId || null,
-        total_ghs: totalGhs,
-        due_date: data.dueDate,
-        status: 'unpaid',
-        discount_note: noteParts.length > 0 ? noteParts.join('\n') : null,
-        created_by_admin_id: admin.id,
-      })
-      .select('id')
-      .single()
-
-    if (error || !invoice) {
-      console.error('Invoice creation error:', error)
-      return { error: 'Failed to create invoice' }
-    }
-
-    if (data.promoCodeId) {
-      const { data: promo } = await supabase
-        .from('promo_codes')
-        .select('uses_count')
-        .eq('id', data.promoCodeId)
-        .single()
-
-      if (promo) {
-        await supabase
-          .from('promo_codes')
-          .update({ uses_count: (promo.uses_count ?? 0) + 1 })
-          .eq('id', data.promoCodeId)
-      }
-    }
-
-    const invoiceId = invoice.id
-    const reference = invoiceRef as string
-
-    await logAuditEvent({
+    const invoiceResult = await createTuitionInvoice(supabase, application, {
+      applicationId: payload.applicationId,
       adminId: admin.id,
-      action: 'invoice.generated',
-      entityType: 'invoice',
-      entityId: invoiceId,
-      newValue: { reference, amount: totalGhs },
+      amountGhs: payload.amountGhs,
+      discountGhs,
+      promoCodeId: payload.promoCodeId || null,
+      dueDate: payload.dueDate,
+      notes: noteParts.length > 0 ? noteParts.join('\n') : undefined,
+      allowInstallments: payload.allowInstallments,
+      installmentCount: payload.installmentCount,
     })
 
-    runAfterResponse(async () => {
-      const pdfKey = await generateAndStoreInvoicePdf(invoiceId)
-      let pdfUrl = ''
-      if (pdfKey) {
-        const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-        if (bucket) {
-          pdfUrl = await generatePresignedDownloadUrl(bucket, pdfKey, 86400)
-        }
-      }
+    if ('error' in invoiceResult) {
+      return { error: invoiceResult.error }
+    }
 
-      const settings = await getSystemSettings()
-
-      await sendTuitionInvoice(application.real_email, {
-        name: application.full_name,
-        reference,
-        amountGhs: totalGhs,
-        dueDate: data.dueDate,
-        isInternational: application.country !== 'Ghana',
-        momoNumber: settings.momo_number_1 || undefined,
-        momoName: settings.momo_name_1 || undefined,
-        bankName: settings.bank_name || undefined,
-        bankAccount: settings.bank_account_number || undefined,
-        bankAccountName: settings.bank_account_name || undefined,
-        swiftCode: settings.bank_swift_code || undefined,
-        pdfUrl,
+    if (invoiceResult.created) {
+      runAfterResponse(async () => {
+        await sendTuitionInvoiceNotifications(
+          application,
+          invoiceResult.reference,
+          invoiceResult.totalGhs,
+          payload.dueDate,
+          invoiceResult.invoiceId,
+        )
       })
-
-      await sendMessage(
-        application.phone,
-        `Rev Multimedia: Your tuition invoice ${reference} for GHS ${totalGhs.toFixed(2)} is ready. Check your email for payment instructions.`,
-        'sms',
-      )
-    })
+    }
 
     invalidateAdminStats()
-    revalidatePath(`/admin/applications/${data.applicationId}`)
+    revalidatePath(`/admin/applications/${payload.applicationId}`)
     revalidatePath('/admin/payments')
-    redirect(`/admin/payments/${invoiceId}`)
+    redirect(`/admin/payments/${invoiceResult.invoiceId}`)
   } catch (e) {
     if (e && typeof e === 'object' && 'digest' in e) {
       throw e

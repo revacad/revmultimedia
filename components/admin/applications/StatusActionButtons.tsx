@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateApplicationStatus } from '@/actions/application'
 import type { ApplicationStatus } from '@/lib/applications/types'
@@ -11,6 +11,7 @@ const ACTIONS: {
   status: ApplicationStatus
   className: string
   hoverClassName: string
+  requiresAppFee?: boolean
 }[] = [
   {
     label: 'Shortlist',
@@ -23,6 +24,7 @@ const ACTIONS: {
     status: 'accepted',
     className: 'border-[#2DBFB8]/30 bg-[#EBF9F8] text-[#1E9990]',
     hoverClassName: 'hover:bg-[#D4F3F1]',
+    requiresAppFee: true,
   },
   {
     label: 'Reject',
@@ -46,38 +48,68 @@ const ACTIONS: {
 
 interface StatusActionButtonsProps {
   applicationId: string
+  appFeePaid: boolean
 }
 
-export default function StatusActionButtons({ applicationId }: StatusActionButtonsProps) {
+export default function StatusActionButtons({
+  applicationId,
+  appFeePaid,
+}: StatusActionButtonsProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
   function handleStatus(status: ApplicationStatus) {
+    setError(null)
     startTransition(async () => {
       const result = await updateApplicationStatus(applicationId, status)
-      if ('success' in result && result.success) {
-        router.refresh()
+      if ('error' in result) {
+        setError(result.error)
+        return
       }
+      router.refresh()
     })
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {ACTIONS.map((action) => (
-        <button
-          key={action.label}
-          type="button"
-          disabled={pending}
-          onClick={() => handleStatus(action.status)}
-          className={cn(
-            'rounded-lg border-[1.5px] px-3 py-2 font-body text-[13px] font-semibold transition-colors disabled:opacity-50',
-            action.className,
-            action.hoverClassName,
-          )}
-        >
-          {action.label}
-        </button>
-      ))}
+    <div>
+      {error && (
+        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-xs text-red-600">
+          {error}
+        </p>
+      )}
+      {!appFeePaid && (
+        <p className="mb-3 font-body text-xs text-[#9898B8]">
+          Accept is available after the application fee is paid. Tuition invoice is sent automatically
+          on accept.
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        {ACTIONS.map((action) => {
+          const disabled =
+            pending || (action.requiresAppFee && !appFeePaid)
+          return (
+            <button
+              key={action.label}
+              type="button"
+              disabled={disabled}
+              title={
+                action.requiresAppFee && !appFeePaid
+                  ? 'Application fee must be paid first'
+                  : undefined
+              }
+              onClick={() => handleStatus(action.status)}
+              className={cn(
+                'rounded-lg border-[1.5px] px-3 py-2 font-body text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                action.className,
+                action.hoverClassName,
+              )}
+            >
+              {action.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

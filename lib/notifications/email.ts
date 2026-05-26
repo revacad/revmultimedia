@@ -63,7 +63,7 @@ async function sendHtmlEmail(
 }
 
 function formatInvoiceDate(d: string): string {
-  if (!d) return '—'
+  if (!d) return '-'
   return new Date(d).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
@@ -148,7 +148,7 @@ export async function sendApplicationReceived(
 
   await sendHtmlEmail(
     to,
-    `Application received — ${data.reference}`,
+    `Application received - ${data.reference}`,
     emailTemplate({
       previewText: `Your application to Rev Multimedia has been received. Reference: ${data.reference}`,
       body: `
@@ -191,7 +191,7 @@ export async function sendAppFeeInvoice(
 
   await sendHtmlEmail(
     to,
-    `Application fee invoice — ${data.reference}`,
+    `Application fee invoice - ${data.reference}`,
     emailTemplate({
       previewText: `Pay your application fee of GHS ${data.amountGhs.toFixed(2)} for reference ${data.reference}.`,
       body: `
@@ -249,7 +249,7 @@ export async function sendStatusChanged(
       body: 'Our admissions team is currently reviewing your application. We will be in touch soon with an update.',
     },
     shortlisted: {
-      subject: 'Great news — you have been shortlisted',
+      subject: 'Great news - you have been shortlisted',
       heading: 'You have been shortlisted!',
       body: 'Congratulations! Your application has been shortlisted. Our team will be in touch shortly with further information.',
       alert: {
@@ -258,7 +258,7 @@ export async function sendStatusChanged(
       },
     },
     accepted: {
-      subject: 'Congratulations — your application has been accepted',
+      subject: 'Congratulations - your application has been accepted',
       heading: 'Welcome to Rev Multimedia!',
       body: 'We are thrilled to inform you that your application has been accepted. Please log in to your portal to view your tuition invoice and complete payment to secure your place.',
       alert: {
@@ -305,34 +305,39 @@ export async function sendStatusChanged(
   )
 }
 
-export async function sendTuitionInvoice(
+export type InvoiceReadyEmailData = {
+  name: string
+  reference: string
+  amountGhs: number
+  dueDate: string
+  invoiceLabel: string
+  isInternational: boolean
+  momoNumber?: string
+  momoName?: string
+  bankName?: string
+  bankAccount?: string
+  bankAccountName?: string
+  swiftCode?: string
+  pdfUrl?: string
+}
+
+export async function sendInvoiceReadyEmail(
   to: string,
-  data: {
-    name: string
-    reference: string
-    amountGhs: number
-    dueDate: string
-    isInternational: boolean
-    momoNumber?: string
-    momoName?: string
-    bankName?: string
-    bankAccount?: string
-    bankAccountName?: string
-    swiftCode?: string
-    pdfUrl?: string
-  },
+  data: InvoiceReadyEmailData,
 ): Promise<void> {
   const dueFormatted = formatInvoiceDate(data.dueDate)
+  const label = data.invoiceLabel.trim() || 'Invoice'
+  const labelLower = label.toLowerCase()
 
   await sendHtmlEmail(
     to,
-    `Tuition invoice ${data.reference} — GHS ${data.amountGhs.toFixed(2)}`,
+    `${label} ${data.reference} - GHS ${data.amountGhs.toFixed(2)}`,
     emailTemplate({
-      previewText: `Your tuition invoice for GHS ${data.amountGhs.toFixed(2)} is ready. Due ${dueFormatted}.`,
+      previewText: `Your ${labelLower} for GHS ${data.amountGhs.toFixed(2)} is ready. Due ${dueFormatted}.`,
       body: `
           ${emailGreeting(data.name)}
-          ${emailHeading('Your tuition invoice is ready.')}
-          ${emailParagraph('Please find your tuition invoice details below. Pay before the due date to secure your enrollment.')}
+          ${emailHeading(`Your ${labelLower} is ready.`)}
+          ${emailParagraph(`Please find your ${labelLower} details below. Pay before the due date.`)}
 
           <table cellpadding="0" cellspacing="0" role="presentation"
             width="100%" style="margin:24px 0;">
@@ -380,7 +385,7 @@ export async function sendTuitionInvoice(
                 </p>
                 ${emailInfoCard([
                   { label: 'MoMo Number', value: data.momoNumber },
-                  { label: 'Account Name', value: data.momoName || '—' },
+                  { label: 'Account Name', value: data.momoName || '-' },
                 ])}
                 `
                     : ''
@@ -396,8 +401,8 @@ export async function sendTuitionInvoice(
                 </p>
                 ${emailInfoCard([
                   { label: 'Bank', value: data.bankName },
-                  { label: 'Account Number', value: data.bankAccount || '—' },
-                  { label: 'Account Name', value: data.bankAccountName || '—' },
+                  { label: 'Account Number', value: data.bankAccount || '-' },
+                  { label: 'Account Name', value: data.bankAccountName || '-' },
                 ])}
                 `
                     : ''
@@ -457,14 +462,27 @@ export async function sendTuitionInvoice(
   )
 }
 
+export async function sendTuitionInvoice(
+  to: string,
+  data: Omit<InvoiceReadyEmailData, 'invoiceLabel'>,
+): Promise<void> {
+  await sendInvoiceReadyEmail(to, {
+    ...data,
+    invoiceLabel: 'Tuition',
+  })
+}
+
 export async function sendPasswordReset(
   to: string,
   data: { name?: string; resetUrl: string; isAdmin?: boolean },
 ): Promise<void> {
   const accountType = data.isAdmin ? 'admin' : 'portal'
+  const subject = data.isAdmin
+    ? 'Reset your Rev Multimedia admin password'
+    : 'Reset your Rev Multimedia password'
   await sendHtmlEmail(
     to,
-    'Reset your Rev Multimedia password',
+    subject,
     emailTemplate({
       previewText:
         'Click the link to reset your password. This link expires in 1 hour.',
@@ -475,7 +493,7 @@ export async function sendPasswordReset(
 
           ${emailButton('Reset my password', data.resetUrl)}
 
-          ${emailAlert('warning', 'This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email — your password will not change.')}
+          ${emailAlert('warning', 'This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email - your password will not change.')}
 
           ${emailDivider()}
 
@@ -565,7 +583,7 @@ export async function sendPaymentConfirmed(
   await sendHtmlEmail(
     to,
     hasEnrollment
-      ? `Welcome to Rev Multimedia — Student ID: ${data.studentId}`
+      ? `Welcome to Rev Multimedia - Student ID: ${data.studentId}`
       : 'Payment confirmed',
     emailTemplate({
       previewText: hasEnrollment
@@ -594,6 +612,105 @@ export async function sendPaymentConfirmed(
   )
 }
 
+export async function sendPaymentReceiptEmail(
+  to: string,
+  data: {
+    name: string
+    invoiceReference: string
+    paymentForLabel: string
+    amountPaidGhs: number
+    totalInvoiceGhs: number
+    totalPaidGhs: number
+    remainingGhs: number
+    fullyPaid: boolean
+    paymentMethod: string
+    receiptPdfUrl?: string
+  },
+): Promise<void> {
+  const methodLabel = data.paymentMethod.replace(/_/g, ' ')
+
+  await sendHtmlEmail(
+    to,
+    data.fullyPaid
+      ? `Receipt - ${data.invoiceReference} paid in full`
+      : `Receipt - GHS ${data.amountPaidGhs.toFixed(2)} received`,
+    emailTemplate({
+      previewText: `Payment receipt for ${data.paymentForLabel} (${data.invoiceReference}).`,
+      body: `
+          ${emailGreeting(data.name)}
+          ${emailHeading('Payment receipt')}
+          ${emailParagraph(`We have recorded your ${methodLabel} payment. Please keep this email for your records.`)}
+
+          ${emailInfoCard([
+            { label: 'Invoice', value: data.invoiceReference },
+            { label: 'Payment for', value: data.paymentForLabel },
+            { label: 'Amount received', value: `GHS ${data.amountPaidGhs.toFixed(2)}` },
+            { label: 'Invoice total', value: `GHS ${data.totalInvoiceGhs.toFixed(2)}` },
+            { label: 'Paid to date', value: `GHS ${data.totalPaidGhs.toFixed(2)}` },
+            ...(data.fullyPaid
+              ? []
+              : [{ label: 'Balance remaining', value: `GHS ${data.remainingGhs.toFixed(2)}` }]),
+          ])}
+
+          ${
+            data.fullyPaid
+              ? emailAlert('success', 'This invoice is now fully paid. Thank you!')
+              : ''
+          }
+
+          ${
+            data.receiptPdfUrl
+              ? `
+          ${emailButton('Download receipt PDF', data.receiptPdfUrl)}
+          <p style="margin:-16px 0 16px;font-family:Helvetica,Arial,sans-serif;
+            font-size:12px;color:#9898B8;text-align:center;">
+            Receipt link expires in 7 days
+          </p>
+          `
+              : ''
+          }
+
+          ${emailButton('View my invoices', `${appUrl()}/portal/invoices`)}
+        `,
+    }),
+  )
+}
+
+export async function sendAdmissionLetterEmail(
+  to: string,
+  data: {
+    name: string
+    courseName: string
+    applicationReference: string
+    pdfUrl?: string
+  },
+): Promise<void> {
+  await sendHtmlEmail(
+    to,
+    `Your admission letter - ${data.applicationReference}`,
+    emailTemplate({
+      previewText: `You have been admitted to ${data.courseName} at Rev Multimedia.`,
+      body: `
+          ${emailGreeting(data.name)}
+          ${emailHeading('Congratulations - you are admitted!')}
+          ${emailParagraph(
+            `Please find your official admission letter for <strong>${escapeHtml(data.courseName)}</strong>. This confirms your enrolment in the programme after your tuition payment.`,
+          )}
+          ${
+            data.pdfUrl
+              ? emailButton('Download admission letter (PDF)', data.pdfUrl)
+              : emailAlert(
+                  'warning',
+                  'Your letter was generated. Contact the academy if you need the PDF link resent.',
+                )
+          }
+          ${emailParagraph('Keep this letter for your records. We look forward to seeing you in class.')}
+          ${emailButton('Go to student portal', `${appUrl()}/portal/dashboard`)}
+        `,
+    }),
+  )
+}
+
 export async function sendAdminNewApplication(params: {
   applicantName: string
   reference: string
@@ -601,7 +718,7 @@ export async function sendAdminNewApplication(params: {
 }): Promise<void> {
   await sendHtmlEmail(
     adminEmail,
-    `New application — ${params.reference}`,
+    `New application - ${params.reference}`,
     emailTemplate({
       previewText: `New application from ${params.applicantName} (${params.reference}).`,
       body: `
@@ -631,7 +748,7 @@ export async function sendContactForm(data: {
 }): Promise<void> {
   const resend = getResend()
   if (!resend) {
-    console.error('[email] RESEND_API_KEY is not configured — contact form')
+    console.error('[email] RESEND_API_KEY is not configured - contact form')
     return
   }
 
@@ -643,7 +760,7 @@ export async function sendContactForm(data: {
       from: fromEmail,
       to: contactAdminEmail,
       replyTo: data.email,
-      subject: `New message from ${data.name} — Rev Multimedia Website`,
+      subject: `New message from ${data.name} - Rev Multimedia Website`,
       html: emailTemplate({
         previewText: `${data.name} sent a message via the Rev Multimedia website.`,
         body: `
@@ -689,7 +806,7 @@ export async function sendContactForm(data: {
     await resend.emails.send({
       from: fromEmail,
       to: data.email,
-      subject: 'We received your message — Rev Multimedia',
+      subject: 'We received your message - Rev Multimedia',
       html: emailTemplate({
         previewText: 'Thank you for reaching out. We will be in touch shortly.',
         body: `

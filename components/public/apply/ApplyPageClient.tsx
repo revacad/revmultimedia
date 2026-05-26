@@ -11,13 +11,13 @@ import Step2Course from '@/components/public/apply/steps/Step2Course'
 import Step3Education from '@/components/public/apply/steps/Step3Education'
 import Step4Documents from '@/components/public/apply/steps/Step4Documents'
 import Step5Review from '@/components/public/apply/steps/Step5Review'
+import HoneypotField from '@/components/public/HoneypotField'
 import { submitApplication } from '@/actions/application'
 import type { ApplicationFormData, ApplyCourse } from '@/lib/apply/types'
 import {
-  validateStep1,
-  validateStep2,
-  validateStep3,
-  validateStep4,
+  type ApplyFieldErrors,
+  applyFieldId,
+  getStepValidation,
   validateStep5,
 } from '@/lib/apply/validation'
 
@@ -54,7 +54,10 @@ export default function ApplyPageClient({
     email: string
   } | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<ApplyFieldErrors>({})
+  const [showValidation, setShowValidation] = useState(false)
   const [shakeNext, setShakeNext] = useState(false)
+  const [website, setWebsite] = useState('')
 
   const patchForm = useCallback((patch: Partial<ApplicationFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }))
@@ -104,49 +107,57 @@ export default function ApplyPageClient({
     }
   }, [formData, currentStep, emailVerified])
 
-  const step1Ready = useMemo(
+  const stepValidation = useMemo(
     () =>
-      (formData.fullName?.trim().length ?? 0) > 0 &&
-      Boolean(formData.dateOfBirth) &&
-      Boolean(formData.gender) &&
-      Boolean(formData.country) &&
-      (formData.phone?.trim().length ?? 0) > 0 &&
-      emailVerified &&
-      (formData.address?.trim().length ?? 0) > 0,
-    [formData, emailVerified],
+      getStepValidation(currentStep, formData, {
+        emailVerified,
+        courses,
+        hybridWarningAccepted,
+      }),
+    [currentStep, formData, emailVerified, courses, hybridWarningAccepted],
   )
 
-  const stepValid = useMemo(() => {
-    switch (currentStep) {
-      case 1:
-        return validateStep1(formData, emailVerified)
-      case 2:
-        return validateStep2(formData, courses, hybridWarningAccepted)
-      case 3:
-        return validateStep3(formData)
-      case 4:
-        return validateStep4(formData)
-      case 5:
-        return validateStep5(formData, courses, hybridWarningAccepted)
-      default:
-        return false
-    }
-  }, [currentStep, formData, emailVerified, courses, hybridWarningAccepted])
+  useEffect(() => {
+    if (!showValidation) return
+    setFieldErrors(stepValidation.errors)
+    setValidationError(stepValidation.summary)
+  }, [showValidation, stepValidation])
 
-  const canGoNext = currentStep === 1 ? step1Ready : stepValid
+  const scrollToFirstError = (errors: ApplyFieldErrors) => {
+    const firstKey = Object.keys(errors)[0]
+    if (!firstKey) return
+    requestAnimationFrame(() => {
+      document.getElementById(applyFieldId(firstKey as keyof ApplyFieldErrors))?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    })
+  }
 
   const goNext = () => {
-    if (!stepValid) {
-      setValidationError('Please complete all required fields before continuing.')
+    const result = getStepValidation(currentStep, formData, {
+      emailVerified,
+      courses,
+      hybridWarningAccepted,
+    })
+    if (!result.valid) {
+      setFieldErrors(result.errors)
+      setShowValidation(true)
+      setValidationError(result.summary)
       setShakeNext(true)
       setTimeout(() => setShakeNext(false), 500)
+      scrollToFirstError(result.errors)
       return
     }
+    setFieldErrors({})
+    setShowValidation(false)
     setValidationError(null)
     setCurrentStep((s) => Math.min(TOTAL_STEPS, s + 1))
   }
 
   const goBack = () => {
+    setFieldErrors({})
+    setShowValidation(false)
     setValidationError(null)
     setCurrentStep((s) => Math.max(1, s - 1))
   }
@@ -161,6 +172,7 @@ export default function ApplyPageClient({
     setSubmitError(null)
 
     const payload = {
+      website,
       idempotencyKey,
       email: formData.email!,
       fullName: formData.fullName!,
@@ -305,12 +317,15 @@ export default function ApplyPageClient({
         <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
         <div
-          className="mx-auto max-w-[680px] rounded-3xl border border-[#EFEFF5] bg-white p-10 shadow-[var(--shadow-card)]"
+          className="relative mx-auto max-w-[680px] rounded-3xl border border-[#EFEFF5] bg-white p-10 shadow-[var(--shadow-card)]"
         >
+          <HoneypotField value={website} onChange={setWebsite} />
           {currentStep === 1 && (
             <Step1Personal
               formData={formData}
               emailVerified={emailVerified}
+              fieldErrors={fieldErrors}
+              showValidation={showValidation}
               onChange={patchForm}
               onEmailVerified={setEmailVerified}
             />
@@ -323,14 +338,27 @@ export default function ApplyPageClient({
               preselectedIntake={preselectedIntake}
               hybridWarningAccepted={hybridWarningAccepted}
               onHybridWarningAccepted={setHybridWarningAccepted}
+              fieldErrors={fieldErrors}
+              showValidation={showValidation}
               onChange={patchForm}
             />
           )}
           {currentStep === 3 && (
-            <Step3Education formData={formData} onChange={patchForm} />
+            <Step3Education
+              formData={formData}
+              fieldErrors={fieldErrors}
+              showValidation={showValidation}
+              onChange={patchForm}
+            />
           )}
           {currentStep === 4 && (
-            <Step4Documents draftId={draftId} formData={formData} onChange={patchForm} />
+            <Step4Documents
+              draftId={draftId}
+              formData={formData}
+              fieldErrors={fieldErrors}
+              showValidation={showValidation}
+              onChange={patchForm}
+            />
           )}
           {currentStep === 5 && (
             <Step5Review
@@ -369,7 +397,6 @@ export default function ApplyPageClient({
                   variant="primary"
                   size="md"
                   onClick={goNext}
-                  disabled={!canGoNext}
                   className={cn(shakeNext && 'animate-[shake_0.4s_ease-in-out]')}
                 >
                   Next

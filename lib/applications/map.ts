@@ -63,11 +63,25 @@ export function mapApplicationDetail(row: Record<string, unknown>): ApplicationD
       : null,
     intakes,
     documents: (row.documents as ApplicationDetail['documents']) ?? [],
-    invoices: ((row.invoices as ApplicationDetail['invoices']) ?? []).map((inv) => ({
-      ...inv,
-      amount_ghs: Number(inv.amount_ghs),
-      total_ghs: Number(inv.total_ghs),
-    })),
+    invoices: ((row.invoices as Record<string, unknown>[]) ?? []).map((inv) => {
+      const paymentType = firstRelation(
+        inv.payment_types as { label: string } | { label: string }[] | null,
+      )
+      const installmentsRaw = (inv.installments as { amount_ghs: number }[] | null) ?? []
+      return {
+        id: inv.id as string,
+        reference: inv.reference as string,
+        type: inv.type as string,
+        payment_type_label: paymentType?.label ?? null,
+        amount_ghs: Number(inv.amount_ghs),
+        total_ghs: Number(inv.total_ghs),
+        status: inv.status as string,
+        created_at: (inv.created_at as string | null) ?? null,
+        installments: installmentsRaw.map((row) => ({
+          amount_ghs: Number(row.amount_ghs),
+        })),
+      }
+    }),
     admin_notes,
   }
 }

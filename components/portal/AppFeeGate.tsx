@@ -147,8 +147,8 @@ export function AppFeeGate({
               marginBottom: '12px',
             }}
           >
-            Click &quot;Pay Now&quot; to pay your GHS {amountGhs} application fee securely via
-            Paystack. After payment, you will be automatically redirected back here.
+            Click the button below to pay your GHS {amountGhs} application fee securely.
+            We will confirm your payment and unlock your portal right away.
           </p>
           <button
             type="button"

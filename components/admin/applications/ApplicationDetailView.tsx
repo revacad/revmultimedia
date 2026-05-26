@@ -5,6 +5,7 @@ import ReferenceCode from '@/components/ui/ReferenceCode'
 import ApplicationStatusBadge from '@/components/admin/applications/ApplicationStatusBadge'
 import AdminNotesSection from '@/components/admin/applications/AdminNotesSection'
 import StatusActionButtons from '@/components/admin/applications/StatusActionButtons'
+import SendAdmissionLetterCard from '@/components/admin/applications/SendAdmissionLetterCard'
 import ViewDocumentButton from '@/components/admin/applications/ViewDocumentButton'
 import {
   daysSince,
@@ -17,10 +18,12 @@ import {
 } from '@/lib/applications/format'
 import type { ApplicationDetail } from '@/lib/applications/types'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
+import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
 import { formatGHS } from '@/lib/utils'
 
 interface ApplicationDetailViewProps {
   application: ApplicationDetail
+  hasStudentRecord?: boolean
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -54,7 +57,10 @@ function Card({
   )
 }
 
-export default function ApplicationDetailView({ application }: ApplicationDetailViewProps) {
+export default function ApplicationDetailView({
+  application,
+  hasStudentRecord = false,
+}: ApplicationDetailViewProps) {
   const course = application.courses
   const intake = application.intakes
   const documents = application.documents ?? []
@@ -64,6 +70,9 @@ export default function ApplicationDetailView({ application }: ApplicationDetail
   const appFeeInvoice = (application.invoices ?? []).find(
     (inv) => inv.type === 'application_fee',
   )
+  const tuitionInvoice = (application.invoices ?? []).find((inv) => inv.type === 'tuition')
+  const otherInvoices = (application.invoices ?? []).filter((inv) => inv.type !== 'application_fee')
+  const canCreateInvoice = application.status === 'accepted'
   const regionCity = [application.state_region, application.city].filter(Boolean).join(', ')
 
   return (
@@ -72,7 +81,7 @@ export default function ApplicationDetailView({ application }: ApplicationDetail
         href="/admin/applications"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        ← All Applications
+        {'<'} All Applications
       </Link>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
@@ -220,42 +229,104 @@ export default function ApplicationDetailView({ application }: ApplicationDetail
             <p className="mb-3 mt-6 font-body text-[13px] font-semibold text-[#5A5A7A]">
               Change Status
             </p>
-            <StatusActionButtons applicationId={application.id} />
+            <StatusActionButtons
+              applicationId={application.id}
+              appFeePaid={application.app_fee_paid}
+            />
           </section>
 
           <section className="rounded-xl bg-white p-6 shadow-card">
-            <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">
-              Application Fee Invoice
-            </h2>
-            {appFeeInvoice ? (
-              <div className="space-y-2">
-                <p className="font-mono text-[13px] text-[#C74A86]">{appFeeInvoice.reference}</p>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-body text-base font-semibold text-[#1A1A2E]">Invoices</h2>
+              {canCreateInvoice && (
+                <Link
+                  href={`/admin/applications/${application.id}/invoice/create`}
+                  className="font-body text-sm font-semibold text-primary hover:underline"
+                >
+                  + Create invoice
+                </Link>
+              )}
+            </div>
+
+            {appFeeInvoice && (
+              <div className="mb-4 rounded-lg border border-[#EFEFF5] bg-[#F7F8FC] p-3">
+                <p className="font-body text-xs font-semibold uppercase text-[#9898B8]">
+                  Application fee
+                </p>
+                <p className="mt-1 font-mono text-[13px] text-[#C74A86]">{appFeeInvoice.reference}</p>
                 <p className="font-body text-sm text-[#1A1A2E]">
                   {formatGHS(Number(appFeeInvoice.total_ghs))}
                 </p>
                 <span
                   className={
                     appFeeInvoice.status === 'paid'
-                      ? 'inline-flex rounded-full bg-[#EBF9F8] px-3 py-1 font-body text-xs font-semibold text-[#1E9990]'
-                      : 'inline-flex rounded-full bg-[#FDECEC] px-3 py-1 font-body text-xs font-semibold text-[#E84A4A]'
+                      ? 'mt-2 inline-flex rounded-full bg-[#EBF9F8] px-3 py-1 font-body text-xs font-semibold text-[#1E9990]'
+                      : 'mt-2 inline-flex rounded-full bg-[#FDECEC] px-3 py-1 font-body text-xs font-semibold text-[#E84A4A]'
                   }
                 >
                   {appFeeInvoice.status === 'paid' ? 'Paid' : 'Unpaid'}
                 </span>
               </div>
-            ) : (
-              <p className="font-body text-sm text-[#9898B8]">No invoice generated yet</p>
             )}
 
-            {application.status === 'accepted' && (
+            {otherInvoices.length === 0 ? (
+              <p className="font-body text-sm text-[#9898B8]">
+                {canCreateInvoice
+                  ? 'No tuition or other invoices yet.'
+                  : 'Invoices can be created after acceptance.'}
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {otherInvoices.map((inv) => (
+                  <li
+                    key={inv.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#EFEFF5] p-3"
+                  >
+                    <div>
+                      <InvoiceTypeBadge
+                        type={inv.type}
+                        label={inv.payment_type_label}
+                      />
+                      <p className="mt-1 font-mono text-[13px] text-[#C74A86]">{inv.reference}</p>
+                      <p className="font-body text-sm text-[#1A1A2E]">
+                        {formatGHS(Number(inv.total_ghs))} · {inv.status.replace('_', ' ')}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/payments/${inv.id}`}
+                      className="font-body text-sm font-semibold text-primary hover:underline"
+                    >
+                      View
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {canCreateInvoice && !tuitionInvoice && (
               <Link
-                href={`/admin/applications/${application.id}/invoice/new`}
-                className="mt-4 flex w-full items-center justify-center rounded-full bg-primary px-5 py-2.5 font-body text-sm font-semibold text-white hover:bg-primary-hover"
+                href={`/admin/applications/${application.id}/invoice/create?type=tuition`}
+                className="mt-4 flex w-full items-center justify-center rounded-full border-2 border-primary px-5 py-2.5 font-body text-sm font-semibold text-primary hover:bg-[#FDF0F6]"
               >
-                Generate Tuition Invoice
+                Generate tuition invoice
               </Link>
             )}
           </section>
+
+          <SendAdmissionLetterCard
+            applicationId={application.id}
+            applicationStatus={application.status}
+            enrolledAt={application.enrolled_at}
+            admissionLetterSentAt={application.admission_letter_sent_at}
+            admissionLetterR2Key={application.admission_letter_r2_key}
+            hasStudentRecord={hasStudentRecord}
+            invoices={(application.invoices ?? []).map((inv) => ({
+              type: inv.type,
+              status: inv.status,
+              total_ghs: inv.total_ghs,
+              installments: inv.installments,
+            }))}
+          />
 
           <section className="rounded-xl bg-white p-6 shadow-card">
             <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Quick info</h2>

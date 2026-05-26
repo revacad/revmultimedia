@@ -21,11 +21,18 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className={cn(
-            'block text-[13px] font-medium mb-1.5',
-            surface === 'dark' ? 'text-white/70' : 'text-gray-600'
-          )}>
+          <label
+            className={cn(
+              'mb-1.5 block text-[13px] font-medium',
+              surface === 'dark' ? 'text-white/70' : 'text-gray-600',
+            )}
+          >
             {label}
+            {props.required && (
+              <span className="ml-0.5 text-[#C74A86]" aria-hidden>
+                *
+              </span>
+            )}
           </label>
         )}
         <input

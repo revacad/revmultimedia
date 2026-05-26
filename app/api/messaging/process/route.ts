@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server'
 import { Receiver } from '@upstash/qstash'
 import { Client } from '@upstash/qstash'
 import { processCampaignBatch } from '@/lib/messaging/process-batch'
+import { z } from 'zod'
 
 type ProcessBody = {
   campaignId: string
 }
+
+const processBodySchema = z.object({
+  campaignId: z.string().uuid('Invalid campaignId'),
+})
 
 export async function POST(request: Request) {
   let bodyText: string
@@ -39,13 +44,17 @@ export async function POST(request: Request) {
 
   let body: ProcessBody
   try {
-    body = JSON.parse(bodyText) as ProcessBody
+    const json: unknown = JSON.parse(bodyText)
+    const parsed = processBodySchema.safeParse(json)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
+        { status: 400 },
+      )
+    }
+    body = parsed.data as ProcessBody
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
-
-  if (!body.campaignId) {
-    return NextResponse.json({ error: 'campaignId required' }, { status: 400 })
   }
 
   const result = await processCampaignBatch(body.campaignId)

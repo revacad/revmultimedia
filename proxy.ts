@@ -2,6 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isLegacyMarketingPath } from '@/lib/legacy-paths'
 import { withAuthCookieOptions } from '@/lib/supabase/cookies'
+import { applySecurityHeaders } from '@/lib/security/headers'
+import { isSessionBindingValid, clearSessionBinding } from '@/lib/auth/session-binding'
+import { getRequestMetaFromHeaders } from '@/lib/auth/request-meta'
+import { hasActiveAdminProfile } from '@/lib/auth/active-admin'
+import { sanitizeRedirectPath } from '@/lib/security/paths'
+
+function isAdminAuthPath(path: string): boolean {
+  return (
+    path.startsWith('/admin/login') ||
+    path.startsWith('/admin/accept-invite') ||
+    path === '/admin/forgot-password' ||
+    path.startsWith('/admin/reset-password')
+  )
+}
+
+function isProtectedAdminPath(path: string): boolean {
+  return path.startsWith('/admin') && !isAdminAuthPath(path)
+}
 
 function applySessionCookies(from: NextResponse, to: NextResponse): void {
   from.cookies.getAll().forEach((cookie) => {
@@ -20,7 +38,7 @@ function nextWithPathname(
     request: { headers: requestHeaders },
   })
   applySessionCookies(supabaseResponse, response)
-  return response
+  return applySecurityHeaders(response)
 }
 
 function redirectWithPathname(
@@ -34,13 +52,13 @@ function redirectWithPathname(
   const response = NextResponse.redirect(url)
   applySessionCookies(supabaseResponse, response)
   response.headers.set('x-pathname', pathForHeader)
-  return response
+  return applySecurityHeaders(response)
 }
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
   if (isLegacyMarketingPath(path)) {
-    return new NextResponse(null, { status: 404 })
+    return applySecurityHeaders(new NextResponse(null, { status: 404 }))
   }
 
   let supabaseResponse = NextResponse.next({
@@ -75,17 +93,52 @@ export async function proxy(request: NextRequest) {
 
   // Stale cookies from an old session, different Supabase project, or cleared server-side session
   if (authError?.code === 'refresh_token_not_found') {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'global' })
+  }
+
+  const protectedSessionPath =
+    path.startsWith('/portal') || isProtectedAdminPath(path)
+
+  if (user && protectedSessionPath) {
+    const { ip, userAgent } = getRequestMetaFromHeaders(request.headers)
+    const bindingOk = await isSessionBindingValid(user.id, ip, userAgent)
+    if (!bindingOk) {
+      await supabase.auth.signOut({ scope: 'global' })
+      await clearSessionBinding(user.id)
+      const loginPath = path.startsWith('/admin') ? '/admin/login' : '/login'
+      const url = request.nextUrl.clone()
+      url.pathname = loginPath
+      url.search = 'reason=session'
+      const response = NextResponse.redirect(url)
+      applySessionCookies(supabaseResponse, response)
+      return applySecurityHeaders(response)
+    }
+  }
+
+  if (user && isProtectedAdminPath(path)) {
+    const isAdmin = await hasActiveAdminProfile(user.id)
+    if (!isAdmin) {
+      await supabase.auth.signOut({ scope: 'local' })
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      url.search = 'reason=not_admin'
+      const response = NextResponse.redirect(url)
+      applySessionCookies(supabaseResponse, response)
+      return applySecurityHeaders(response)
+    }
   }
 
   if (user) {
     if (path === '/admin/login') {
-      return redirectWithPathname(request, supabaseResponse, '/admin', path)
+      if (await hasActiveAdminProfile(user.id)) {
+        return redirectWithPathname(request, supabaseResponse, '/admin', path)
+      }
+      return nextWithPathname(request, supabaseResponse, path)
     }
     if (path === '/login') {
-      const redirectTo = request.nextUrl.searchParams.get('redirectTo')
-      const destination =
-        redirectTo?.startsWith('/portal') ? redirectTo : '/portal/application'
+      const destination = sanitizeRedirectPath(
+        request.nextUrl.searchParams.get('redirectTo'),
+      )
       return redirectWithPathname(request, supabaseResponse, destination, path)
     }
   }
@@ -103,6 +156,8 @@ export async function proxy(request: NextRequest) {
     path === '/login' ||
     path.startsWith('/admin/login') ||
     path.startsWith('/admin/accept-invite') ||
+    path === '/admin/forgot-password' ||
+    path.startsWith('/admin/reset-password') ||
     path.startsWith('/forgot-password') ||
     path.startsWith('/reset-password') ||
     path.startsWith('/api/') ||
@@ -129,12 +184,7 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  if (
-    path.startsWith('/admin') &&
-    !path.startsWith('/admin/login') &&
-    !path.startsWith('/admin/accept-invite') &&
-    !user
-  ) {
+  if (isProtectedAdminPath(path) && !user) {
     const response = NextResponse.redirect(new URL('/admin/login', request.url))
     applySessionCookies(supabaseResponse, response)
     return response

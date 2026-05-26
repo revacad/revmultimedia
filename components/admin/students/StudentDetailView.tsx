@@ -12,14 +12,36 @@ import type { CourseCategory } from '@/lib/courses/types'
 import { formatGHS } from '@/lib/utils'
 import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
 import ApplicationStatusBadge from '@/components/admin/applications/ApplicationStatusBadge'
-import NotificationHistoryCard, {
-  type NotificationLogRow,
-} from '@/components/admin/students/NotificationHistoryCard'
+import MessageLogPanel, {
+  communicationLogToEntry,
+  notificationToLogEntry,
+} from '@/components/admin/MessageLogPanel'
 import type { ApplicationStatus } from '@/lib/applications/types'
-import CommunicationHistoryCard, {
-  type CommunicationLogHistoryRow,
-} from '@/components/admin/students/CommunicationHistoryCard'
 import SendDirectMessageCard from '@/components/admin/students/SendDirectMessageCard'
+
+export type NotificationLogRow = {
+  id: string
+  channel: string
+  event_type: string
+  status: string
+  recipient: string
+  provider_response?: unknown
+  sent_at: string
+}
+
+export type CommunicationLogHistoryRow = {
+  id: string
+  channel: string
+  status: string
+  recipient: string
+  error_message: string | null
+  sent_at: string
+  communication_campaigns: {
+    subject: string | null
+    message: string
+    channel: string
+  } | null
+}
 
 export type AdminStudentDetail = {
   id: string
@@ -63,6 +85,10 @@ export type AdminStudentDetail = {
     reference: string
     status: ApplicationStatus
     created_at: string
+    enrolled_at: string | null
+    admission_letter_sent_at: string | null
+    lifecycleStatus: string
+    lifecycleLabel: string
     courses: { title: string } | null
   }[]
   notifications: NotificationLogRow[]
@@ -88,13 +114,18 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
     0,
   )
 
+  const messageLogEntries = [
+    ...student.notifications.map(notificationToLogEntry),
+    ...student.communicationLogs.map(communicationLogToEntry),
+  ]
+
   return (
     <div className="mx-auto max-w-[1200px]">
       <Link
         href="/admin/students"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        ← All Students
+        {'<'} All Students
       </Link>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
@@ -118,9 +149,59 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
           </section>
 
           <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
-            <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Enrollments</h2>
+            <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">
+              Programmes
+            </h2>
+            <p className="mb-4 font-body text-sm text-[#9898B8]">
+              All courses this person has applied for. Enrolled means tuition was paid (in part
+              or full) and the admission letter PDF was sent.
+            </p>
+            {student.allApplications.length === 0 ? (
+              <p className="font-body text-sm text-[#9898B8]">No programme history.</p>
+            ) : (
+              <ul className="mb-6 space-y-3">
+                {student.allApplications.map((app) => (
+                  <li
+                    key={app.id}
+                    className="rounded-lg border border-[#EFEFF5] bg-[#F8F8FC] p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <Link
+                          href={`/admin/applications/${app.id}`}
+                          className="font-mono text-sm font-semibold text-primary hover:underline"
+                        >
+                          {app.reference}
+                        </Link>
+                        <p className="mt-1 font-body text-sm font-medium text-[#1A1A2E]">
+                          {app.courses?.title ?? 'Course'}
+                        </p>
+                        <p className="mt-1 font-body text-xs text-[#9898B8]">
+                          Registered {formatApplicationDate(app.created_at)}
+                          {app.enrolled_at
+                            ? ` · Enrolled ${formatApplicationDate(app.enrolled_at)}`
+                            : ''}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="rounded-full bg-white px-3 py-1 font-body text-xs font-semibold text-[#5A5A7A]">
+                          {app.lifecycleLabel}
+                        </span>
+                        <ApplicationStatusBadge status={app.status} />
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <h3 className="mb-3 font-body text-sm font-semibold uppercase tracking-wide text-[#9898B8]">
+              Active enrolments (student record)
+            </h3>
             {student.enrollments.length === 0 ? (
-              <p className="font-body text-sm text-[#9898B8]">No enrollments.</p>
+              <p className="font-body text-sm text-[#9898B8]">
+                No active enrolment records yet. These are created when tuition is paid in full.
+              </p>
             ) : (
               student.enrollments.map((enrollment) => {
                 const course = enrollment.courses
@@ -144,7 +225,7 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
                         )}
                         {intake && (
                           <p className="mt-2 font-body text-sm text-[#5A5A7A]">
-                            {intake.name} · {formatApplicationDate(intake.start_date)} →{' '}
+                            {intake.name} · {formatApplicationDate(intake.start_date)} -{' '}
                             {formatApplicationDate(intake.end_date)}
                           </p>
                         )}
@@ -205,8 +286,15 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
             )}
           </section>
 
-          <NotificationHistoryCard notifications={student.notifications} />
-          <CommunicationHistoryCard logs={student.communicationLogs} />
+          <div className="mt-6">
+            <MessageLogPanel
+              title="Communication log"
+              subtitle="Emails, SMS, and WhatsApp - system notifications and campaigns. Includes failures."
+              entries={messageLogEntries}
+              emptyMessage="No emails or SMS logged for this student yet."
+              maxHeightClassName="max-h-[480px]"
+            />
+          </div>
         </div>
 
         <div>
@@ -219,45 +307,12 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
                 <dd className="font-mono text-primary">{student.student_id}</dd>
               </div>
               <div>
-                <dt className="text-[#9898B8]">Enrolled</dt>
+                <dt className="text-[#9898B8]">Student record created</dt>
                 <dd className="text-[#1A1A2E]">{formatApplicationDate(student.created_at)}</dd>
               </div>
               <div>
                 <dt className="text-[#9898B8]">Country</dt>
                 <dd className="text-[#1A1A2E]">{student.country}</dd>
-              </div>
-              <div>
-                <dt className="mb-2 text-[#9898B8]">Applications</dt>
-                <dd>
-                  {student.allApplications.length === 0 ? (
-                    <span className="text-[#9898B8]">None</span>
-                  ) : (
-                    <ul className="space-y-2">
-                      {student.allApplications.map((app) => (
-                        <li
-                          key={app.id}
-                          className="flex flex-wrap items-center gap-2"
-                        >
-                          <Link
-                            href={`/admin/applications/${app.id}`}
-                            className="font-mono text-sm text-primary hover:underline"
-                          >
-                            {app.reference}
-                          </Link>
-                          <span className="font-body text-xs text-[#9898B8]">
-                            → {app.courses?.title ?? 'Course'}
-                          </span>
-                          <ApplicationStatusBadge status={app.status} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {student.allApplications.length > 1 && (
-                    <p className="mt-2 font-body text-xs text-[#9898B8]">
-                      Returning students may have one application per course or intake.
-                    </p>
-                  )}
-                </dd>
               </div>
             </dl>
           </section>

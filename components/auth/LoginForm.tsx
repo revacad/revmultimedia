@@ -1,11 +1,18 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { loginAdmin } from '@/actions/auth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 
-export default function LoginForm() {
+export default function LoginForm({
+  resetSuccess,
+  notice,
+}: {
+  resetSuccess?: boolean
+  notice?: string | null
+}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -74,6 +81,48 @@ export default function LoginForm() {
         value={password}
         onChange={setPassword}
       />
+
+      <div style={{ textAlign: 'right', marginTop: '-4px' }}>
+        <Link
+          href="/admin/forgot-password"
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '13px',
+            color: '#C74A86',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          Forgot password?
+        </Link>
+      </div>
+
+      {resetSuccess && (
+        <p
+          role="status"
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '14px',
+            color: '#2DBFB8',
+          }}
+        >
+          Your password has been reset. You can sign in now.
+        </p>
+      )}
+
+      {notice && (
+        <p
+          role="status"
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '14px',
+            color: '#5A5A7A',
+            lineHeight: 1.5,
+          }}
+        >
+          {notice}
+        </p>
+      )}
 
       {error && (
         <p

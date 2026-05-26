@@ -3,15 +3,26 @@
 import { useRef, useState } from 'react'
 import DocumentUploadSlot from '@/components/public/apply/DocumentUploadSlot'
 import { uploadApplicationDocument, formatFileSize } from '@/lib/apply/upload'
+import type { ApplyFieldErrors } from '@/lib/apply/validation'
+import { applyFieldId } from '@/lib/apply/validation'
 import type { ApplicationFormData, UploadedFileMeta } from '@/lib/apply/types'
 
 interface Step4DocumentsProps {
   formData: Partial<ApplicationFormData>
   draftId: string
+  fieldErrors?: ApplyFieldErrors
+  showValidation?: boolean
   onChange: (patch: Partial<ApplicationFormData>) => void
 }
 
-export default function Step4Documents({ formData, draftId, onChange }: Step4DocumentsProps) {
+export default function Step4Documents({
+  formData,
+  draftId,
+  fieldErrors = {},
+  showValidation = false,
+  onChange,
+}: Step4DocumentsProps) {
+  const err = (key: keyof ApplyFieldErrors) => (showValidation ? fieldErrors[key] : undefined)
   const isGhana = formData.country === 'Ghana'
   const idLabel = isGhana ? 'Ghana Card' : 'Passport'
 
@@ -23,27 +34,35 @@ export default function Step4Documents({ formData, draftId, onChange }: Step4Doc
       </p>
 
       <div className="flex flex-col gap-6">
-        <DocumentUploadSlot
-          label={idLabel}
-          subtext="PDF, JPG, or PNG, max 5MB"
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-          maxSizeBytes={5 * 1024 * 1024}
-          draftId={draftId}
-          documentType={isGhana ? 'national_id' : 'passport'}
-          value={formData.idDocument}
-          onChange={(idDocument) => onChange({ idDocument })}
-        />
+        <div id={applyFieldId('idDocument')}>
+          <DocumentUploadSlot
+            label={idLabel}
+            required
+            subtext="PDF, JPG, or PNG, max 5MB"
+            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+            maxSizeBytes={5 * 1024 * 1024}
+            draftId={draftId}
+            documentType={isGhana ? 'national_id' : 'passport'}
+            value={formData.idDocument}
+            fieldError={err('idDocument')}
+            onChange={(idDocument) => onChange({ idDocument })}
+          />
+        </div>
 
-        <DocumentUploadSlot
-          label="Passport Photograph"
-          subtext="JPG or PNG only, max 2MB. This will be used as your profile photo if accepted."
-          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-          maxSizeBytes={2 * 1024 * 1024}
-          draftId={draftId}
-          documentType="passport_photo"
-          value={formData.passportPhoto}
-          onChange={(passportPhoto) => onChange({ passportPhoto })}
-        />
+        <div id={applyFieldId('passportPhoto')}>
+          <DocumentUploadSlot
+            label="Passport Photograph"
+            required
+            subtext="JPG or PNG only, max 2MB. This will be used as your profile photo if accepted."
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+            maxSizeBytes={2 * 1024 * 1024}
+            draftId={draftId}
+            documentType="passport_photo"
+            value={formData.passportPhoto}
+            fieldError={err('passportPhoto')}
+            onChange={(passportPhoto) => onChange({ passportPhoto })}
+          />
+        </div>
 
         <CertificatesUpload
           draftId={draftId}

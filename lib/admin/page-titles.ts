@@ -6,10 +6,12 @@ const TITLES: Record<string, string> = {
   '/admin/resources': 'Resources',
   '/admin/reports': 'Reports',
   '/admin/payments': 'Payments',
+  '/admin/payment-types': 'Payment Types',
   '/admin/courses': 'Courses',
   '/admin/intakes': 'Intakes',
   '/admin/promo-codes': 'Promo Codes',
   '/admin/settings': 'Settings',
+  '/admin/profile': 'Profile',
 }
 
 export function getAdminPageTitle(pathname: string): string {

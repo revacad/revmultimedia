@@ -57,6 +57,7 @@ export function mergeAuthCookieOptions(options?: CookieOptions): CookieOptions {
   return {
     ...options,
     path: options?.path ?? '/',
+    httpOnly: options?.httpOnly ?? true,
     sameSite: options?.sameSite ?? 'lax',
     secure: options?.secure ?? shouldUseSecureCookies(),
     ...(domain && options?.domain === undefined ? { domain } : {}),

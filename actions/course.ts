@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/admin";
 import { invalidateCourse } from "@/lib/redis/invalidate";
-import { courseSchema } from "@/lib/validations/course";
+import { courseSchema, coursePublishSchema } from "@/lib/validations/course";
+import { uuidIdSchema } from "@/lib/validations/common";
 import { generateSlug } from "@/lib/utils";
+import { sanitizeRichHtml } from "@/lib/security/html";
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -23,7 +25,7 @@ export async function createCourse(
         String(formData.get("slug") ?? "") ||
         generateSlug(String(formData.get("title") ?? "")),
       category: String(formData.get("category") ?? ""),
-      description: String(formData.get("description") ?? "") || undefined,
+      description: parseDescription(formData.get("description")),
       mode: String(formData.get("mode") ?? ""),
       tuition_fee_ghs: Number(formData.get("tuition_fee_ghs")),
       max_slots: Number(formData.get("max_slots")),
@@ -77,7 +79,7 @@ export async function updateCourse(
       title: String(formData.get("title") ?? ""),
       slug: String(formData.get("slug") ?? ""),
       category: String(formData.get("category") ?? ""),
-      description: String(formData.get("description") ?? "") || undefined,
+      description: parseDescription(formData.get("description")),
       mode: String(formData.get("mode") ?? ""),
       tuition_fee_ghs: Number(formData.get("tuition_fee_ghs")),
       max_slots: Number(formData.get("max_slots")),
@@ -129,13 +131,18 @@ export async function togglePublish(
   publish: boolean,
 ): Promise<ActionResult> {
   try {
+    const parsed = coursePublishSchema.safeParse({ id, publish });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    }
+
     await requireAdmin();
 
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("courses")
-      .update({ is_published: publish, updated_at: new Date().toISOString() })
-      .eq("id", id)
+      .update({ is_published: parsed.data.publish, updated_at: new Date().toISOString() })
+      .eq("id", parsed.data.id)
       .select("slug")
       .single();
 
@@ -158,25 +165,40 @@ export async function togglePublish(
 }
 
 function parseCurriculumHtml(value: FormDataEntryValue | null): unknown {
-  const html = String(value ?? "").trim();
-  if (!html || html === "<p></p>") {
+  const html = sanitizeRichHtml(String(value ?? ""));
+  if (!html) {
     return null;
   }
   return { html, version: 1 };
 }
 
+function parseDescription(value: FormDataEntryValue | null | undefined): string | undefined {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+  if (/<[a-z][\s\S]*>/i.test(raw)) {
+    const clean = sanitizeRichHtml(raw);
+    return clean || undefined;
+  }
+  return raw.slice(0, 5000);
+}
+
 export async function deleteCourse(id: string): Promise<ActionResult> {
   try {
+    const parsed = uuidIdSchema.safeParse({ id });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid course id" };
+    }
+
     await requireAdmin();
 
     const supabase = createAdminClient();
     const { data: course } = await supabase
       .from("courses")
       .select("slug")
-      .eq("id", id)
+      .eq("id", parsed.data.id)
       .single();
 
-    const { error } = await supabase.from("courses").delete().eq("id", id);
+    const { error } = await supabase.from("courses").delete().eq("id", parsed.data.id);
 
     if (error) {
       return { success: false, error: error.message };

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rev Multimedia">
+  <circle cx="18" cy="18" r="10" fill="#C74A86"/>
+  <circle cx="46" cy="18" r="10" fill="#F18F3B"/>
+  <circle cx="18" cy="46" r="10" fill="#2DBFB8"/>
+  <circle cx="46" cy="46" r="10" fill="#C74A86" opacity="0.7"/>
+</svg>

@@ -11,8 +11,16 @@ export function documentPath(
   return `documents/${applicationRef}/${documentType}/${uuid}.${ext}`;
 }
 
+export function admissionLetterPdfPath(applicationRef: string): string {
+  return `documents/${applicationRef}/admission-letter.pdf`;
+}
+
 export function invoicePdfPath(invoiceRef: string): string {
   return `invoices/${invoiceRef}/invoice.pdf`;
+}
+
+export function receiptPdfPath(invoiceRef: string, installmentId: string): string {
+  return `invoices/${invoiceRef}/receipts/${installmentId}.pdf`;
 }
 
 export function studentDocumentPath(

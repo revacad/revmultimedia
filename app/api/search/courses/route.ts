@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { redis } from '@/lib/redis/client'
+import { publicSearchLimit } from '@/lib/redis/ratelimit'
+import { getRequestIp, rateLimitOrNull } from '@/lib/security/rate-limit-request'
+import { searchQuerySchema } from '@/lib/validations/api'
 
 export async function GET(request: NextRequest) {
-  const query = request.nextUrl.searchParams.get('q')?.trim()
+  const limited = await rateLimitOrNull(publicSearchLimit, [getRequestIp(request)], 60)
+  if (limited) return limited
 
-  if (!query || query.length < 2) {
+  const rawQ = request.nextUrl.searchParams.get('q') ?? ''
+  const parsed = searchQuerySchema.safeParse({ q: rawQ })
+  if (!parsed.success) {
     return NextResponse.json({ results: [] })
   }
+  const query = parsed.data.q
 
   const cacheKey = `search:courses:${query.toLowerCase()}`
   try {

@@ -1,12 +1,5 @@
-import { createAdminClient } from '@/lib/supabase/admin'
+import { cache } from 'react'
+import { getSystemSettings } from '@/lib/settings/cache'
 
-export async function getPaymentSettings(): Promise<Record<string, string>> {
-  const admin = createAdminClient()
-  const { data } = await admin.from('system_settings').select('key, value')
-
-  const map: Record<string, string> = {}
-  for (const row of data ?? []) {
-    map[row.key] = row.value
-  }
-  return map
-}
+/** Cached system settings (Redis + per-request dedupe). */
+export const getPaymentSettings = cache(getSystemSettings)

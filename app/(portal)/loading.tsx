@@ -1,5 +1,5 @@
-import { LogoLoader } from '@/components/ui/LogoLoader'
+import { DelayedLoader } from '@/components/ui/DelayedLoader'
 
-export default function Loading() {
-  return <LogoLoader fullScreen text="Loading..." />
+export default function PortalLoading() {
+  return <DelayedLoader variant="light" text="Loading..." />
 }

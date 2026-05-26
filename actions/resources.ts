@@ -6,6 +6,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import { logAuditEvent } from '@/lib/audit/log'
 import { logStudentActivity } from '@/lib/student-activity/log'
 import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import {
+  deleteResourceSchema,
+  resourceUrlSchema,
+  uploadResourceSchema,
+} from '@/lib/validations/resources'
 
 export async function uploadResource(data: {
   title: string
@@ -18,11 +23,24 @@ export async function uploadResource(data: {
   courseId?: string
   intakeId?: string
 }): Promise<{ success: true } | { error: string }> {
+  const parsed = uploadResourceSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid resource details' }
+  }
+
   const supabase = createAdminClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+
+  const payload = parsed.data
+  if (payload.visibility === 'course_specific' && !payload.courseId) {
+    return { error: 'courseId is required when visibility is course_specific' }
+  }
+  if (payload.visibility === 'intake_specific' && !payload.intakeId) {
+    return { error: 'intakeId is required when visibility is intake_specific' }
+  }
 
   const { data: admin } = await supabase
     .from('admins')
@@ -33,15 +51,15 @@ export async function uploadResource(data: {
   if (!admin) return { error: 'Not an admin' }
 
   const { error } = await supabase.from('resources').insert({
-    title: data.title,
-    description: data.description || null,
-    file_r2_key: data.r2Key,
-    file_name: data.fileName,
-    file_type: data.fileType,
-    file_size: data.fileSize,
-    visibility: data.visibility,
-    course_id: data.courseId || null,
-    intake_id: data.intakeId || null,
+    title: payload.title,
+    description: payload.description || null,
+    file_r2_key: payload.r2Key,
+    file_name: payload.fileName,
+    file_type: payload.fileType,
+    file_size: payload.fileSize,
+    visibility: payload.visibility,
+    course_id: payload.courseId || null,
+    intake_id: payload.intakeId || null,
     uploaded_by: admin.id,
   })
 
@@ -51,7 +69,7 @@ export async function uploadResource(data: {
     adminId: admin.id,
     action: 'resource.created',
     entityType: 'resource',
-    newValue: { title: data.title, visibility: data.visibility },
+    newValue: { title: payload.title, visibility: payload.visibility },
   })
 
   revalidatePath('/admin/resources')
@@ -61,6 +79,11 @@ export async function uploadResource(data: {
 export async function deleteResource(
   resourceId: string,
 ): Promise<{ success: true } | { error: string }> {
+  const parsed = deleteResourceSchema.safeParse({ resourceId })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid resource id' }
+  }
+
   const supabase = createAdminClient()
   const {
     data: { user },
@@ -84,6 +107,11 @@ export async function deleteResource(
 }
 
 export async function getResourceUrl(resourceId: string): Promise<string> {
+  const parsed = resourceUrlSchema.safeParse({ resourceId })
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? 'Invalid resource id')
+  }
+
   const supabase = await createServerClient()
   const {
     data: { user },
@@ -120,6 +148,11 @@ export async function getResourceUrl(resourceId: string): Promise<string> {
 }
 
 export async function getAdminResourceUrl(resourceId: string): Promise<string> {
+  const parsed = resourceUrlSchema.safeParse({ resourceId })
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? 'Invalid resource id')
+  }
+
   const supabase = createAdminClient()
   const {
     data: { user },

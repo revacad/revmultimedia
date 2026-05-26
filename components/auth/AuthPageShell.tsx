@@ -92,7 +92,7 @@ export default function AuthPageShell({ title, subtitle, children, footerNote }:
         }}
       >
         <Link href="/" style={{ color: '#C74A86' }}>
-          ← Back to Rev Multimedia
+          Back to Rev Multimedia
         </Link>
       </p>
     </>

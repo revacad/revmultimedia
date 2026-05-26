@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/admin";
 import { invalidateCourse, invalidateIntakes } from "@/lib/redis/invalidate";
 import { intakeSchema } from "@/lib/validations/course";
+import { uuidIdSchema } from "@/lib/validations/common";
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -117,13 +118,18 @@ export async function updateIntake(
 
 export async function closeIntake(id: string): Promise<ActionResult> {
   try {
+    const parsed = uuidIdSchema.safeParse({ id });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid intake id" };
+    }
+
     await requireAdmin();
 
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("intakes")
       .update({ is_closed: true })
-      .eq("id", id)
+      .eq("id", parsed.data.id)
       .select("course_id")
       .single();
 

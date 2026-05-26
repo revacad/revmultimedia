@@ -4,7 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
 import { normalisePhone } from '@/lib/phone'
-import { submitApplicationSchema } from '@/lib/validations/application'
+import {
+  addAdminNoteSchema,
+  submitApplicationSchema,
+  updateApplicationStatusSchema,
+} from '@/lib/validations/application'
 import { checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency'
 import {
   sendApplicationReceived,
@@ -14,11 +18,18 @@ import {
 import { sendMessage } from '@/lib/notifications/sms'
 import { runAfterResponse } from '@/lib/background'
 import { logAuditEvent } from '@/lib/audit/log'
-import {
-  APPLICATION_STATUSES,
-  type ApplicationStatus,
-} from '@/lib/applications/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  createTuitionInvoice,
+  sendTuitionInvoiceNotifications,
+} from '@/lib/promo/create-tuition-invoice'
+import { defaultDueDate } from '@/lib/payments/format'
+import { invalidateAdminStats } from '@/lib/redis/invalidate'
+import { getClientIp } from '@/lib/auth/getClientIp'
+import { checkRateLimit, applySubmitLimit } from '@/lib/redis/ratelimit'
+import { guardFormSubmission } from '@/lib/security/abuse'
+import { sanitizePlainText } from '@/lib/security/html'
+import { sanitizeFileName } from '@/lib/security/files'
 
 type RpcResult = {
   error?: string
@@ -143,6 +154,36 @@ export async function submitApplication(formData: unknown) {
   }
 
   const data = parsed.data
+  const ip = await getClientIp()
+
+  const guard = await guardFormSubmission({
+    form: 'apply',
+    ip,
+    email: data.email,
+    honeypot: data.website,
+    fieldValues: [
+      data.fullName,
+      data.email,
+      data.phone,
+      data.address,
+      data.stateRegion ?? '',
+      data.city ?? '',
+      data.institution,
+      data.priorExperience ?? '',
+      data.password,
+    ],
+  })
+  if (!guard.ok) return { error: guard.error }
+  const [byIp, byEmail] = await Promise.all([
+    checkRateLimit(applySubmitLimit, ip),
+    checkRateLimit(applySubmitLimit, `email:${data.email}`),
+  ])
+  if (!byIp.allowed || !byEmail.allowed) {
+    return {
+      error:
+        'Too many application attempts. Please wait before submitting again or contact us at info@revmultimediagh.com',
+    }
+  }
 
   const { isDuplicate, result: cachedResult } = await checkIdempotency(data.idempotencyKey)
   if (isDuplicate && cachedResult && typeof cachedResult === 'object') {
@@ -157,9 +198,34 @@ export async function submitApplication(formData: unknown) {
 
   const sanitisedData = {
     ...data,
+    fullName: sanitizePlainText(data.fullName, 200),
+    address: sanitizePlainText(data.address, 500),
+    institution: sanitizePlainText(data.institution, 200),
+    stateRegion: data.stateRegion
+      ? sanitizePlainText(data.stateRegion, 120)
+      : undefined,
+    city: data.city ? sanitizePlainText(data.city, 120) : undefined,
+    priorExperience: data.priorExperience
+      ? sanitizePlainText(data.priorExperience, 2000)
+      : undefined,
     yearCompleted: data.yearCompleted
       ? parseInt(String(data.yearCompleted), 10)
       : null,
+    documents: {
+      ...data.documents,
+      idDocument: {
+        ...data.documents.idDocument,
+        fileName: sanitizeFileName(data.documents.idDocument.fileName),
+      },
+      passportPhoto: {
+        ...data.documents.passportPhoto,
+        fileName: sanitizeFileName(data.documents.passportPhoto.fileName),
+      },
+      certificates: data.documents.certificates?.map((f) => ({
+        ...f,
+        fileName: sanitizeFileName(f.fileName),
+      })),
+    },
   }
 
   if (
@@ -327,20 +393,18 @@ export async function submitApplication(formData: unknown) {
   }
 }
 
-function isApplicationStatus(value: string): value is ApplicationStatus {
-  return (APPLICATION_STATUSES as readonly string[]).includes(value)
-}
-
 export async function updateApplicationStatus(
   applicationId: string,
   status: string,
 ): Promise<{ success: true } | { error: string }> {
   try {
-    const session = await requireAdmin()
-
-    if (!isApplicationStatus(status)) {
-      return { error: 'Invalid status' }
+    const parsed = updateApplicationStatusSchema.safeParse({ applicationId, status })
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Invalid request' }
     }
+
+    const session = await requireAdmin()
+    const { applicationId: appId, status: newStatus } = parsed.data
 
     const supabase = createAdminClient()
 
@@ -356,28 +420,75 @@ export async function updateApplicationStatus(
 
     const { data: existing } = await supabase
       .from('applications')
-      .select('status')
-      .eq('id', applicationId)
+      .select(
+        `
+        id,
+        status,
+        app_fee_paid,
+        app_fee_paid_at,
+        promo_code_id,
+        reference,
+        full_name,
+        real_email,
+        phone,
+        country,
+        courses(tuition_fee_ghs)
+      `,
+      )
+      .eq('id', appId)
       .single()
 
-    const currentStatus = existing?.status
+    if (!existing) {
+      return { error: 'Application not found' }
+    }
+
+    const currentStatus = existing.status
+
+    if (newStatus === 'accepted') {
+      if (!existing.app_fee_paid) {
+        return {
+          error: 'Application fee must be paid before you can accept this applicant.',
+        }
+      }
+
+      const invoiceResult = await createTuitionInvoice(supabase, existing, {
+        applicationId: appId,
+        adminId: admin.id,
+        dueDate: defaultDueDate(14),
+      })
+
+      if ('error' in invoiceResult) {
+        return { error: invoiceResult.error }
+      }
+
+      if (invoiceResult.created) {
+        const dueDate = defaultDueDate(14)
+        runAfterResponse(async () => {
+          await sendTuitionInvoiceNotifications(
+            existing,
+            invoiceResult.reference,
+            invoiceResult.totalGhs,
+            dueDate,
+            invoiceResult.invoiceId,
+          )
+        })
+      }
+    }
 
     const { error } = await supabase
       .from('applications')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', applicationId)
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', appId)
 
     if (error) {
       return { error: error.message }
     }
 
-    const newStatus = status
-
     await logAuditEvent({
       adminId: admin.id,
       action: 'application.status_changed',
       entityType: 'application',
-      entityId: String(applicationId),
+      entityId: String(appId),
       oldValue: { status: currentStatus },
       newValue: { status: newStatus },
     })
@@ -386,7 +497,7 @@ export async function updateApplicationStatus(
       const { data: app } = await supabase
         .from('applications')
         .select('real_email, full_name, phone, reference')
-        .eq('id', applicationId)
+        .eq('id', appId)
         .single()
 
       if (!app) return
@@ -411,7 +522,7 @@ export async function updateApplicationStatus(
 
       const emailFailed = results[0].status === 'rejected'
       await supabase.from('notifications_log').insert({
-        application_id: applicationId,
+        application_id: appId,
         channel: 'email',
         event_type: 'status_changed',
         recipient: app.real_email,
@@ -419,8 +530,12 @@ export async function updateApplicationStatus(
       })
     })
 
-    revalidatePath(`/admin/applications/${applicationId}`)
+    revalidatePath(`/admin/applications/${appId}`)
     revalidatePath('/admin/applications')
+    if (newStatus === 'accepted') {
+      invalidateAdminStats()
+      revalidatePath('/admin/payments')
+    }
     return { success: true }
   } catch (e) {
     return {
@@ -434,11 +549,14 @@ export async function addAdminNote(
   note: string,
 ): Promise<{ success: true } | { error: string }> {
   try {
-    const session = await requireAdmin()
-    const trimmed = note.trim()
-    if (!trimmed) {
-      return { error: 'Note cannot be empty' }
+    const parsed = addAdminNoteSchema.safeParse({ applicationId, note })
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Invalid note' }
     }
+
+    const session = await requireAdmin()
+    const { applicationId: appId, note: trimmed } = parsed.data
+    const safeNote = sanitizePlainText(trimmed, 2000)
 
     const supabase = createAdminClient()
     const { data: admin, error: adminError } = await supabase
@@ -452,8 +570,8 @@ export async function addAdminNote(
     }
 
     const { error } = await supabase.from('admin_notes').insert({
-      application_id: applicationId,
-      note: trimmed,
+      application_id: appId,
+      note: safeNote,
       created_by: admin.id,
     })
 
@@ -461,7 +579,7 @@ export async function addAdminNote(
       return { error: error.message }
     }
 
-    revalidatePath(`/admin/applications/${applicationId}`)
+    revalidatePath(`/admin/applications/${appId}`)
     return { success: true }
   } catch (e) {
     return {

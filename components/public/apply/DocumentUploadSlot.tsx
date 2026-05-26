@@ -1,11 +1,14 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import FormFieldLabel from '@/components/public/apply/FormFieldLabel'
 import { uploadApplicationDocument, formatFileSize } from '@/lib/apply/upload'
 import type { UploadedFileMeta } from '@/lib/apply/types'
 
 interface DocumentUploadSlotProps {
   label: string
+  required?: boolean
+  fieldError?: string
   subtext?: string
   accept: string
   maxSizeBytes: number
@@ -17,6 +20,8 @@ interface DocumentUploadSlotProps {
 
 export default function DocumentUploadSlot({
   label,
+  required,
+  fieldError,
   subtext,
   accept,
   maxSizeBytes,
@@ -81,7 +86,7 @@ export default function DocumentUploadSlot({
   if (value) {
     return (
       <div className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-medium text-gray-600">{label}</span>
+        <FormFieldLabel required={required}>{label}</FormFieldLabel>
         <div className="flex items-center justify-between gap-3 rounded-[14px] border-2 border-[#2DBFB8] bg-[#EBF9F8] px-4 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <svg className="h-5 w-5 shrink-0 text-[#2DBFB8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,7 +114,7 @@ export default function DocumentUploadSlot({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-medium text-gray-600">{label}</span>
+      <FormFieldLabel required={required}>{label}</FormFieldLabel>
       {subtext && <p className="text-xs text-gray-400">{subtext}</p>}
       <button
         type="button"
@@ -117,7 +122,9 @@ export default function DocumentUploadSlot({
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
-        className="w-full rounded-[14px] border-2 border-dashed border-[#D8D8E8] bg-[#F7F8FC] px-8 py-8 text-center transition-colors hover:border-[#C74A86] hover:bg-[#FDF0F6] disabled:opacity-60"
+        className={`w-full rounded-[14px] border-2 border-dashed bg-[#F7F8FC] px-8 py-8 text-center transition-colors hover:border-[#C74A86] hover:bg-[#FDF0F6] disabled:opacity-60 ${
+          fieldError ? 'border-[#E84A4A]' : 'border-[#D8D8E8]'
+        }`}
       >
         <svg className="mx-auto h-8 w-8 text-[#9898B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -133,6 +140,11 @@ export default function DocumentUploadSlot({
         <p className="mt-1 text-xs text-gray-400">{subtext ?? accept}</p>
       </button>
       <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={onInputChange} />
+      {fieldError && (
+        <p className="text-sm text-[#E84A4A]" role="alert">
+          {fieldError}
+        </p>
+      )}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   )

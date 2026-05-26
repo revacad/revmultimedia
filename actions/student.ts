@@ -5,6 +5,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
 import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
 import { sendAdminNewApplication } from '@/lib/notifications/email'
+import { r2KeySchema } from '@/lib/validations/common'
+import {
+  updateProfilePhotoSchema,
+  uploadStudentDocumentSchema,
+} from '@/lib/validations/student'
 
 async function requireOwnStudent(studentDbId: string) {
   const supabase = await createServerClient()
@@ -31,15 +36,23 @@ async function requireOwnStudent(studentDbId: string) {
 }
 
 export async function getProfilePhotoUrl(r2Key: string): Promise<string | null> {
+  const parsed = r2KeySchema.safeParse(r2Key)
+  if (!parsed.success) return null
+
   const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-  if (!bucket || !r2Key) return null
-  return generatePresignedDownloadUrl(bucket, r2Key, 3600)
+  if (!bucket) return null
+  return generatePresignedDownloadUrl(bucket, parsed.data, 3600)
 }
 
 export async function updateProfilePhoto(
   studentDbId: string,
   r2Key: string,
 ): Promise<{ error?: string; success?: boolean }> {
+  const parsed = updateProfilePhotoSchema.safeParse({ studentDbId, r2Key })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid profile photo details' }
+  }
+
   const auth = await requireOwnStudent(studentDbId)
   if ('error' in auth && auth.error) {
     return { error: auth.error }
@@ -49,7 +62,7 @@ export async function updateProfilePhoto(
   const { error } = await admin
     .from('students')
     .update({
-      profile_photo_r2_key: r2Key,
+      profile_photo_r2_key: parsed.data.r2Key,
       updated_at: new Date().toISOString(),
     })
     .eq('id', studentDbId)
@@ -70,7 +83,14 @@ export async function uploadStudentDocument(data: {
   fileSize: number
   mimeType: string
 }): Promise<{ error?: string; success?: boolean }> {
-  const auth = await requireOwnStudent(data.studentDbId)
+  const parsed = uploadStudentDocumentSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid document details' }
+  }
+
+  const payload = parsed.data
+
+  const auth = await requireOwnStudent(payload.studentDbId)
   if ('error' in auth && auth.error) {
     return { error: auth.error }
   }
@@ -83,13 +103,13 @@ export async function uploadStudentDocument(data: {
     .maybeSingle()
 
   const { error } = await admin.from('documents').insert({
-    student_id: data.studentDbId,
+    student_id: payload.studentDbId,
     application_id: application?.id ?? null,
-    document_type: data.documentType,
-    r2_key: data.r2Key,
-    file_name: data.fileName,
-    file_size_bytes: data.fileSize,
-    mime_type: data.mimeType,
+    document_type: payload.documentType,
+    r2_key: payload.r2Key,
+    file_name: payload.fileName,
+    file_size_bytes: payload.fileSize,
+    mime_type: payload.mimeType,
     uploaded_by: 'student',
   })
 
@@ -101,7 +121,7 @@ export async function uploadStudentDocument(data: {
     await sendAdminNewApplication({
       applicantName: auth.student!.full_name,
       reference: application.reference,
-      course: `New document (${data.documentType})`,
+      course: `New document (${payload.documentType})`,
     }).catch(() => undefined)
 
     await admin.from('notifications_log').insert({

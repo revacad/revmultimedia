@@ -18,9 +18,9 @@ export default async function AdminPaymentsPage() {
       `
       id, reference, type, amount_ghs, discount_ghs, total_ghs,
       due_date, status, payment_method, created_at, updated_at,
+      payment_types(slug, label),
       applications(id, reference, full_name, real_email, country),
-      installments(amount_ghs),
-      admins(full_name)
+      installments(amount_ghs)
     `,
     )
     .order('created_at', { ascending: false })

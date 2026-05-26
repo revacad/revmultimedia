@@ -12,6 +12,9 @@ import {
   generatePresignedUploadUrl,
   getPublicUrl,
 } from "@/lib/r2/presign";
+import { APPLICATION_DOCUMENT_TYPES, sanitizeFileName } from "@/lib/security/files";
+import { applicationUploadLimit } from "@/lib/redis/ratelimit";
+import { getRequestIp, rateLimitOrNull } from "@/lib/security/rate-limit-request";
 
 const objectContextSchema = z.discriminatedUnion("type", [
   z.object({
@@ -36,7 +39,7 @@ const objectContextSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("application_document"),
     draftId: z.string().uuid(),
-    documentType: z.string().min(1),
+    documentType: z.enum(APPLICATION_DOCUMENT_TYPES),
   }),
   z.object({
     type: z.literal("course_thumbnail"),
@@ -179,6 +182,9 @@ async function resolveStudentPublicId(studentDbId: string): Promise<string | nul
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const limited = await rateLimitOrNull(applicationUploadLimit, [getRequestIp(request)]);
+  if (limited) return limited;
+
   let body: z.infer<typeof bodySchema>;
 
   try {
@@ -189,7 +195,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const uploadContext = normalizeUploadContext(body.uploadContext);
-  const { fileName, fileType, fileSize } = body;
+  const fileName = sanitizeFileName(body.fileName);
+  const { fileType, fileSize } = body;
   const isApplicationDraft = uploadContext.type === "application_document";
 
   const validationError = validateFileForContext(uploadContext, fileType, fileSize);
