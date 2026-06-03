@@ -108,9 +108,10 @@ function CreativeTools() {
 
 interface QuotePanelProps {
   quote: Quote
+  fullHeight?: boolean
 }
 
-export function QuotePanel({ quote }: QuotePanelProps) {
+export function QuotePanel({ quote, fullHeight = false }: QuotePanelProps) {
   return (
     <div
       style={{
@@ -119,9 +120,10 @@ export function QuotePanel({ quote }: QuotePanelProps) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '48px',
+        padding: fullHeight ? '40px' : '48px',
         overflow: 'hidden',
-        minHeight: '100vh',
+        minHeight: fullHeight ? undefined : '100vh',
+        height: fullHeight ? '100%' : undefined,
       }}
     >
       <CreativeTools />

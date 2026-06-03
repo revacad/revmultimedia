@@ -7,6 +7,8 @@ interface AuthPageShellProps {
   children: ReactNode
   footerNote?: string
   showBrand?: boolean
+  /** Tighter spacing for viewport-locked login pages. */
+  compact?: boolean
 }
 
 export default function AuthPageShell({
@@ -15,6 +17,7 @@ export default function AuthPageShell({
   children,
   footerNote,
   showBrand = true,
+  compact = false,
 }: AuthPageShellProps) {
   return (
     <>
@@ -49,7 +52,7 @@ export default function AuthPageShell({
         style={{
           backgroundColor: 'white',
           borderRadius: '24px',
-          padding: '40px',
+          padding: compact ? '28px 32px' : '40px',
           boxShadow: '0 4px 20px rgba(26,26,46,0.10)',
           border: '1px solid #EFEFF5',
         }}
@@ -57,7 +60,7 @@ export default function AuthPageShell({
         <h1
           style={{
             fontFamily: 'Clash Display, sans-serif',
-            fontSize: '28px',
+            fontSize: compact ? '26px' : '28px',
             fontWeight: 700,
             color: '#1A1A2E',
             marginBottom: '8px',
@@ -68,9 +71,9 @@ export default function AuthPageShell({
         <p
           style={{
             fontFamily: 'DM Sans, sans-serif',
-            fontSize: '15px',
+            fontSize: compact ? '14px' : '15px',
             color: '#9898B8',
-            marginBottom: '32px',
+            marginBottom: compact ? '24px' : '32px',
           }}
         >
           {subtitle}
@@ -94,7 +97,7 @@ export default function AuthPageShell({
       <p
         style={{
           textAlign: 'center',
-          marginTop: '24px',
+          marginTop: compact ? '16px' : '24px',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '14px',
           color: '#9898B8',

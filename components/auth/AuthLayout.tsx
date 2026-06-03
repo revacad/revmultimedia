@@ -6,7 +6,7 @@ import { QuotePanel } from './QuotePanel'
 interface AuthLayoutProps {
   children: ReactNode
   quote: Quote
-  /** Lock to viewport height with no page scroll (portal login). */
+  /** Lock to viewport height with no page scroll (portal and admin login). */
   viewportLocked?: boolean
 }
 
@@ -26,12 +26,20 @@ export function AuthLayout({ children, quote, viewportLocked = false }: AuthLayo
         style={{
           minHeight: '100vh',
           height: viewportLocked ? '100vh' : undefined,
+          maxHeight: viewportLocked ? '100vh' : undefined,
           overflow: viewportLocked ? 'hidden' : undefined,
           display: 'flex',
         }}
       >
-        <div className="quote-panel-desktop" style={{ width: '55%', flexShrink: 0 }}>
-          <QuotePanel quote={quote} />
+        <div
+          className="quote-panel-desktop"
+          style={{
+            width: '55%',
+            flexShrink: 0,
+            height: viewportLocked ? '100%' : undefined,
+          }}
+        >
+          <QuotePanel quote={quote} fullHeight={viewportLocked} />
         </div>
 
         <div
@@ -42,9 +50,9 @@ export function AuthLayout({ children, quote, viewportLocked = false }: AuthLayo
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: viewportLocked ? '24px 32px' : '48px 32px',
-            minHeight: '100vh',
-            height: viewportLocked ? '100vh' : undefined,
+            padding: viewportLocked ? '20px 24px' : '48px 32px',
+            minHeight: viewportLocked ? undefined : '100vh',
+            height: viewportLocked ? '100%' : undefined,
             overflow: viewportLocked ? 'hidden' : undefined,
           }}
         >

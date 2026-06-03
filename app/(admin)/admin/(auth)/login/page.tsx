@@ -30,8 +30,10 @@ export default async function AdminLoginPage({
       : null
 
   return (
-    <AuthLayout quote={quote}>
+    <AuthLayout quote={quote} viewportLocked>
       <AuthPageShell
+        showBrand={false}
+        compact
         title="Welcome back"
         subtitle="Sign in to manage Rev Multimedia"
         footerNote="Admin access only"
