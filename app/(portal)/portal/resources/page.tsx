@@ -21,7 +21,7 @@ export default async function PortalResourcesPage() {
     .eq('auth_user_id', user.id)
     .single()
 
-  if (!student) redirect('/portal/application')
+  if (!student) redirect('/portal/dashboard')
 
   const { data: resources } = await supabase
     .from('resources')

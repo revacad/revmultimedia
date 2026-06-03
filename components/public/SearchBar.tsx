@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { COURSE_CATEGORIES, getCategoryLabel } from '@/lib/courses/categories'
 
 type CourseResult = {
   id: string
@@ -11,11 +12,9 @@ type CourseResult = {
   tuition_fee_ghs: number
 }
 
-const categoryColors: Record<string, string> = {
-  graphic_design: '#C74A86',
-  motion_graphics: '#F18F3B',
-  video_editing: '#2DBFB8',
-}
+const categoryColors: Record<string, string> = Object.fromEntries(
+  Object.entries(COURSE_CATEGORIES).map(([key, meta]) => [key, meta.color]),
+)
 
 export function SearchBar() {
   const [query, setQuery] = useState('')
@@ -111,7 +110,7 @@ export function SearchBar() {
                       className="mt-1 font-body text-[11px] capitalize"
                       style={{ color: categoryColors[course.category] ?? '#9898B8' }}
                     >
-                      {course.category.replace(/_/g, ' ')}
+                      {getCategoryLabel(course.category)}
                     </div>
                   </div>
                   <div className="font-display text-[13px] font-semibold text-primary">

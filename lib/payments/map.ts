@@ -35,10 +35,14 @@ export function mapPaymentListRow(row: Record<string, unknown>): PaymentListRow 
     due_date: (row.due_date as string | null) ?? null,
     status: row.status as PaymentListRow['status'],
     payment_method: (row.payment_method as string | null) ?? null,
+    paystack_reference: (row.paystack_reference as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
     applications,
-    installments: installments.map((i) => ({ amount_ghs: Number(i.amount_ghs) })),
+    installments: installments.map((i) => ({
+      amount_ghs: Number(i.amount_ghs),
+      paid_at: (i as { paid_at?: string }).paid_at,
+    })),
     admins,
   }
 }

@@ -31,8 +31,13 @@ export const applicationSchema = z.object({
   hybrid_attendance_confirmed: z.boolean().default(false),
 });
 
+export const applicationChannelSchema = z.enum(['standard', 'level_up'])
+
 export const submitApplicationSchema = z.object({
-  website: z.string().max(500).optional(),
+  applicationChannel: applicationChannelSchema.default('standard'),
+  _hp: z.string().max(500).optional(),
+  /** @deprecated Legacy honeypot name; ignore if _hp is empty */
+  fax: z.string().max(500).optional(),
   idempotencyKey: z.string().trim().min(1).max(128),
   email: z
     .string()
@@ -68,13 +73,10 @@ export const submitApplicationSchema = z.object({
   institution: z
     .string()
     .trim()
-    .min(1, "Institution is required")
-    .max(200, "Institution name is too long"),
-  yearCompleted: z.coerce
-    .number()
-    .int()
-    .min(1990)
-    .max(new Date().getFullYear()),
+    .max(200, "Institution name is too long")
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  yearCompleted: z.coerce.number().int().min(1990).max(2100),
   priorExperience: z
     .string()
     .trim()
@@ -84,12 +86,97 @@ export const submitApplicationSchema = z.object({
   courseId: z.uuid("Invalid course"),
   intakeId: z.uuid("Invalid intake"),
   hybridAttendanceConfirmed: z.boolean().default(false),
-  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  password: z.string().max(128).optional(),
   documents: z.object({
     idDocument: uploadedFileSchema,
     passportPhoto: uploadedFileSchema,
     certificates: z.array(uploadedFileSchema).max(3).optional(),
   }),
+  parentGuardianWhatsapp: z.string().trim().max(32).optional(),
+  parentGuardianEmail: z
+    .string()
+    .trim()
+    .max(254)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v))
+    .refine((v) => !v || z.email().safeParse(v).success, 'Invalid parent email'),
+  shsSchoolId: z
+    .union([z.string().uuid(), z.literal('')])
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  shsSchoolNameFreeform: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  parentContactConsent: z.coerce.boolean().optional(),
+}).superRefine((data, ctx) => {
+  const currentYear = new Date().getFullYear()
+
+  if (!data.password || data.password.length < 8) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Password must be at least 8 characters',
+      path: ['password'],
+    })
+  }
+
+  if (data.applicationChannel !== 'level_up') {
+    if (!data.institution?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Institution is required',
+        path: ['institution'],
+      })
+    }
+    if (data.yearCompleted > currentYear) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Year completed cannot be after ${currentYear}`,
+        path: ['yearCompleted'],
+      })
+    }
+    return
+  }
+
+  if (!data.parentGuardianWhatsapp?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Parent/guardian WhatsApp is required',
+      path: ['parentGuardianWhatsapp'],
+    })
+  }
+  if (!data.shsSchoolId && !data.shsSchoolNameFreeform?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Select your senior high school or enter it manually',
+      path: ['shsSchoolId'],
+    })
+  }
+  const institution =
+    data.institution?.trim() || data.shsSchoolNameFreeform?.trim() || ''
+  if (!institution) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Enter your senior high school',
+      path: ['shsSchoolId'],
+    })
+  }
+  if (data.yearCompleted > currentYear + 2) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `Enter a year between 1990 and ${currentYear + 2}`,
+      path: ['yearCompleted'],
+    })
+  }
+  if (!data.parentContactConsent) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Confirm that the parent/guardian agrees to be contacted',
+      path: ['parentContactConsent'],
+    })
+  }
 });
 
 export const updateApplicationStatusSchema = z.object({

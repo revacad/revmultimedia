@@ -1,6 +1,6 @@
 import React from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { AdmissionLetterDocument } from '@/lib/pdf/AdmissionLetterDocument'
+import { createAdmissionLetterDocument } from '@/lib/pdf/AdmissionLetterDocument'
 import { InvoiceDocument } from '@/lib/pdf/InvoiceDocument'
 import { ReceiptDocument } from '@/lib/pdf/ReceiptDocument'
 import {
@@ -59,15 +59,21 @@ export async function generateAndStorePaystackReceiptPdf(
       receiptId: paystackReference.slice(0, 12),
       invoiceReference: invoiceData.reference,
       paymentForLabel: invoiceData.paymentForLabel,
+      courseTitle: invoiceData.courseTitle,
+      intakeName: invoiceData.intakeName,
       studentName: invoiceData.studentName,
+      studentEmail: invoiceData.studentEmail,
       amountPaidGhs: invoiceData.totalGhs,
       totalInvoiceGhs: invoiceData.totalGhs,
       totalPaidGhs: invoiceData.totalGhs,
       remainingGhs: 0,
       paymentMethod: 'paystack',
       transactionRef: paystackReference,
-      paidAt: new Date().toISOString().slice(0, 10),
+      paidAt: invoiceData.issuedDate,
       fullyPaid: true,
+      academyEmail: invoiceData.academyEmail,
+      academyWebsite: invoiceData.academyWebsite,
+      academyPhone: invoiceData.academyPhone,
     }
 
     const buffer = await renderPdfToBuffer(
@@ -110,9 +116,7 @@ export async function generateAndStoreAdmissionLetterPdf(
     const data = await fetchAdmissionLetterPdfData(supabase, applicationId)
     if (!data) return null
 
-    const buffer = await renderPdfToBuffer(
-      React.createElement(AdmissionLetterDocument, { data }),
-    )
+    const buffer = await renderPdfToBuffer(await createAdmissionLetterDocument(data))
     const key = admissionLetterPdfPath(data.applicationReference)
     await uploadBufferToR2(key, buffer, 'application/pdf')
     return key

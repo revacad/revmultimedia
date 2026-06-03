@@ -36,14 +36,38 @@ export function scanFieldValues(values: string[]): string | null {
 
 const GENERIC_ERROR = 'Unable to submit right now. Please try again later.'
 
+/** Treat honeypot as empty when browsers autofill it with the same email or phone. */
+export function normalizeHoneypotValue(
+  honeypot: string | undefined,
+  context: { email?: string; phone?: string },
+): string {
+  const value = honeypot?.trim() ?? ''
+  if (!value) return ''
+
+  const email = context.email?.trim().toLowerCase()
+  if (email && value.toLowerCase() === email) return ''
+
+  const phoneDigits = context.phone?.replace(/\D/g, '') ?? ''
+  const valueDigits = value.replace(/\D/g, '')
+  if (phoneDigits.length >= 6 && valueDigits === phoneDigits) return ''
+
+  return value
+}
+
 export async function guardFormSubmission(input: {
   form: PublicFormId
   ip: string
   email?: string
+  phone?: string
   honeypot?: string
   fieldValues: string[]
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (input.honeypot?.trim()) {
+  const honeypot = normalizeHoneypotValue(input.honeypot, {
+    email: input.email,
+    phone: input.phone,
+  })
+
+  if (honeypot) {
     logAbuseAttempt({
       form: input.form,
       ip: input.ip,

@@ -14,40 +14,44 @@ export function AuthBanner() {
     const supabase = createBrowserClient()
 
     const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setUser(null)
-        return
-      }
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (!session) {
+          setUser(null)
+          return
+        }
 
-      const { data: student } = await supabase
-        .from('students')
-        .select('full_name')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle()
+        const { data: student } = await supabase
+          .from('students')
+          .select('full_name')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle()
 
-      if (student?.full_name) {
-        setUser({
-          firstName: student.full_name.split(' ')[0] ?? 'Student',
-          portalPath: '/portal/dashboard',
-        })
-        return
-      }
+        if (student?.full_name) {
+          setUser({
+            firstName: student.full_name.split(' ')[0] ?? 'Student',
+            portalPath: '/portal/dashboard',
+          })
+          return
+        }
 
-      const { data: application } = await supabase
-        .from('applications')
-        .select('full_name')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle()
+        const { data: application } = await supabase
+          .from('applications')
+          .select('full_name')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle()
 
-      if (application?.full_name) {
-        setUser({
-          firstName: application.full_name.split(' ')[0] ?? 'Applicant',
-          portalPath: '/portal/application',
-        })
-      } else {
+        if (application?.full_name) {
+          setUser({
+            firstName: application.full_name.split(' ')[0] ?? 'Applicant',
+            portalPath: '/portal/application',
+          })
+        } else {
+          setUser(null)
+        }
+      } catch {
         setUser(null)
       }
     }

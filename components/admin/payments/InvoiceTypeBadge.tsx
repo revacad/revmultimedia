@@ -1,5 +1,5 @@
 import type { InvoiceType } from '@/lib/payments/types'
-import { paymentTypeLabelFromSlug } from '@/lib/payments/payment-types'
+import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
 import { cn } from '@/lib/utils'
 
 const TYPE_CLASS: Record<string, string> = {
@@ -23,7 +23,7 @@ export default function InvoiceTypeBadge({
 }) {
   const text =
     label ??
-    (type in TYPE_LABEL ? TYPE_LABEL[type as InvoiceType] : paymentTypeLabelFromSlug(type))
+    (type in TYPE_LABEL ? TYPE_LABEL[type as InvoiceType] : formatInvoiceType(type))
 
   return (
     <span

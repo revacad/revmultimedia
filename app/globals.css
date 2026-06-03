@@ -396,3 +396,23 @@
     transform: translateY(-18px);
   }
 }
+
+/* Remove number input spinners */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.portal-timeline-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.portal-timeline-scroll::-webkit-scrollbar {
+  display: none;
+}

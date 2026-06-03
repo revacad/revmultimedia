@@ -11,7 +11,16 @@ export interface UploadedFileMeta {
   mimeType: string
 }
 
+export type ApplicationChannel = 'standard' | 'level_up'
+
 export interface ApplicationFormData {
+  applicationChannel?: ApplicationChannel
+  parentGuardianWhatsapp?: string
+  parentGuardianEmail?: string
+  shsSchoolId?: string
+  shsSchoolNameFreeform?: string
+  shsSchoolDisplayName?: string
+  parentContactConsent?: boolean
   fullName?: string
   dateOfBirth?: string
   gender?: GenderOption
@@ -38,7 +47,15 @@ export interface ApplicationFormData {
 
 export type ApplyCourse = Pick<
   Course,
-  'id' | 'title' | 'slug' | 'category' | 'mode' | 'tuition_fee_ghs' | 'intakes'
+  | 'id'
+  | 'title'
+  | 'slug'
+  | 'category'
+  | 'mode'
+  | 'tuition_fee_ghs'
+  | 'thumbnail_r2_key'
+  | 'thumbnail_url'
+  | 'intakes'
 >
 
 export function isInternational(country?: string): boolean {

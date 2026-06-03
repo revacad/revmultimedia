@@ -2,32 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const baseLinks = [
-  { href: '/admin', label: 'Dashboard', icon: 'dashboard' },
-  { href: '/admin/applications', label: 'Applications', icon: 'files' },
-  { href: '/admin/students', label: 'Students', icon: 'users' },
-  { href: '/admin/communications', label: 'Communications', icon: 'comms' },
-  { href: '/admin/resources', label: 'Resources', icon: 'folder' },
-  { href: '/admin/reports', label: 'Reports', icon: 'chart' },
-  { href: '/admin/payments', label: 'Payments', icon: 'payments' },
-  { href: '/admin/payment-types', label: 'Payment Types', icon: 'layers' },
-  { href: '/admin/courses', label: 'Courses', icon: 'courses' },
-  { href: '/admin/intakes', label: 'Intakes', icon: 'calendar' },
-  { href: '/admin/promo-codes', label: 'Promo Codes', icon: 'tag' },
-] as const
-
-const superadminLinks = [
-  { href: '/admin/admins', label: 'Admin Users', icon: 'shield' as const },
-  { href: '/admin/audit-log', label: 'Audit Log', icon: 'audit' as const },
-  { href: '/admin/settings', label: 'Settings', icon: 'settings' as const },
-] as const
-
-type NavIconName =
-  | (typeof baseLinks)[number]['icon']
-  | (typeof superadminLinks)[number]['icon']
-  | 'layers'
+import type { AdminRole } from '@/lib/auth/admin'
+import { filterGroupsForRole, type NavIconName } from '@/lib/admin/nav'
+import { useKeyboardShortcutLabel } from '@/lib/hooks/use-keyboard-shortcut-label'
 
 function NavIcon({ name }: { name: NavIconName }) {
   if (name === 'shield') {
@@ -41,6 +20,13 @@ function NavIcon({ name }: { name: NavIconName }) {
     return (
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    )
+  }
+  if (name === 'log') {
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6h16M4 10h16M4 14h10M4 18h6" />
       </svg>
     )
   }
@@ -122,6 +108,13 @@ function NavIcon({ name }: { name: NavIconName }) {
       </svg>
     )
   }
+  if (name === 'compliance') {
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    )
+  }
   return (
     <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -131,15 +124,22 @@ function NavIcon({ name }: { name: NavIconName }) {
 
 interface AdminSidebarProps {
   adminName: string
-  adminRole: string
+  adminRole: AdminRole
+  mobileOpen?: boolean
+  onClose?: () => void
+  onNavigate?: () => void
 }
 
-export default function AdminSidebar({ adminName, adminRole }: AdminSidebarProps) {
+export default function AdminSidebar({
+  adminName,
+  adminRole,
+  mobileOpen = false,
+  onClose,
+  onNavigate,
+}: AdminSidebarProps) {
   const pathname = usePathname()
-  const links = [
-    ...baseLinks,
-    ...(adminRole === 'superadmin' ? superadminLinks : []),
-  ]
+  const groups = filterGroupsForRole(adminRole)
+  const shortcutLabel = useKeyboardShortcutLabel()
 
   function isActive(href: string) {
     if (href === '/admin') return pathname === '/admin'
@@ -147,45 +147,95 @@ export default function AdminSidebar({ adminName, adminRole }: AdminSidebarProps
   }
 
   return (
-    <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r border-white/8 bg-[#1A1A2E] p-6">
-      <Link href="/admin" className="mb-8 block">
-        <span className="font-display text-xl font-bold text-primary">Rev</span>
-        <span className="font-display text-xl font-semibold text-white"> Admin</span>
-      </Link>
-      <nav className="flex-1 space-y-1">
-        {links.map((link) => {
-          const active = isActive(link.href)
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
-                active
-                  ? 'border-l-2 border-primary bg-primary/10 text-white'
-                  : 'text-white/60 hover:bg-white/5 hover:text-white',
-              )}
-            >
-              <NavIcon name={link.icon} />
-              {link.label}
-            </Link>
-          )
-        })}
+    <aside
+      className={cn(
+        'flex min-h-screen w-64 shrink-0 flex-col border-r border-white/8 bg-[#1A1A2E] p-6',
+        'fixed left-0 top-0 bottom-0 z-50 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+      )}
+    >
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <Link href="/admin" className="block min-w-0" onClick={onNavigate}>
+          <span className="font-display text-xl font-bold text-primary">Rev</span>
+          <span className="font-display text-xl font-semibold text-white"> Admin</span>
+        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-white/60"
+            title="Open command palette"
+          >
+            {shortcutLabel}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
+            aria-label="Close navigation menu"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+      </div>
+      <nav className="flex-1 space-y-6 overflow-y-auto">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="mb-2 px-3 font-body text-[10px] font-semibold uppercase tracking-wider text-white/35">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.links.map((link) => {
+                const active = isActive(link.href)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={onNavigate}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      active
+                        ? 'border-l-2 border-primary bg-primary/10 text-white'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white',
+                    )}
+                  >
+                    <NavIcon name={link.icon} />
+                    {link.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
       <div className="mt-6 border-t border-white/10 pt-6">
         <Link
           href="/admin/profile"
+          onClick={onNavigate}
           className={cn(
-            'block rounded-md px-3 py-2 transition-colors',
+            'flex items-center justify-between gap-3 rounded-lg px-3 py-3 transition-colors',
             pathname === '/admin/profile'
-              ? 'bg-primary/10 text-white'
-              : 'text-white/80 hover:bg-white/5 hover:text-white',
+              ? 'bg-primary/15 text-white'
+              : 'bg-white/5 text-white hover:bg-white/10',
           )}
         >
-          <p className="font-body text-sm font-semibold">{adminName}</p>
-          <p className="font-body text-xs capitalize text-white/50">{adminRole}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-body text-sm font-semibold text-white">{adminName}</p>
+            <p className="font-body text-xs capitalize text-white/70">{adminRole}</p>
+          </div>
+          <svg
+            className="h-4 w-4 shrink-0 text-white/70"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </Link>
-        <Link href="/" className="mt-4 block text-sm text-white/45 hover:text-white">
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className="mt-4 block text-sm text-gray-500 transition-colors hover:text-gray-700"
+        >
           Back to public site
         </Link>
       </div>

@@ -7,7 +7,8 @@ import { sendContactForm } from '@/lib/notifications/email'
 import { submitContactFormSchema } from '@/lib/validations/contact'
 
 export async function submitContactForm(data: {
-  website?: string
+  _hp?: string
+  fax?: string
   name: string
   email: string
   phone?: string
@@ -19,7 +20,8 @@ export async function submitContactForm(data: {
     form: 'contact',
     ip,
     email: data.email,
-    honeypot: data.website,
+    honeypot: data._hp ?? data.fax,
+    phone: data.phone,
     fieldValues: [data.name, data.email, data.phone ?? '', data.message],
   })
   if (!guard.ok) return { error: guard.error }
@@ -46,7 +48,9 @@ export async function submitContactForm(data: {
       message,
     })
   } catch (error) {
-    console.error('[contact] send failed', error)
+    console.error('[contact] send failed', {
+      message: error instanceof Error ? error.message : String(error),
+    })
     return { error: 'Failed to send your message. Please try again or email us directly.' }
   }
 

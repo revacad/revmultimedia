@@ -1,14 +1,57 @@
 import CopyButton from '@/components/portal/CopyButton'
+import { hasManualPaymentDetails } from '@/lib/portal/payment-details'
+import { momoPaymentHeading } from '@/lib/settings/momo-provider'
+import { WHATSAPP_SUPPORT_URL } from '@/lib/support/whatsapp'
 
 interface PaymentInstructionsProps {
   settings: Record<string, string>
   invoiceReference: string
 }
 
+function InfoIcon() {
+  return (
+    <svg
+      className="h-5 w-5 shrink-0 text-[#C4701E]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </svg>
+  )
+}
+
 export default function PaymentInstructions({
   settings,
   invoiceReference,
 }: PaymentInstructionsProps) {
+  if (!hasManualPaymentDetails(settings)) {
+    return (
+      <div className="mt-4 rounded-lg border border-[#F5E6C8] bg-[#FFFBF0] p-4">
+        <div className="flex gap-3">
+          <InfoIcon />
+          <div className="min-w-0 text-left">
+            <p className="font-body text-sm leading-relaxed text-[#5A5A7A]">
+              Payment details are not yet configured. Please contact us directly to arrange your
+              payment.
+            </p>
+            <a
+              href={WHATSAPP_SUPPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex font-body text-sm font-semibold text-[#1E9990] hover:underline"
+            >
+              Chat on WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mt-4 rounded-lg border border-[#EFEFF5] bg-[#F8F8FC] p-4">
       <p className="font-body text-sm font-semibold text-[#1A1A2E]">Payment instructions</p>
@@ -25,8 +68,8 @@ export default function PaymentInstructions({
       <div className="mt-4 flex flex-col gap-3 sm:space-y-3">
         {settings.momo_number_1 && (
           <div>
-            <p className="font-body text-xs font-semibold uppercase tracking-wide text-[#9898B8]">
-              Mobile Money
+            <p className="font-body text-sm font-semibold text-[#1A1A2E]">
+              {momoPaymentHeading(settings)}
             </p>
             <p className="font-body text-sm text-[#1A1A2E]">{settings.momo_number_1}</p>
             {settings.momo_name_1 && (

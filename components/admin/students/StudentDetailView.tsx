@@ -17,6 +17,7 @@ import MessageLogPanel, {
   notificationToLogEntry,
 } from '@/components/admin/MessageLogPanel'
 import type { ApplicationStatus } from '@/lib/applications/types'
+import { isApplicationEnrolled } from '@/lib/enrollment/certificate-upload'
 import SendDirectMessageCard from '@/components/admin/students/SendDirectMessageCard'
 
 export type NotificationLogRow = {
@@ -56,6 +57,8 @@ export type AdminStudentDetail = {
   enrollments: {
     id: string
     status: string
+    application_id: string
+    applications: { enrolled_at: string | null } | null
     courses: { id: string; title: string; slug: string; category: CourseCategory } | null
     intakes: { name: string; start_date: string; end_date: string } | null
   }[]
@@ -102,7 +105,13 @@ const ENROLLMENT_LABELS: Record<string, string> = {
   withdrawn: 'Withdrawn',
 }
 
-export default function StudentDetailView({ student }: { student: AdminStudentDetail }) {
+export default function StudentDetailView({
+  student,
+  profilePhotoUrl = null,
+}: {
+  student: AdminStudentDetail
+  profilePhotoUrl?: string | null
+}) {
   const certByEnrollment = new Map(
     student.certificates.map((c) => [c.enrollment_id, c]),
   )
@@ -131,10 +140,7 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
         <div>
           <section className="mb-6 flex items-center gap-4 rounded-xl bg-white p-6 shadow-card">
-            <AdminStudentAvatar
-              fullName={student.full_name}
-              photoKey={student.profile_photo_r2_key}
-            />
+            <AdminStudentAvatar fullName={student.full_name} photoUrl={profilePhotoUrl} />
             <div className="min-w-0 flex-1">
               <p className="font-mono text-lg font-semibold text-primary">{student.student_id}</p>
               <h1 className="font-display text-[22px] font-semibold text-[#1A1A2E]">
@@ -154,7 +160,7 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
             </h2>
             <p className="mb-4 font-body text-sm text-[#9898B8]">
               All courses this person has applied for. Enrolled means tuition was paid (in part
-              or full) and the admission letter PDF was sent.
+              or full) and the enrollment letter PDF was sent.
             </p>
             {student.allApplications.length === 0 ? (
               <p className="font-body text-sm text-[#9898B8]">No programme history.</p>
@@ -207,6 +213,10 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
                 const course = enrollment.courses
                 const intake = enrollment.intakes
                 const cert = certByEnrollment.get(enrollment.id)
+                const enrolledAt = Array.isArray(enrollment.applications)
+                  ? enrollment.applications[0]?.enrolled_at
+                  : enrollment.applications?.enrolled_at
+                const canUploadCertificate = isApplicationEnrolled(enrolledAt)
 
                 return (
                   <article
@@ -245,6 +255,7 @@ export default function StudentDetailView({ student }: { student: AdminStudentDe
                         enrollmentId={enrollment.id}
                         courseId={course.id}
                         courseSlug={course.slug}
+                        canUpload={canUploadCertificate}
                         existing={
                           cert
                             ? {

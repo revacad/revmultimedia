@@ -43,7 +43,7 @@ export default function AdminUsersPageClient({
   const [showInvite, setShowInvite] = useState(false)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'admin' | 'superadmin'>('admin')
+  const [role, setRole] = useState<'admin' | 'superadmin' | 'accounts'>('admin')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
@@ -135,10 +135,13 @@ export default function AdminUsersPageClient({
               <select
                 id="invite-role"
                 value={role}
-                onChange={(e) => setRole(e.target.value as 'admin' | 'superadmin')}
+                onChange={(e) =>
+                  setRole(e.target.value as 'admin' | 'superadmin' | 'accounts')
+                }
                 className={adminFieldClassName}
               >
                 <option value="admin">Admin</option>
+                <option value="accounts">Accounts</option>
                 <option value="superadmin">Superadmin</option>
               </select>
             </div>

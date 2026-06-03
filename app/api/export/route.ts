@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { apiErrorResponse } from '@/lib/errors/api'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logAuditEvent } from '@/lib/audit/log'
@@ -80,10 +81,6 @@ export async function POST(request: NextRequest) {
       exportedAt: exportData.exportedAt,
     })
   } catch (error) {
-    console.error('Export failed:', error)
-    return NextResponse.json(
-      { error: 'Export failed', details: String(error) },
-      { status: 500 },
-    )
+    return apiErrorResponse('export', error)
   }
 }

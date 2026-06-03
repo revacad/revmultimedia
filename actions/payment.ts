@@ -2,16 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireFinanceAccess } from '@/lib/auth/admin'
 import { generateAndStoreInvoicePdf } from '@/lib/pdf/generate'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import { r2DocumentAbsoluteUrl } from '@/lib/r2/document-url'
 import {
   sendPaymentConfirmed,
   sendAppFeeInvoice,
   sendInvoiceReadyEmail,
 } from '@/lib/notifications/email'
 import { sendPaymentReceiptNotification } from '@/lib/notifications/payment-receipt'
-import { paymentTypeLabelFromSlug } from '@/lib/payments/payment-types'
+import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
+import { getMomoProviderName } from '@/lib/settings/momo-provider'
 import { sendMessage } from '@/lib/notifications/sms'
 import { invalidateAdminStats } from '@/lib/redis/invalidate'
 import { runAfterResponse } from '@/lib/background'
@@ -28,6 +29,7 @@ import {
   resendInvoiceEmailSchema,
   waiveInvoiceSchema,
 } from '@/lib/validations/payment'
+import { safeActionError } from '@/lib/errors/action'
 
 export async function confirmPayment(data: {
   invoiceId: string
@@ -48,7 +50,7 @@ export async function confirmPayment(data: {
       }
     }
 
-    const session = await requireAdmin()
+    const session = await requireFinanceAccess()
     const supabase = createAdminClient()
     const payload = parsed.data
 
@@ -132,7 +134,7 @@ export async function confirmPayment(data: {
       .single()
 
     if (installmentError || !installment) {
-      return { error: installmentError?.message ?? 'Failed to record payment' }
+      return safeActionError('payment.confirm', installmentError, 'Failed to record payment.')
     }
 
     const totalPaid = roundGhs(
@@ -173,7 +175,10 @@ export async function confirmPayment(data: {
         })
 
         if (error) {
-          console.error('confirm_full_payment error:', error)
+          console.error('confirm_full_payment error:', {
+            message: error.message,
+            code: error.code,
+          })
           await supabase.from('installments').delete().eq('id', installment.id)
           return { error: 'Failed to confirm full payment' }
         }
@@ -218,10 +223,17 @@ export async function confirmPayment(data: {
       }
 
       await logAuditEvent({
-        adminId: admin.id,
-        action: 'payment.confirmed',
-        entityType: 'invoice',
-        entityId: payload.invoiceId,
+        actorId: admin.id,
+        actorType: 'admin',
+        action: 'payment_confirmed',
+        targetType: 'invoice',
+        targetId: payload.invoiceId,
+        metadata: {
+          amount: payload.amountGhs,
+          method: payload.paymentMethod,
+          studentId,
+          invoiceType: invoice.type,
+        },
         newValue: {
           amount: payload.amountGhs,
           method: payload.paymentMethod,
@@ -306,9 +318,7 @@ export async function confirmPayment(data: {
     revalidatePath('/admin/payments')
     return { success: true, fullyPaid: false }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to confirm payment',
-    }
+    return safeActionError('payment.confirm', e, 'Failed to confirm payment.')
   }
 }
 
@@ -323,7 +333,7 @@ export async function waiveInvoice(
       }
     }
 
-    await requireAdmin()
+    await requireFinanceAccess()
     const supabase = createAdminClient()
 
     const { error } = await supabase
@@ -332,7 +342,7 @@ export async function waiveInvoice(
       .eq('id', parsed.data.invoiceId)
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('payment.waive', error, 'Failed to waive invoice.')
     }
 
     invalidateAdminStats()
@@ -340,9 +350,7 @@ export async function waiveInvoice(
     revalidatePath('/admin/payments')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to waive invoice',
-    }
+    return safeActionError('payment.waive', e, 'Failed to waive invoice.')
   }
 }
 
@@ -355,7 +363,7 @@ export async function resendInvoiceEmail(
       return { error: parsed.error.issues[0]?.message ?? 'Invalid invoice id' }
     }
 
-    const session = await requireAdmin()
+    const session = await requireFinanceAccess()
     const supabase = createAdminClient()
 
     const { data: admin } = await supabase
@@ -391,11 +399,7 @@ export async function resendInvoiceEmail(
     )
 
     const pdfKey = await generateAndStoreInvoicePdf(parsed.data.invoiceId)
-    let pdfUrl = ''
-    const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-    if (pdfKey && bucket) {
-      pdfUrl = await generatePresignedDownloadUrl(bucket, pdfKey, 86400)
-    }
+    const pdfUrl = pdfKey ? r2DocumentAbsoluteUrl(pdfKey) : ''
 
     if (invoice.type === 'application_fee') {
       await sendAppFeeInvoice(application.real_email, {
@@ -410,8 +414,9 @@ export async function resendInvoiceEmail(
         reference: invoice.reference,
         amountGhs: Number(invoice.total_ghs),
         dueDate: invoice.due_date ?? '',
-        invoiceLabel: paymentLabel ?? paymentTypeLabelFromSlug(invoice.type),
+        invoiceLabel: formatInvoiceType(invoice.type, paymentLabel),
         isInternational: application.country !== 'Ghana',
+        momoProvider: getMomoProviderName(settingsMap),
         momoNumber: settingsMap.momo_number_1 || undefined,
         momoName: settingsMap.momo_name_1 || undefined,
         bankName: settingsMap.bank_name || undefined,
@@ -434,8 +439,6 @@ export async function resendInvoiceEmail(
 
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to resend email',
-    }
+    return safeActionError('payment.resendEmail', e, 'Failed to resend invoice email.')
   }
 }

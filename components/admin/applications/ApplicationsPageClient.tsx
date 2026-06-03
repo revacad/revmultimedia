@@ -14,10 +14,12 @@ import { cn } from '@/lib/utils'
 
 interface ApplicationsPageClientProps {
   applications: ApplicationListRow[]
+  fetchError?: string | null
 }
 
 export default function ApplicationsPageClient({
   applications,
+  fetchError = null,
 }: ApplicationsPageClientProps) {
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all')
   const [search, setSearch] = useState('')
@@ -103,7 +105,8 @@ export default function ApplicationsPageClient({
 
       <StateWrapper
         loading={false}
-        empty={filtered.length === 0}
+        error={fetchError}
+        empty={!fetchError && filtered.length === 0}
         emptyTitle={
           applications.length === 0 ? 'No applications yet' : 'No matching applications'
         }
@@ -119,8 +122,8 @@ export default function ApplicationsPageClient({
               <thead>
                 <tr className="border-b border-[#EFEFF5] bg-[#F7F8FC]">
                   {[
-                    'Reference',
                     'Applicant',
+                    'Student ID',
                     'Course',
                     'Intake',
                     'Country',
@@ -144,14 +147,20 @@ export default function ApplicationsPageClient({
                     key={app.id}
                     className="border-b border-[#EFEFF5] transition-colors hover:bg-[#FAFAFA]"
                   >
-                    <td className="px-4 py-4 font-mono text-[13px] text-[#C74A86]">
-                      {app.reference}
-                    </td>
                     <td className="px-4 py-4">
                       <p className="font-body text-sm font-semibold text-[#1A1A2E]">
                         {app.full_name}
                       </p>
-                      <p className="font-body text-[13px] text-[#9898B8]">{app.real_email}</p>
+                      <p className="font-body text-[13px] text-[#9898B8]">{app.reference}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      {app.student_id ? (
+                        <span className="font-mono text-[13px] text-[#1A1A2E]">
+                          {app.student_id}
+                        </span>
+                      ) : (
+                        <span className="font-body text-[13px] text-[#9898B8]">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-4">
                       <p className="font-body text-sm text-[#1A1A2E]">

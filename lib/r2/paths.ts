@@ -44,12 +44,21 @@ export function courseThumbnailPathByUuid(uuid: string, ext: string): string {
   return `courses/thumbnails/${uuid}.${ext}`;
 }
 
+/** Course-scoped thumbnail (admin edit page). */
+export function courseThumbnailPathForCourse(courseId: string, ext: string): string {
+  return `courses/${courseId}/thumbnail.${ext}`;
+}
+
 export function teamPhotoPath(memberSlug: string, ext: string): string {
   return `team/${memberSlug}/photo.${ext}`;
 }
 
 export function courseContentPath(courseId: string, uuid: string, ext: string): string {
   return `courses/${courseId}/content/${uuid}.${ext}`;
+}
+
+export function courseInstructorPhotoPath(courseId: string, uuid: string, ext: string): string {
+  return `courses/${courseId}/instructor-photo/${uuid}.${ext}`;
 }
 
 export function resourcePath(adminId: string, uuid: string, ext: string): string {

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
 import type { InvoiceType } from '@/lib/payments/types'
 
 export type PaymentTypeRow = {
@@ -33,7 +34,7 @@ export function paymentTypeLabelFromSlug(slug: string): string {
   if (slug in FALLBACK_LABELS) {
     return FALLBACK_LABELS[slug as InvoiceType]
   }
-  return slug.replace(/_/g, ' ')
+  return formatInvoiceType(slug)
 }
 
 export async function listAllPaymentTypes(

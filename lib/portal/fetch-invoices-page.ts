@@ -3,6 +3,7 @@ import { buildReceiptLinksFromPortalInvoice } from '@/lib/portal/invoice-receipt
 import type { PortalReceiptLink } from '@/lib/portal/invoice-receipts'
 import { fetchPortalInvoicesForUser, type PortalInvoiceRow } from '@/lib/portal/invoices'
 import { getPaymentSettings } from '@/lib/portal/settings'
+import { supabaseErrorMessage } from '@/lib/errors/query'
 
 export type PortalInvoicesPageData = {
   profile: { country: string; real_email: string } | null
@@ -13,6 +14,7 @@ export type PortalInvoicesPageData = {
   settings: Record<string, string>
   country: string
   payerEmail: string
+  fetchError: string | null
 }
 
 export async function fetchPortalInvoicesPageData(
@@ -32,6 +34,10 @@ export async function fetchPortalInvoicesPageData(
     getPaymentSettings(),
   ])
 
+  const profileError = profileRes.error
+    ? supabaseErrorMessage(profileRes.error, 'portal/invoices/profile')
+    : null
+
   const profile = profileRes.data
   const invoicesWithReceipts = invoices.map((invoice) => ({
     invoice,
@@ -44,5 +50,6 @@ export async function fetchPortalInvoicesPageData(
     settings,
     country: profile?.country ?? 'Ghana',
     payerEmail: profile?.real_email ?? userEmail ?? '',
+    fetchError: profileError,
   }
 }

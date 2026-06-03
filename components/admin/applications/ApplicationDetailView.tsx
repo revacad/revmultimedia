@@ -5,6 +5,7 @@ import ReferenceCode from '@/components/ui/ReferenceCode'
 import ApplicationStatusBadge from '@/components/admin/applications/ApplicationStatusBadge'
 import AdminNotesSection from '@/components/admin/applications/AdminNotesSection'
 import StatusActionButtons from '@/components/admin/applications/StatusActionButtons'
+import WaitlistActions from '@/components/admin/applications/WaitlistActions'
 import SendAdmissionLetterCard from '@/components/admin/applications/SendAdmissionLetterCard'
 import ViewDocumentButton from '@/components/admin/applications/ViewDocumentButton'
 import {
@@ -18,12 +19,15 @@ import {
 } from '@/lib/applications/format'
 import type { ApplicationDetail } from '@/lib/applications/types'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
+import CopyableReference from '@/components/ui/CopyableReference'
+import InvoicePaymentSummary from '@/components/admin/payments/InvoicePaymentSummary'
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
 import { formatGHS } from '@/lib/utils'
 
 interface ApplicationDetailViewProps {
   application: ApplicationDetail
   hasStudentRecord?: boolean
+  profilePhotoUrl?: string | null
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -60,6 +64,7 @@ function Card({
 export default function ApplicationDetailView({
   application,
   hasStudentRecord = false,
+  profilePhotoUrl = null,
 }: ApplicationDetailViewProps) {
   const course = application.courses
   const intake = application.intakes
@@ -73,6 +78,7 @@ export default function ApplicationDetailView({
   const tuitionInvoice = (application.invoices ?? []).find((inv) => inv.type === 'tuition')
   const otherInvoices = (application.invoices ?? []).filter((inv) => inv.type !== 'application_fee')
   const canCreateInvoice = application.status === 'accepted'
+  const isWaitlisted = application.status === 'waitlisted'
   const regionCity = [application.state_region, application.city].filter(Boolean).join(', ')
 
   return (
@@ -87,14 +93,23 @@ export default function ApplicationDetailView({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
         <div>
           <section className="mb-6 flex items-center gap-4 rounded-xl bg-white p-6 shadow-card">
-            <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white"
-              style={{ background: 'linear-gradient(135deg, #C74A86, #F18F3B)' }}
-            >
-              <span className="font-body text-xl font-bold">
-                {getInitials(application.full_name)}
-              </span>
-            </div>
+            {profilePhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profilePhotoUrl}
+                alt=""
+                className="h-14 w-14 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white"
+                style={{ background: 'linear-gradient(135deg, #C74A86, #F18F3B)' }}
+              >
+                <span className="font-body text-xl font-bold">
+                  {getInitials(application.full_name)}
+                </span>
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-[22px] font-semibold text-[#1A1A2E]">
                 {application.full_name}
@@ -106,6 +121,35 @@ export default function ApplicationDetailView({
             </div>
             <ApplicationStatusBadge status={application.status} className="ml-auto shrink-0" />
           </section>
+
+          {(application.application_channel ?? 'standard') === 'level_up' && (
+            <Card title="Senior High School (SHS) Level Up">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <DetailField
+                  label="Senior high school"
+                  value={
+                    application.senior_high_schools?.name ??
+                    application.shs_school_name_freeform ??
+                    '—'
+                  }
+                />
+                {application.senior_high_schools?.region && (
+                  <DetailField
+                    label="School region"
+                    value={application.senior_high_schools.region}
+                  />
+                )}
+                <DetailField
+                  label="Parent / guardian WhatsApp"
+                  value={application.parent_guardian_whatsapp ?? '—'}
+                />
+                <DetailField
+                  label="Parent / guardian email"
+                  value={application.parent_guardian_email?.trim() || '—'}
+                />
+              </div>
+            </Card>
+          )}
 
           <Card title="Personal Information">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -229,11 +273,27 @@ export default function ApplicationDetailView({
             <p className="mb-3 mt-6 font-body text-[13px] font-semibold text-[#5A5A7A]">
               Change Status
             </p>
-            <StatusActionButtons
-              applicationId={application.id}
-              appFeePaid={application.app_fee_paid}
-            />
+            {isWaitlisted ? (
+              <p className="font-body text-xs text-[#9898B8]">
+                Use the waitlist actions below to notify this student or move them to active.
+              </p>
+            ) : (
+              <StatusActionButtons
+                applicationId={application.id}
+                appFeePaid={application.app_fee_paid}
+                currentStatus={application.status}
+                isEnrolled={Boolean(application.enrolled_at)}
+              />
+            )}
           </section>
+
+          {isWaitlisted && (
+            <WaitlistActions
+              applicationId={application.id}
+              waitlistPosition={application.waitlist_position}
+              waitlistNotifiedAt={application.waitlist_notified_at}
+            />
+          )}
 
           <section className="rounded-xl bg-white p-6 shadow-card">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -253,19 +313,15 @@ export default function ApplicationDetailView({
                 <p className="font-body text-xs font-semibold uppercase text-[#9898B8]">
                   Application fee
                 </p>
-                <p className="mt-1 font-mono text-[13px] text-[#C74A86]">{appFeeInvoice.reference}</p>
-                <p className="font-body text-sm text-[#1A1A2E]">
-                  {formatGHS(Number(appFeeInvoice.total_ghs))}
-                </p>
-                <span
-                  className={
-                    appFeeInvoice.status === 'paid'
-                      ? 'mt-2 inline-flex rounded-full bg-[#EBF9F8] px-3 py-1 font-body text-xs font-semibold text-[#1E9990]'
-                      : 'mt-2 inline-flex rounded-full bg-[#FDECEC] px-3 py-1 font-body text-xs font-semibold text-[#E84A4A]'
-                  }
-                >
-                  {appFeeInvoice.status === 'paid' ? 'Paid' : 'Unpaid'}
-                </span>
+                <CopyableReference reference={appFeeInvoice.reference} monoClassName="text-[13px]" />
+                <InvoicePaymentSummary
+                  totalGhs={Number(appFeeInvoice.total_ghs)}
+                  status={appFeeInvoice.status}
+                  paymentMethod={appFeeInvoice.payment_method}
+                  paystackReference={appFeeInvoice.paystack_reference}
+                  installments={appFeeInvoice.installments}
+                  compact
+                />
               </div>
             )}
 
@@ -287,10 +343,17 @@ export default function ApplicationDetailView({
                         type={inv.type}
                         label={inv.payment_type_label}
                       />
-                      <p className="mt-1 font-mono text-[13px] text-[#C74A86]">{inv.reference}</p>
-                      <p className="font-body text-sm text-[#1A1A2E]">
-                        {formatGHS(Number(inv.total_ghs))} · {inv.status.replace('_', ' ')}
-                      </p>
+                      <CopyableReference reference={inv.reference} monoClassName="text-[13px]" />
+                      <div className="mt-1">
+                        <InvoicePaymentSummary
+                          totalGhs={Number(inv.total_ghs)}
+                          status={inv.status}
+                          paymentMethod={inv.payment_method}
+                          paystackReference={inv.paystack_reference}
+                          installments={inv.installments}
+                          compact
+                        />
+                      </div>
                     </div>
                     <Link
                       href={`/admin/payments/${inv.id}`}
@@ -337,7 +400,9 @@ export default function ApplicationDetailView({
             </p>
             <p className="mt-2 font-body text-sm text-[#5A5A7A]">
               <span className="text-[#9898B8]">App fee:</span>{' '}
-              {application.app_fee_paid ? (
+              {isWaitlisted ? (
+                <span className="font-semibold text-[#9898B8]">Not required (waitlist)</span>
+              ) : application.app_fee_paid ? (
                 <span className="font-semibold text-[#1E9990]">Paid</span>
               ) : (
                 <span className="font-semibold text-[#E84A4A]">Unpaid</span>

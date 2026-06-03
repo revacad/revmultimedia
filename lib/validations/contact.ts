@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 export const submitContactFormSchema = z.object({
-  website: z.string().max(500).optional(),
+  _hp: z.string().max(500).optional(),
+  fax: z.string().max(500).optional(),
   name: z
     .string()
     .trim()

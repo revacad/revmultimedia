@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import { sendCertificateUploaded } from '@/lib/notifications/email'
-import { sendMessage } from '@/lib/notifications/sms'
+import { deliverWhatsAppThenSms, logNotification } from '@/lib/notifications/log-delivery'
+import { assertCanUploadCertificate } from '@/lib/enrollment/certificate-upload'
 import { uploadCertificateSchema } from '@/lib/validations/certificate'
+import { safeActionError } from '@/lib/errors/action'
 
 export async function uploadCertificate(data: {
   studentId: string
@@ -19,7 +21,7 @@ export async function uploadCertificate(data: {
     return { error: parsed.error.issues[0]?.message ?? 'Invalid certificate details' }
   }
 
-  const session = await requireAdmin().catch(() => null)
+  const session = await requireStaffAdmin().catch(() => null)
   if (!session) {
     return { error: 'Not an admin' }
   }
@@ -35,6 +37,11 @@ export async function uploadCertificate(data: {
 
   if (!admin) {
     return { error: 'Not an admin' }
+  }
+
+  const enrollmentCheck = await assertCanUploadCertificate(supabase, payload.enrollmentId)
+  if (!enrollmentCheck.ok) {
+    return { error: enrollmentCheck.error }
   }
 
   const { data: existing } = await supabase
@@ -55,7 +62,7 @@ export async function uploadCertificate(data: {
       .eq('id', existing.id)
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('certificate.upload', error, 'Failed to upload certificate.')
     }
   } else {
     const { error } = await supabase.from('certificates').insert({
@@ -68,7 +75,7 @@ export async function uploadCertificate(data: {
     })
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('certificate.upload', error, 'Failed to upload certificate.')
     }
   }
 
@@ -87,51 +94,37 @@ export async function uploadCertificate(data: {
   if (student && course) {
     const smsBody = `Rev Multimedia: Your ${course.title} certificate is ready. Log in to download it.`
 
-    await sendCertificateUploaded(student.real_email, {
-      name: student.full_name,
-      courseName: course.title,
-    }).catch(() => undefined)
-
-    let channel: 'whatsapp' | 'sms' = 'whatsapp'
-    let logStatus: 'sent' | 'failed' | 'skipped' = 'sent'
-    let providerResponse: Record<string, string> | null = null
-
-    const waResult = await sendMessage(student.phone, smsBody, 'whatsapp')
-
-    if (waResult.sent) {
-      logStatus = 'sent'
-    } else {
-      const smsResult = await sendMessage(student.phone, smsBody, 'sms')
-      channel = 'sms'
-
-      if (smsResult.sent) {
-        logStatus = 'sent'
-        providerResponse = waResult.skipped
-          ? {
-              note: 'Delivered via SMS because WhatsApp is not configured',
-            }
-          : { note: 'Delivered via SMS after WhatsApp failed' }
-      } else if (smsResult.skipped) {
-        logStatus = 'skipped'
-        providerResponse = {
-          message:
-            'WhatsApp and SMS not configured. Set Sent.dm API key and WhatsApp template ID under Admin → Settings → Messaging, or configure Fish Africa for SMS.',
-        }
-      } else {
-        logStatus = 'failed'
-        providerResponse = {
-          error: smsResult.error ?? waResult.error ?? 'Message delivery failed',
-        }
-      }
+    try {
+      await sendCertificateUploaded(student.real_email, {
+        name: student.full_name,
+        courseName: course.title,
+      })
+      await logNotification(supabase, {
+        studentId: payload.studentId,
+        channel: 'email',
+        eventType: 'certificate_uploaded',
+        recipient: student.real_email,
+        status: 'sent',
+      })
+    } catch (err) {
+      await logNotification(supabase, {
+        studentId: payload.studentId,
+        channel: 'email',
+        eventType: 'certificate_uploaded',
+        recipient: student.real_email,
+        status: 'failed',
+        providerResponse: {
+          error: err instanceof Error ? err.message : 'Certificate email failed',
+        },
+      })
     }
 
-    await supabase.from('notifications_log').insert({
-      student_id: payload.studentId,
-      channel,
-      event_type: 'certificate_uploaded',
-      recipient: student.phone,
-      status: logStatus,
-      provider_response: providerResponse,
+    await deliverWhatsAppThenSms({
+      phone: student.phone,
+      message: smsBody,
+      studentId: payload.studentId,
+      eventType: 'certificate_uploaded',
+      supabase,
     })
   }
 

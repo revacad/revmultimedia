@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Student ID format (e.g. REV2026000001). */
+/** Student ID format (e.g. REV2026000001 — REV + year + 6-digit sequence). */
 export const STUDENT_ID_RE = /^REV\d{10}$/i;
 
 /** Application reference (e.g. REVAPP202600001). */

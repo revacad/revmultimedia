@@ -1,4 +1,5 @@
 import CopyButton from '@/components/portal/CopyButton'
+import { momoPaymentHeading } from '@/lib/settings/momo-provider'
 
 interface PortalInvoicePaymentCardProps {
   settings: Record<string, string>
@@ -15,7 +16,9 @@ export default function PortalInvoicePaymentCard({
     <div className="mt-4 rounded-lg bg-[#F7F8FC] p-5">
       {settings.momo_number_1 && (
         <section className="mb-4">
-          <h3 className="font-body text-sm font-semibold text-[#1A1A2E]">Pay via MoMo</h3>
+          <h3 className="font-body text-sm font-semibold text-[#1A1A2E]">
+            {momoPaymentHeading(settings)}
+          </h3>
           <p className="mt-2 font-body text-sm text-[#1A1A2E]">{settings.momo_number_1}</p>
           {settings.momo_name_1 && (
             <p className="font-body text-xs text-[#5A5A7A]">{settings.momo_name_1}</p>

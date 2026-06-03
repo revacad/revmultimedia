@@ -5,10 +5,12 @@ import Link from 'next/link'
 import { formatMode } from '@/lib/courses/labels'
 import { buttonVariants } from '@/components/ui/Button'
 import { formatCategory } from '@/lib/courses/labels'
-import { getCourseThumbnailSrc } from '@/lib/courses/thumbnail'
+import { getCourseThumbnailSrc, isCourseThumbnailRemoteSrc } from '@/lib/courses/thumbnail'
 import { getSlotIndicator } from '@/lib/courses/slots'
 import type { Course } from '@/lib/courses/types'
 import { formatCourseDuration } from '@/lib/courses/duration'
+import CourseAlumniAvatars from '@/components/public/courses/CourseAlumniAvatars'
+import CourseInstructorPill from '@/components/public/courses/CourseInstructorPill'
 import { cn, formatGHS } from '@/lib/utils'
 
 interface CourseCardProps {
@@ -38,15 +40,24 @@ export default function CourseCard({
       )}
     >
       <div className="relative h-[220px] overflow-hidden">
-        <Image
-          src={thumbnailSrc}
-          alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
-          fill
-          priority={priority}
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          style={{ objectFit: 'cover' }}
-        />
+        {isCourseThumbnailRemoteSrc(thumbnailSrc) ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumbnailSrc}
+            alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Image
+            src={thumbnailSrc}
+            alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
+            fill
+            priority={priority}
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            style={{ objectFit: 'cover' }}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-dark/40 to-transparent" />
 
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
@@ -58,19 +69,13 @@ export default function CourseCard({
           </span>
         </div>
 
-        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 backdrop-blur-sm">
-          <div className="relative h-6 w-6 overflow-hidden rounded-full">
-            <Image
-              src="/members/person4.webp"
-              alt="Godfred Ferdinand Appiah, Lead Instructor at Rev Multimedia"
-              width={24}
-              height={24}
-              sizes="24px"
-              className="object-cover"
-            />
-          </div>
-          <span className="text-xs font-semibold text-dark">Godfred F.</span>
-        </div>
+        <CourseInstructorPill course={course} compact className="absolute bottom-3 left-3" />
+
+        <CourseAlumniAvatars
+          slug={course.slug}
+          size="sm"
+          className="absolute bottom-3 right-3 items-end"
+        />
 
         <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-dark/70 px-3 py-1 text-xs text-white">
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

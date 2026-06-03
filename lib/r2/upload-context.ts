@@ -1,8 +1,11 @@
 import { randomUUID } from "crypto";
+import { safeExtensionFromFileName } from "@/lib/security/safe-filename";
 import {
   certificatePath,
   courseContentPath,
+  courseInstructorPhotoPath,
   courseThumbnailPathByUuid,
+  courseThumbnailPathForCourse,
   documentPath,
   profilePhotoPath,
   resourcePath,
@@ -36,8 +39,9 @@ export type UploadContext =
       documentType: string;
       ext: string;
     }
-  | { type: "course_thumbnail"; ext: string }
+  | { type: "course_thumbnail"; ext: string; courseId?: string }
   | { type: "course_content"; courseId: string; ext: string }
+  | { type: "course_instructor_photo"; courseId: string; ext: string }
   | { type: "resource"; adminId: string; ext: string }
   | { type: "team_photo"; memberSlug: string; ext: string };
 
@@ -96,14 +100,25 @@ export function buildR2KeyFromUploadContext(context: UploadContext): {
         bucket: "private",
       };
     case "course_thumbnail":
+      if (context.courseId) {
+        return {
+          key: courseThumbnailPathForCourse(context.courseId, context.ext),
+          bucket: "private",
+        };
+      }
       return {
         key: courseThumbnailPathByUuid(randomUUID(), context.ext),
-        bucket: "public",
+        bucket: "private",
       };
     case "course_content":
       return {
         key: courseContentPath(context.courseId, randomUUID(), context.ext),
         bucket: "public",
+      };
+    case "course_instructor_photo":
+      return {
+        key: courseInstructorPhotoPath(context.courseId, randomUUID(), context.ext),
+        bucket: "private",
       };
     case "resource":
       return {
@@ -123,9 +138,9 @@ export function buildR2KeyFromUploadContext(context: UploadContext): {
 }
 
 export function extensionFromFileName(fileName: string): string {
-  const parts = fileName.split(".");
-  if (parts.length < 2) {
+  try {
+    return safeExtensionFromFileName(fileName);
+  } catch {
     return "bin";
   }
-  return parts[parts.length - 1]!.toLowerCase();
 }

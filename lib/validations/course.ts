@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { isVideoIntroUrl } from "@/lib/courses/curriculum";
 
+const courseCategorySchema = z.enum([
+  "design",
+  "video_motion",
+  "technology",
+  "marketing",
+]);
+
 export const courseSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120, "Title is too long"),
   slug: z
@@ -9,7 +16,7 @@ export const courseSchema = z.object({
     .min(1, "Slug is required")
     .max(80, "Slug is too long")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens"),
-  category: z.enum(["graphic_design", "motion_graphics", "video_editing"]),
+  category: courseCategorySchema,
   description: z
     .string()
     .trim()
@@ -62,6 +69,13 @@ export const intakeSchema = z.object({
     .positive()
     .max(10_000)
     .optional(),
+});
+
+export const intakeInputSchema = intakeSchema.omit({ course_id: true });
+
+export const createIntakesForCoursesSchema = z.object({
+  courseIds: z.array(z.uuid("Invalid course id")).min(1, "Select at least one course"),
+  intake: intakeInputSchema,
 });
 
 export const coursePublishSchema = z.object({

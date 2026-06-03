@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { withCache } from "@/lib/redis/cache";
 import type { Course, Intake } from "@/lib/courses/types";
 import { weeksBetweenDates } from "@/lib/courses/duration";
+import { enrichCourseWithMediaUrls, enrichCoursesWithMediaUrls } from "@/lib/courses/enrich-media-urls";
+import { supabaseErrorMessage } from "@/lib/errors/query";
 
 function mapCourse(row: Record<string, unknown>): Course {
   const intakes = (row.intakes as Intake[] | null) ?? [];
@@ -36,6 +38,10 @@ function mapCourse(row: Record<string, unknown>): Course {
     max_slots: row.max_slots as number,
     is_published: row.is_published as boolean,
     thumbnail_r2_key: (row.thumbnail_r2_key as string | null) ?? null,
+    instructor_name: (row.instructor_name as string | null) ?? null,
+    instructor_title: (row.instructor_title as string | null) ?? null,
+    instructor_bio: (row.instructor_bio as string | null) ?? null,
+    instructor_photo_r2_key: (row.instructor_photo_r2_key as string | null) ?? null,
     duration_weeks,
     duration,
     created_at: row.created_at as string | undefined,
@@ -57,6 +63,10 @@ const courseSelect = `
   max_slots,
   is_published,
   thumbnail_r2_key,
+  instructor_name,
+  instructor_title,
+  instructor_bio,
+  instructor_photo_r2_key,
   created_at,
   updated_at,
   intakes (
@@ -87,7 +97,8 @@ export async function getFeaturedCoursesForHome(): Promise<Course[]> {
       return [];
     }
 
-    return (data ?? []).map((row) => mapCourse(row as Record<string, unknown>));
+    const courses = (data ?? []).map((row) => mapCourse(row as Record<string, unknown>));
+    return enrichCoursesWithMediaUrls(courses);
   });
 }
 
@@ -105,7 +116,8 @@ export async function getPublishedCourses(): Promise<Course[]> {
       return [];
     }
 
-    return (data ?? []).map((row) => mapCourse(row as Record<string, unknown>));
+    const courses = (data ?? []).map((row) => mapCourse(row as Record<string, unknown>));
+    return enrichCoursesWithMediaUrls(courses);
   });
 }
 
@@ -126,11 +138,20 @@ export async function getCourseBySlug(slug: string): Promise<Course | null> {
       return null;
     }
 
-    return mapCourse(data as Record<string, unknown>);
+    const course = mapCourse(data as Record<string, unknown>);
+    return enrichCourseWithMediaUrls(course);
   });
 }
 
 export async function getAllCoursesAdmin(): Promise<Course[]> {
+  const { data } = await getAllCoursesAdminResult()
+  return data
+}
+
+export async function getAllCoursesAdminResult(): Promise<{
+  data: Course[]
+  error: string | null
+}> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("courses")
@@ -138,15 +159,16 @@ export async function getAllCoursesAdmin(): Promise<Course[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[courses] getAllCoursesAdmin failed", error);
-    return [];
+    return { data: [], error: supabaseErrorMessage(error, 'courses.getAllCoursesAdmin') };
   }
 
-  return (data ?? []).map((row) => {
+  const courses = (data ?? []).map((row) => {
     const course = mapCourse(row as Record<string, unknown>);
     const allIntakes = ((row as Record<string, unknown>).intakes as Intake[]) ?? [];
     return { ...course, intakes: allIntakes };
   });
+
+  return { data: await enrichCoursesWithMediaUrls(courses), error: null };
 }
 
 export async function getCourseByIdAdmin(id: string): Promise<Course | null> {
@@ -163,7 +185,7 @@ export async function getCourseByIdAdmin(id: string): Promise<Course | null> {
 
   const course = mapCourse(data as Record<string, unknown>);
   const allIntakes = ((data as Record<string, unknown>).intakes as Intake[]) ?? [];
-  return { ...course, intakes: allIntakes };
+  return enrichCourseWithMediaUrls({ ...course, intakes: allIntakes });
 }
 
 export async function getIntakesForCourseAdmin(
@@ -186,6 +208,14 @@ export async function getIntakesForCourseAdmin(
 export async function getAllIntakesAdmin(): Promise<
   (Intake & { course?: { title: string; slug: string } })[]
 > {
+  const { data } = await getAllIntakesAdminResult()
+  return data
+}
+
+export async function getAllIntakesAdminResult(): Promise<{
+  data: (Intake & { course?: { title: string; slug: string } })[]
+  error: string | null
+}> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("intakes")
@@ -193,10 +223,13 @@ export async function getAllIntakesAdmin(): Promise<
     .order("start_date", { ascending: false });
 
   if (error) {
-    return [];
+    return { data: [], error: supabaseErrorMessage(error, 'courses.getAllIntakesAdmin') };
   }
 
-  return (data ?? []) as (Intake & { course?: { title: string; slug: string } })[];
+  return {
+    data: (data ?? []) as (Intake & { course?: { title: string; slug: string } })[],
+    error: null,
+  };
 }
 
 export async function getIntakeByIdAdmin(

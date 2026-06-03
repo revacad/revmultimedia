@@ -7,6 +7,7 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   accepted: 'Accepted',
   rejected: 'Rejected',
   deferred: 'Deferred',
+  waitlisted: 'Waitlisted',
 }
 
 export const STATUS_BADGE_CLASS: Record<ApplicationStatus, string> = {
@@ -16,6 +17,7 @@ export const STATUS_BADGE_CLASS: Record<ApplicationStatus, string> = {
   accepted: 'bg-[#EBF9F8] text-[#1E9990]',
   rejected: 'bg-[#FDECEC] text-[#E84A4A]',
   deferred: 'bg-[#FDF0F6] text-[#C74A86]',
+  waitlisted: 'bg-[#F3EEFF] text-[#7B5AE8]',
 }
 
 export const FILTER_STATUSES: { value: ApplicationStatus | 'all'; label: string }[] = [
@@ -26,4 +28,5 @@ export const FILTER_STATUSES: { value: ApplicationStatus | 'all'; label: string 
   { value: 'accepted', label: 'Accepted' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'deferred', label: 'Deferred' },
+  { value: 'waitlisted', label: 'Waitlisted' },
 ]

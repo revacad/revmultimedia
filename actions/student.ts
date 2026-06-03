@@ -3,13 +3,16 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 import { sendAdminNewApplication } from '@/lib/notifications/email'
 import { r2KeySchema } from '@/lib/validations/common'
 import {
   updateProfilePhotoSchema,
   uploadStudentDocumentSchema,
 } from '@/lib/validations/student'
+import { isR2KeyOwnedByStudent } from '@/lib/students/student-document-key'
+import { safeActionError } from '@/lib/errors/action'
 
 async function requireOwnStudent(studentDbId: string) {
   const supabase = await createServerClient()
@@ -39,9 +42,7 @@ export async function getProfilePhotoUrl(r2Key: string): Promise<string | null> 
   const parsed = r2KeySchema.safeParse(r2Key)
   if (!parsed.success) return null
 
-  const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-  if (!bucket) return null
-  return generatePresignedDownloadUrl(bucket, parsed.data, 3600)
+  return r2DocumentHref(normalizeR2ObjectKey(parsed.data))
 }
 
 export async function updateProfilePhoto(
@@ -68,7 +69,7 @@ export async function updateProfilePhoto(
     .eq('id', studentDbId)
 
   if (error) {
-    return { error: error.message }
+    return safeActionError('student.updateProfilePhoto', error, 'Failed to update profile photo.')
   }
 
   revalidatePath('/portal/dashboard')
@@ -95,6 +96,10 @@ export async function uploadStudentDocument(data: {
     return { error: auth.error }
   }
 
+  if (!isR2KeyOwnedByStudent(payload.r2Key, auth.student.student_id)) {
+    return { error: 'Unauthorized' }
+  }
+
   const admin = createAdminClient()
   const { data: application } = await admin
     .from('applications')
@@ -114,7 +119,7 @@ export async function uploadStudentDocument(data: {
   })
 
   if (error) {
-    return { error: error.message }
+    return safeActionError('student.uploadDocument', error, 'Failed to upload document.')
   }
 
   if (application) {

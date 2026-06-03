@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { getDocumentUrl } from '@/actions/documents'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 
 export default function DocumentDownloadLink({
   r2Key,
@@ -10,26 +10,14 @@ export default function DocumentDownloadLink({
   r2Key: string
   fileName: string
 }) {
-  const [loading, setLoading] = useState(false)
-
-  async function handleDownload() {
-    setLoading(true)
-    try {
-      const url = await getDocumentUrl(r2Key)
-      window.open(url, '_blank', 'noopener,noreferrer')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <button
-      type="button"
-      disabled={loading}
-      onClick={() => void handleDownload()}
-      className="font-body text-sm font-semibold text-[#2DBFB8] hover:text-[#1E9990] disabled:opacity-50"
+    <a
+      href={r2DocumentHref(normalizeR2ObjectKey(r2Key))}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-body text-sm font-semibold text-[#2DBFB8] hover:text-[#1E9990]"
     >
-      {loading ? 'Preparing…' : `Download ${fileName}`}
-    </button>
+      Download {fileName}
+    </a>
   )
 }

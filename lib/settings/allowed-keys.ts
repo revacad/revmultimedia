@@ -1,4 +1,4 @@
-import { MESSAGING_SETTING_KEYS, SETTINGS_TABS } from '@/lib/settings/labels'
+import { MAINTENANCE_SETTING_KEYS, MESSAGING_SETTING_KEYS, SETTINGS_TABS } from '@/lib/settings/labels'
 
 const TAB_KEYS = SETTINGS_TABS.flatMap((tab) =>
   tab.sections.flatMap((section) => [...section.keys]),
@@ -8,6 +8,7 @@ const TAB_KEYS = SETTINGS_TABS.flatMap((tab) =>
 export const ALLOWED_SETTINGS_KEYS = new Set<string>([
   ...TAB_KEYS,
   ...MESSAGING_SETTING_KEYS,
+  ...MAINTENANCE_SETTING_KEYS,
 ])
 
 export const SETTINGS_VALUE_MAX_LENGTH = 10_000

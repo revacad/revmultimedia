@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { defaultLoadErrorMessage } from '@/lib/errors/network'
+import { logServerError } from '@/lib/errors/log'
 import type { AdminStudentDetail } from '@/components/admin/students/StudentDetailView'
 import type { ApplicationStatus } from '@/lib/applications/types'
 import {
@@ -25,6 +27,8 @@ export async function fetchAdminStudentDetail(
       enrollments(
         id,
         status,
+        application_id,
+        applications(enrolled_at),
         courses(id, title, slug, category),
         intakes(name, start_date, end_date)
       )
@@ -34,8 +38,8 @@ export async function fetchAdminStudentDetail(
     .maybeSingle()
 
   if (studentError) {
-    console.error('[admin/students/detail] student fetch failed', studentError)
-    return { error: studentError.message }
+    logServerError('admin/students/detail', studentError, { studentId })
+    return { error: defaultLoadErrorMessage() }
   }
 
   if (!student) {

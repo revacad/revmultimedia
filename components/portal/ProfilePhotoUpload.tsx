@@ -32,8 +32,12 @@ export default function ProfilePhotoUpload({
       setPhotoUrl(null)
       return
     }
-    const url = await getProfilePhotoUrl(key)
-    setPhotoUrl(url)
+    try {
+      const url = await getProfilePhotoUrl(key)
+      setPhotoUrl(url)
+    } catch {
+      setPhotoUrl(null)
+    }
   }, [])
 
   useEffect(() => {

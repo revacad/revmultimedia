@@ -9,14 +9,68 @@ interface ConfirmationScreenProps {
   name: string
   email: string
   reference: string
+  waitlisted?: boolean
+  waitlistPosition?: number
 }
 
 export default function ConfirmationScreen({
   name,
   email,
   reference,
+  waitlisted = false,
+  waitlistPosition,
 }: ConfirmationScreenProps) {
   const [showPayInfo, setShowPayInfo] = useState(false)
+
+  if (waitlisted) {
+    return (
+      <div className="mx-auto max-w-lg text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-[#7B5AE8] bg-[#F3EEFF]">
+          <svg className="h-10 w-10 text-[#7B5AE8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+
+        <h1 className="mt-6 font-display text-[32px] text-[#1A1A2E]">You are on the waitlist</h1>
+
+        <p className="mt-3 font-body text-base text-[#5A5A7A]">
+          Thank you, {name}. Your application reference is:
+        </p>
+
+        <div className="mt-4 flex justify-center">
+          <ReferenceCode code={reference} />
+        </div>
+
+        {waitlistPosition != null && (
+          <p className="mt-4 font-body text-base font-semibold text-[#7B5AE8]">
+            You are #{waitlistPosition} on the waitlist
+          </p>
+        )}
+
+        <p className="mt-3 font-body text-sm text-[#9898B8]">
+          We have sent a confirmation to {email}.
+        </p>
+
+        <div className="mt-8 rounded-[14px] border border-[#7B5AE8]/25 bg-[#F3EEFF] p-5 text-left">
+          <p className="font-body text-sm text-[#5A5A7A]">
+            No payment is required at this time. We will contact you by email and SMS when a spot
+            becomes available. You can then log in to your portal to confirm your interest.
+          </p>
+          <Link
+            href="/login"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#7B5AE8] px-5 py-3 font-body text-sm font-semibold text-white no-underline"
+          >
+            Log in to portal
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-lg text-center">
@@ -51,15 +105,15 @@ export default function ConfirmationScreen({
         </p>
 
         {!showPayInfo ? (
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="lg"
+            className="mt-4 w-full"
             onClick={() => setShowPayInfo(true)}
-            className="mt-4 block w-full"
           >
-            <Button variant="primary" size="lg" className="w-full">
-              Pay Application Fee: GHS 100
-            </Button>
-          </button>
+            Pay Application Fee: GHS 100
+          </Button>
         ) : (
           <div
             style={{

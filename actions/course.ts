@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/lib/auth/admin";
+import { requireStaffAdmin } from "@/lib/auth/admin";
 import { invalidateCourse } from "@/lib/redis/invalidate";
 import { courseSchema, coursePublishSchema } from "@/lib/validations/course";
 import { uuidIdSchema } from "@/lib/validations/common";
 import { generateSlug } from "@/lib/utils";
-import { sanitizeRichHtml } from "@/lib/security/html";
+import { sanitizeCourseContent } from "@/lib/security/sanitize-html";
+import { safeActionFailure } from "@/lib/errors/action";
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -17,7 +18,7 @@ export async function createCourse(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const raw = {
       title: String(formData.get("title") ?? ""),
@@ -40,6 +41,7 @@ export async function createCourse(
 
     const supabase = createAdminClient();
     const thumbnailKey = String(formData.get("thumbnail_r2_key") ?? "").trim() || null;
+    const instructorFields = parseInstructorFields(formData);
 
     const { data, error } = await supabase
       .from("courses")
@@ -47,12 +49,13 @@ export async function createCourse(
         ...parsed.data,
         curriculum: parseCurriculumHtml(formData.get("curriculum_html")),
         thumbnail_r2_key: thumbnailKey,
+        ...instructorFields,
       })
       .select("id, slug")
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("course.create", error, "Failed to create course.");
     }
 
     invalidateCourse(data.slug);
@@ -61,10 +64,7 @@ export async function createCourse(
 
     return { success: true, data: { id: data.id } };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to create course",
-    };
+    return safeActionFailure("course.create", e, "Failed to create course.");
   }
 }
 
@@ -73,7 +73,7 @@ export async function updateCourse(
   formData: FormData,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const raw = {
       title: String(formData.get("title") ?? ""),
@@ -94,6 +94,7 @@ export async function updateCourse(
 
     const supabase = createAdminClient();
     const thumbnailKey = String(formData.get("thumbnail_r2_key") ?? "").trim() || null;
+    const instructorFields = parseInstructorFields(formData);
 
     const { data, error } = await supabase
       .from("courses")
@@ -101,6 +102,7 @@ export async function updateCourse(
         ...parsed.data,
         curriculum: parseCurriculumHtml(formData.get("curriculum_html")),
         thumbnail_r2_key: thumbnailKey,
+        ...instructorFields,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -108,7 +110,7 @@ export async function updateCourse(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("course.update", error, "Failed to update course.");
     }
 
     invalidateCourse(data.slug);
@@ -119,10 +121,7 @@ export async function updateCourse(
 
     return { success: true };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to update course",
-    };
+    return safeActionFailure("course.update", e, "Failed to update course.");
   }
 }
 
@@ -136,7 +135,7 @@ export async function togglePublish(
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
     }
 
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const supabase = createAdminClient();
     const { data, error } = await supabase
@@ -147,7 +146,7 @@ export async function togglePublish(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("course.togglePublish", error, "Failed to update publish status.");
     }
 
     invalidateCourse(data.slug);
@@ -157,26 +156,37 @@ export async function togglePublish(
 
     return { success: true };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to update publish status",
-    };
+    return safeActionFailure("course.togglePublish", e, "Failed to update publish status.");
   }
 }
 
 function parseCurriculumHtml(value: FormDataEntryValue | null): unknown {
-  const html = sanitizeRichHtml(String(value ?? ""));
+  const html = sanitizeCourseContent(String(value ?? ""));
   if (!html) {
     return null;
   }
   return { html, version: 1 };
 }
 
+function parseInstructorFields(formData: FormData) {
+  const name = String(formData.get("instructor_name") ?? "").trim() || null;
+  const title = String(formData.get("instructor_title") ?? "").trim() || null;
+  const bio = String(formData.get("instructor_bio") ?? "").trim() || null;
+  const photoKey =
+    String(formData.get("instructor_photo_r2_key") ?? "").trim() || null;
+  return {
+    instructor_name: name,
+    instructor_title: title,
+    instructor_bio: bio,
+    instructor_photo_r2_key: photoKey,
+  };
+}
+
 function parseDescription(value: FormDataEntryValue | null | undefined): string | undefined {
   const raw = String(value ?? "").trim();
   if (!raw) return undefined;
   if (/<[a-z][\s\S]*>/i.test(raw)) {
-    const clean = sanitizeRichHtml(raw);
+    const clean = sanitizeCourseContent(raw);
     return clean || undefined;
   }
   return raw.slice(0, 5000);
@@ -189,7 +199,7 @@ export async function deleteCourse(id: string): Promise<ActionResult> {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid course id" };
     }
 
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const supabase = createAdminClient();
     const { data: course } = await supabase
@@ -201,7 +211,7 @@ export async function deleteCourse(id: string): Promise<ActionResult> {
     const { error } = await supabase.from("courses").delete().eq("id", parsed.data.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("course.delete", error, "Failed to delete course.");
     }
 
     if (course?.slug) {
@@ -212,9 +222,6 @@ export async function deleteCourse(id: string): Promise<ActionResult> {
 
     return { success: true };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to delete course",
-    };
+    return safeActionFailure("course.delete", e, "Failed to delete course.");
   }
 }

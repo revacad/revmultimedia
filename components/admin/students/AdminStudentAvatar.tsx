@@ -1,21 +1,22 @@
 import { getInitials } from '@/lib/applications/format'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
 
 interface AdminStudentAvatarProps {
   fullName: string
-  photoKey: string | null
+  photoUrl?: string | null
+  size?: 'sm' | 'md'
 }
 
-export default async function AdminStudentAvatar({
-  fullName,
-  photoKey,
-}: AdminStudentAvatarProps) {
-  let photoUrl: string | null = null
-  const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
+const SIZE_CLASS = {
+  sm: 'h-10 w-10 text-sm',
+  md: 'h-14 w-14 text-xl',
+} as const
 
-  if (photoKey && bucket) {
-    photoUrl = await generatePresignedDownloadUrl(bucket, photoKey, 3600)
-  }
+export default function AdminStudentAvatar({
+  fullName,
+  photoUrl = null,
+  size = 'md',
+}: AdminStudentAvatarProps) {
+  const sizeClass = SIZE_CLASS[size]
 
   if (photoUrl) {
     return (
@@ -23,17 +24,17 @@ export default async function AdminStudentAvatar({
       <img
         src={photoUrl}
         alt=""
-        className="h-14 w-14 shrink-0 rounded-full object-cover"
+        className={`${sizeClass} shrink-0 rounded-full object-cover`}
       />
     )
   }
 
   return (
     <div
-      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white"
+      className={`flex shrink-0 items-center justify-center rounded-full text-white ${sizeClass}`}
       style={{ background: 'linear-gradient(135deg, #C74A86, #F18F3B)' }}
     >
-      <span className="font-body text-xl font-bold">{getInitials(fullName)}</span>
+      <span className="font-body font-bold">{getInitials(fullName)}</span>
     </div>
   )
 }

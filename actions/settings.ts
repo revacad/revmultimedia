@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/admin'
+import { invalidateMaintenanceCache } from '@/lib/maintenance/settings'
 import { invalidateSystemSettings } from '@/lib/redis/invalidate'
 import { updateSettingsSchema } from '@/lib/validations/settings'
+import { safeActionError } from '@/lib/errors/action'
 
 export async function updateSettings(
   updates: Record<string, string> | { key: string; value: string }[],
@@ -45,16 +47,16 @@ export async function updateSettings(
         .eq('key', key)
 
       if (error) {
-        return { error: error.message }
+        return safeActionError('settings.update', error, 'Failed to update settings.')
       }
     }
 
     invalidateSystemSettings()
+    invalidateMaintenanceCache()
     revalidatePath('/admin/settings')
+    revalidatePath('/maintenance')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to update settings',
-    }
+    return safeActionError('settings.update', e, 'Failed to update settings.')
   }
 }

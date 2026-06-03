@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import { invalidateAdminStats } from '@/lib/redis/invalidate'
 import { runAfterResponse } from '@/lib/background'
 import { calculatePromoDiscount } from '@/lib/promo/calculate'
@@ -39,7 +39,7 @@ export async function createAndSendApplicationInvoice(data: {
       }
     }
 
-    const session = await requireAdmin()
+    const session = await requireStaffAdmin()
     const supabase = createAdminClient()
     const payload = parsed.data
 
@@ -191,7 +191,7 @@ export async function generateTuitionInvoice(data: {
       }
     }
 
-    const session = await requireAdmin()
+    const session = await requireStaffAdmin()
     const supabase = createAdminClient()
     const payload = parsed.data
 

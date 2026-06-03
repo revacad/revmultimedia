@@ -49,11 +49,31 @@ const ACTIONS: {
 interface StatusActionButtonsProps {
   applicationId: string
   appFeePaid: boolean
+  currentStatus: ApplicationStatus
+  isEnrolled: boolean
+}
+
+function isActionDisabled(
+  action: (typeof ACTIONS)[number],
+  currentStatus: ApplicationStatus,
+  isEnrolled: boolean,
+  appFeePaid: boolean,
+  pending: boolean,
+): boolean {
+  if (pending) return true
+  if (isEnrolled) return true
+  if (action.requiresAppFee && !appFeePaid) return true
+  if (action.status === 'accepted' && currentStatus === 'accepted') return true
+  if (action.status === 'rejected' && currentStatus === 'rejected') return true
+  if (action.status === 'shortlisted' && currentStatus === 'shortlisted') return true
+  return false
 }
 
 export default function StatusActionButtons({
   applicationId,
   appFeePaid,
+  currentStatus,
+  isEnrolled,
 }: StatusActionButtonsProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -78,31 +98,42 @@ export default function StatusActionButtons({
           {error}
         </p>
       )}
-      {!appFeePaid && (
-        <p className="mb-3 font-body text-xs text-[#9898B8]">
-          Accept is available after the application fee is paid. Tuition invoice is sent automatically
-          on accept.
+      {isEnrolled ? (
+        <p className="mb-3 font-body text-xs text-[#5A5A7A]">
+          This student is enrolled. Status cannot be changed.
         </p>
+      ) : (
+        !appFeePaid && (
+          <p className="mb-3 font-body text-xs text-[#9898B8]">
+            Accept is available after the application fee is paid. Tuition invoice is sent
+            automatically on accept.
+          </p>
+        )
       )}
       <div className="grid grid-cols-2 gap-2">
         {ACTIONS.map((action) => {
-          const disabled =
-            pending || (action.requiresAppFee && !appFeePaid)
+          const disabled = isActionDisabled(
+            action,
+            currentStatus,
+            isEnrolled,
+            appFeePaid,
+            pending,
+          )
           return (
             <button
               key={action.label}
               type="button"
               disabled={disabled}
               title={
-                action.requiresAppFee && !appFeePaid
+                action.requiresAppFee && !appFeePaid && !isEnrolled
                   ? 'Application fee must be paid first'
                   : undefined
               }
               onClick={() => handleStatus(action.status)}
               className={cn(
-                'rounded-lg border-[1.5px] px-3 py-2 font-body text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                'rounded-lg border-[1.5px] px-3 py-2 font-body text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                 action.className,
-                action.hoverClassName,
+                !disabled && action.hoverClassName,
               )}
             >
               {action.label}

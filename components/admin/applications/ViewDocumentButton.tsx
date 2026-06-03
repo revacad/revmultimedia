@@ -1,36 +1,23 @@
 'use client'
 
-import { useState } from 'react'
-import Button from '@/components/ui/Button'
-import { getDocumentUrl } from '@/actions/documents'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 
 interface ViewDocumentButtonProps {
   r2Key: string
 }
 
 export default function ViewDocumentButton({ r2Key }: ViewDocumentButtonProps) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleView() {
-    setLoading(true)
-    setError(null)
-    try {
-      const url = await getDocumentUrl(r2Key)
-      window.open(url, '_blank', 'noopener,noreferrer')
-    } catch {
-      setError('Could not open document')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const href = r2DocumentHref(normalizeR2ObjectKey(r2Key))
 
   return (
-    <span className="inline-flex flex-col items-end gap-1">
-      <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={handleView}>
-        {loading ? 'Opening…' : 'View Document'}
-      </Button>
-      {error && <span className="text-xs text-red-600">{error}</span>}
-    </span>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center justify-center rounded-full px-3 py-1.5 font-body text-sm font-semibold text-[#C74A86] hover:text-[#9E3068]"
+    >
+      View Document
+    </a>
   )
 }

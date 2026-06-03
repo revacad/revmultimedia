@@ -1,29 +1,27 @@
 'use client'
 
-import { useState } from 'react'
-import { getDocumentUrl } from '@/actions/documents'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 
-export default function CertificateDownloadButton({ r2Key }: { r2Key: string }) {
-  const [loading, setLoading] = useState(false)
-
-  async function handleDownload() {
-    setLoading(true)
-    try {
-      const url = await getDocumentUrl(r2Key)
-      window.open(url, '_blank', 'noopener,noreferrer')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+export default function CertificateDownloadButton({
+  r2Key,
+  prominent = false,
+}: {
+  r2Key: string
+  prominent?: boolean
+}) {
   return (
-    <button
-      type="button"
-      disabled={loading}
-      onClick={() => void handleDownload()}
-      className="rounded-full bg-[#2DBFB8] px-4 py-2 font-body text-sm font-semibold text-white hover:bg-[#1E9990] disabled:opacity-50"
+    <a
+      href={r2DocumentHref(normalizeR2ObjectKey(r2Key))}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={
+        prominent
+          ? 'inline-flex rounded-full bg-[#C74A86] px-6 py-3 font-body text-sm font-semibold text-white shadow-[0_8px_32px_rgba(199,74,134,0.25)] hover:opacity-90'
+          : 'rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-[#C74A86] hover:text-[#C74A86]'
+      }
     >
-      {loading ? 'Preparing…' : 'Download Certificate'}
-    </button>
+      Download certificate
+    </a>
   )
 }

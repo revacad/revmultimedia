@@ -1,20 +1,15 @@
-import { redirect } from 'next/navigation'
 import PortalNavbar from '@/components/portal/PortalNavbar'
 import PortalSecondaryNav from '@/components/portal/PortalSecondaryNav'
+import PortalMobileDock from '@/components/portal/PortalMobileDock'
 import { createServerClient } from '@/lib/supabase/server'
+import { getPortalAuthUser } from '@/lib/portal/session'
 import { firstName } from '@/lib/portal/timeline'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  const user = await getPortalAuthUser()
   const supabase = await createServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
 
   const { data: application } = await supabase
     .from('applications')
@@ -29,13 +24,17 @@ export default async function PortalLayout({ children }: { children: React.React
     .maybeSingle()
 
   const displayName = student?.full_name ?? application?.full_name ?? 'Student'
-  const isStudent = Boolean(student)
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-[#F0F2F8]">
       <PortalNavbar displayName={firstName(displayName)} />
-      <PortalSecondaryNav isStudent={isStudent} />
-      <main className="min-h-screen flex-1 overflow-x-hidden bg-[#F0F2F8] p-4 sm:p-6">{children}</main>
+      <PortalSecondaryNav />
+      <main className="min-h-0 flex-1 overflow-x-hidden pb-28 md:pb-6">
+        <div className="mx-auto w-full max-w-[900px] px-4 py-5 sm:px-6 sm:py-8">
+          {children}
+        </div>
+      </main>
+      <PortalMobileDock />
     </div>
   )
 }

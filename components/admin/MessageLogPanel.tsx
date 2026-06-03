@@ -57,7 +57,7 @@ export function notificationToLogEntry(row: {
     payment_confirmed: 'Payment confirmed (enrollment)',
     enrollment_confirmed: 'Enrollment confirmed',
     certificate_uploaded: 'Certificate uploaded',
-    admission_letter_sent: 'Admission letter sent',
+    admission_letter_sent: 'Enrollment letter sent',
     password_reset: 'Password reset',
     contact_form: 'Contact form',
   }

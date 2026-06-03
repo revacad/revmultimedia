@@ -20,6 +20,7 @@ export type PaymentListRow = {
   due_date: string | null
   status: InvoiceStatus
   payment_method: string | null
+  paystack_reference: string | null
   created_at: string
   updated_at: string
   applications: {
@@ -29,7 +30,7 @@ export type PaymentListRow = {
     real_email: string
     country: string
   } | null
-  installments: { amount_ghs: number }[]
+  installments: { amount_ghs: number; paid_at?: string }[]
   admins: { full_name: string } | null
 }
 

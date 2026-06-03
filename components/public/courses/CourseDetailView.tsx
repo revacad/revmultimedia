@@ -4,15 +4,19 @@ import Badge from '@/components/ui/Badge'
 import SanitizedHtml from '@/components/ui/SanitizedHtml'
 import Button from '@/components/ui/Button'
 import { CourseCurriculumSection } from '@/components/public/courses/CourseCurriculumSection'
+import CourseAlumniAvatars from '@/components/public/courses/CourseAlumniAvatars'
+import CourseInstructorPill from '@/components/public/courses/CourseInstructorPill'
+import CourseInstructorSection from '@/components/public/courses/CourseInstructorSection'
 import InternationalWelcomeNote from '@/components/public/InternationalWelcomeNote'
 import ModeBadge from '@/components/public/ModeBadge'
 import { formatCategory, formatMode } from '@/lib/courses/labels'
-import { getCourseThumbnailSrc } from '@/lib/courses/thumbnail'
+import { getCourseThumbnailSrc, isCourseThumbnailRemoteSrc } from '@/lib/courses/thumbnail'
 import { processCurriculum, getVimeoId, getYouTubeId } from '@/lib/courses/curriculum'
 import { getSlotIndicator } from '@/lib/courses/slots'
 import type { Course } from '@/lib/courses/types'
 import { publicSectionClass } from '@/lib/public-ui'
 import { isRichHtmlContent } from '@/lib/security/html'
+import { sanitizeCourseContent } from '@/lib/security/sanitize-html'
 import { cn, formatDate, formatGHS } from '@/lib/utils'
 
 interface CourseDetailViewProps {
@@ -94,31 +98,55 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
   const slotIndicator = getSlotIndicator(course.intakes)
 
   const { html: processedCurriculum, toc: tocItems } = processCurriculum(course.curriculum)
+  const safeCurriculumHtml = processedCurriculum
+    ? sanitizeCourseContent(processedCurriculum)
+    : ''
   const descriptionIsHtml = Boolean(
     course.description && isRichHtmlContent(course.description),
   )
+  const safeDescription =
+    course.description && descriptionIsHtml
+      ? sanitizeCourseContent(course.description)
+      : course.description
 
   return (
     <div>
       <div className="relative h-[45vh] min-h-[360px]">
-        <Image
-          src={thumbnailSrc}
-          alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          style={{ objectFit: 'cover' }}
-        />
+        {isCourseThumbnailRemoteSrc(thumbnailSrc) ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumbnailSrc}
+            alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Image
+            src={thumbnailSrc}
+            alt={`${course.title} course at Rev Multimedia, Accra Ghana`}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+            style={{ objectFit: 'cover' }}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-dark/70 via-dark/30 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-10 sm:px-12">
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Badge variant={course.category}>{formatCategory(course.category)}</Badge>
-            <ModeBadge mode={course.mode} />
+        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-6 px-6 pb-10 sm:px-12">
+          <div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge variant={course.category}>{formatCategory(course.category)}</Badge>
+              <ModeBadge mode={course.mode} />
+            </div>
+            <h1 className="max-w-3xl font-display text-4xl font-bold text-white md:text-5xl">
+              {course.title}
+            </h1>
+            <p className="mt-3 font-display text-2xl font-semibold text-white/95 md:text-3xl">
+              {formatGHS(course.tuition_fee_ghs)}
+              <span className="ml-2 font-body text-base font-normal text-white/70">tuition</span>
+            </p>
+            <CourseInstructorPill course={course} className="mt-4 inline-flex" />
           </div>
-          <h1 className="max-w-3xl font-display text-4xl font-bold text-white md:text-5xl">
-            {course.title}
-          </h1>
+          <CourseAlumniAvatars slug={course.slug} size="lg" className="hidden md:flex" />
         </div>
       </div>
 
@@ -126,13 +154,15 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
         <div className="space-y-10 lg:col-span-2">
           <InternationalWelcomeNote />
 
-          {course.description && (
+          <CourseInstructorSection course={course} />
+
+          {safeDescription && (
             <section>
               <h2 className="mb-4 font-display text-2xl font-semibold text-dark">About this course</h2>
-              {descriptionIsHtml && course.description ? (
-                <SanitizedHtml html={course.description} className="rich-content" />
+              {descriptionIsHtml ? (
+                <SanitizedHtml html={safeDescription} className="rich-content" />
               ) : (
-                <p className="text-[17px] leading-relaxed text-gray-600">{course.description}</p>
+                <p className="text-[17px] leading-relaxed text-gray-600">{safeDescription}</p>
               )}
             </section>
           )}
@@ -193,7 +223,7 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
       <CourseCurriculumSection
         courseTitle={course.title}
         courseSlug={course.slug}
-        html={processedCurriculum}
+        html={safeCurriculumHtml}
         toc={tocItems}
       />
 

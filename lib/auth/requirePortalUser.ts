@@ -1,8 +1,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
+import { cache } from 'react'
 
-export async function requirePortalUser(): Promise<User> {
+export const requirePortalUser = cache(async (): Promise<User> => {
   const supabase = await createServerClient()
   const {
     data: { user },
@@ -11,4 +12,4 @@ export async function requirePortalUser(): Promise<User> {
   if (!user) redirect('/login')
 
   return user
-}
+})

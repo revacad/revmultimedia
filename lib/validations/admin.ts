@@ -13,7 +13,7 @@ export const inviteAdminSchema = z.object({
     .min(1, 'Email is required')
     .max(254, 'Email is too long')
     .email('Please enter a valid email address'),
-  role: z.enum(['admin', 'superadmin'], {
+  role: z.enum(['admin', 'superadmin', 'accounts'], {
     message: 'Invalid role',
   }),
 })

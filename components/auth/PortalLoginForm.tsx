@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { portalLogin } from '@/actions/auth'
+import { detectPortalIdentifierType } from '@/lib/auth/detect-portal-identifier'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 
 const inputStyle: React.CSSProperties = {
@@ -33,13 +34,15 @@ export default function PortalLoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const detectedType = useMemo(() => detectPortalIdentifierType(identifier), [identifier])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setIsSubmitting(true)
 
     try {
-      const result = await portalLogin(identifier, password)
+      const result = await portalLogin(identifier, password, detectedType ?? undefined)
       if (result?.error) {
         setError(result.error)
       }
@@ -55,7 +58,7 @@ export default function PortalLoginForm() {
     <form onSubmit={(e) => void handleSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
         <label htmlFor="identifier" style={labelStyle}>
-          Student ID or Application Reference
+          Application reference or student ID
         </label>
         <input
           id="identifier"
@@ -65,9 +68,46 @@ export default function PortalLoginForm() {
           autoComplete="username"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
-          placeholder="REV2026000001 or REVAPP202600001"
+          placeholder="Enter your reference or student ID"
           style={inputStyle}
         />
+        <p
+          style={{
+            marginTop: '8px',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '12px',
+            color: '#9898B8',
+            lineHeight: 1.45,
+          }}
+        >
+          e.g. REVAPP202600001 or REV2026000001
+        </p>
+        {detectedType === 'application_reference' && (
+          <p
+            style={{
+              marginTop: '6px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '12px',
+              color: '#1E9990',
+              lineHeight: 1.45,
+            }}
+          >
+            Detected: Application reference
+          </p>
+        )}
+        {detectedType === 'student_id' && (
+          <p
+            style={{
+              marginTop: '6px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '12px',
+              color: '#1E9990',
+              lineHeight: 1.45,
+            }}
+          >
+            Detected: Student ID
+          </p>
+        )}
       </div>
       <PasswordInput
         label="Password"

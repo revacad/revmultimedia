@@ -1,12 +1,19 @@
-type PresignContext =
+import { uploadFileToR2ViaServer } from '@/lib/r2/client-upload'
+
+export type PresignContext =
   | { type: 'profile_photo'; studentId: string }
   | { type: 'student_document'; studentId: string; documentType: 'certificate' | 'other' }
-  | { type: 'certificate'; studentId: string; courseSlug: string }
+  | {
+      type: 'certificate'
+      studentId: string
+      courseSlug: string
+      enrollmentId: string
+    }
 
 export async function presignPortalUpload(
   file: File,
   uploadContext: PresignContext,
-): Promise<{ presignedUrl: string; key: string }> {
+): Promise<{ key: string }> {
   const res = await fetch('/api/r2/presign', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,23 +30,11 @@ export async function presignPortalUpload(
     throw new Error(err.error ?? 'Failed to prepare upload')
   }
 
-  return (await res.json()) as { presignedUrl: string; key: string }
-}
-
-export async function putFileToPresignedUrl(presignedUrl: string, file: File): Promise<void> {
-  const putRes = await fetch(presignedUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  })
-
-  if (!putRes.ok) {
-    throw new Error('Upload failed. Please try again.')
-  }
+  return (await res.json()) as { key: string }
 }
 
 export async function uploadViaPresign(file: File, uploadContext: PresignContext): Promise<string> {
-  const { presignedUrl, key } = await presignPortalUpload(file, uploadContext)
-  await putFileToPresignedUrl(presignedUrl, file)
+  const { key } = await presignPortalUpload(file, uploadContext)
+  await uploadFileToR2ViaServer(file, key, uploadContext)
   return key
 }

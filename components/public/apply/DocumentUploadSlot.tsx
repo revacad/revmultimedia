@@ -13,6 +13,7 @@ interface DocumentUploadSlotProps {
   accept: string
   maxSizeBytes: number
   draftId: string
+  uploadToken: string
   documentType: string
   value?: UploadedFileMeta
   onChange: (file: UploadedFileMeta | undefined) => void
@@ -26,6 +27,7 @@ export default function DocumentUploadSlot({
   accept,
   maxSizeBytes,
   draftId,
+  uploadToken,
   documentType,
   value,
   onChange,
@@ -62,7 +64,7 @@ export default function DocumentUploadSlot({
     setError(null)
     setUploading(true)
     try {
-      const meta = await uploadApplicationDocument(file, draftId, documentType)
+      const meta = await uploadApplicationDocument(file, draftId, documentType, uploadToken)
       onChange(meta)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')

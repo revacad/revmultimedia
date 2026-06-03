@@ -11,6 +11,8 @@ import type { InvoiceStatus } from '@/lib/payments/types'
 
 interface RecordPaymentFormProps {
   invoiceId: string
+  totalGhs: number
+  paidGhs: number
   remainingGhs: number
   status: InvoiceStatus
   paymentForLabel: string
@@ -21,6 +23,8 @@ interface RecordPaymentFormProps {
 
 export default function RecordPaymentForm({
   invoiceId,
+  totalGhs,
+  paidGhs,
   remainingGhs,
   status,
   paymentForLabel,
@@ -65,7 +69,9 @@ export default function RecordPaymentForm({
       if (result.fullyPaid && result.studentId) {
         setSuccess(`Payment confirmed. Student ID: ${result.studentId}`)
       } else {
-        setSuccess('Partial payment recorded.')
+        setSuccess(
+          `Partial payment recorded. Balance ${formatAmountGhs(Math.max(0, remainingGhs - amountGhs))} remaining.`,
+        )
       }
       router.refresh()
     })
@@ -92,10 +98,8 @@ export default function RecordPaymentForm({
     )
   }
 
-  const paystackNote =
-    invoiceType === 'application_fee'
-      ? 'Applicants normally pay the application fee online via Paystack. Use this form only for cash or other in-person payments at the academy.'
-      : 'Tuition is usually paid via Paystack or bank transfer. Record cash or manual payments here.'
+  const manualPaymentNote =
+    'Record MoMo, bank transfer, cash, or other manual payments here.'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -109,7 +113,22 @@ export default function RecordPaymentForm({
         <p className="mt-1 font-body text-sm text-[#5A5A7A]">
           {studentName} · <span className="font-mono text-[#C74A86]">{applicationReference}</span>
         </p>
-        <p className="mt-2 font-body text-xs leading-relaxed text-[#9898B8]">{paystackNote}</p>
+        <p className="mt-2 font-body text-xs leading-relaxed text-[#9898B8]">
+          {manualPaymentNote}
+        </p>
+        {(status === 'partially_paid' || paidGhs > 0) && (
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-[#EFEFF5] pt-3">
+            <span className="inline-flex rounded-full bg-[#EBF9F8] px-2.5 py-0.5 font-body text-xs font-semibold text-[#1E9990]">
+              Paid {formatAmountGhs(paidGhs)}
+            </span>
+            <span className="inline-flex rounded-full bg-[#FDECEC] px-2.5 py-0.5 font-body text-xs font-semibold text-[#E84A4A]">
+              Balance {formatAmountGhs(remainingGhs)}
+            </span>
+            <span className="font-body text-xs text-[#9898B8]">
+              Total {formatAmountGhs(totalGhs)}
+            </span>
+          </div>
+        )}
       </div>
 
       {error && (

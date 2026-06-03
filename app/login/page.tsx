@@ -22,7 +22,7 @@ export default async function LoginPage({
     <AuthLayout quote={quote}>
       <AuthPageShell
         title="Welcome back"
-        subtitle="Enter your Student ID or Application Reference"
+        subtitle="Sign in with your application reference or permanent student ID."
         footerNote={resetSuccess ? 'Your password has been reset. You can sign in now.' : undefined}
       >
         <PortalLoginForm />

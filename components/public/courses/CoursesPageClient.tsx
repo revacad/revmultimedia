@@ -9,13 +9,18 @@ import InternationalWelcomeNote from '@/components/public/InternationalWelcomeNo
 import { buttonVariants } from '@/components/ui/Button'
 import { publicSectionClass } from '@/lib/public-ui'
 import { cn } from '@/lib/utils'
-import type { Course, CourseCategory, CourseMode } from '@/lib/courses/types'
+import {
+  COURSE_CATEGORIES,
+  type CourseCategory,
+} from '@/lib/courses/categories'
+import type { Course, CourseMode } from '@/lib/courses/types'
 
 const CATEGORY_FILTERS: { value: CourseCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'graphic_design', label: 'Graphic Design' },
-  { value: 'motion_graphics', label: 'Motion Graphics' },
-  { value: 'video_editing', label: 'Video Editing' },
+  ...(Object.entries(COURSE_CATEGORIES).map(([value, meta]) => ({
+    value: value as CourseCategory,
+    label: meta.label,
+  }))),
 ]
 
 const MODE_FILTERS: { value: CourseMode | 'all'; label: string }[] = [
@@ -86,7 +91,7 @@ export default function CoursesPageClient({
           <p className="section-label">Programmes</p>
           <h1 className="mt-3 font-display text-5xl font-bold text-dark md:text-6xl">Our courses</h1>
           <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-600">
-            Structured pathways in graphic design, motion graphics, and video editing, taught
+            Structured pathways in design, video & motion, technology, and marketing — taught
             by practitioners, not theorists.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">

@@ -1,27 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { getDocumentUrl } from '@/actions/documents'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 
 export default function PortalDocumentDownloadButton({ r2Key }: { r2Key: string }) {
-  const [loading, setLoading] = useState(false)
-
   return (
-    <button
-      type="button"
-      disabled={loading}
-      onClick={async () => {
-        setLoading(true)
-        try {
-          const url = await getDocumentUrl(r2Key)
-          window.open(url, '_blank', 'noopener,noreferrer')
-        } finally {
-          setLoading(false)
-        }
-      }}
-      className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-[#C74A86] hover:text-[#C74A86] disabled:opacity-50"
+    <a
+      href={r2DocumentHref(normalizeR2ObjectKey(r2Key))}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-body text-sm font-semibold text-[#2DBFB8] hover:text-[#1E9990]"
     >
-      {loading ? 'Opening…' : 'Download'}
-    </button>
+      Download
+    </a>
   )
 }

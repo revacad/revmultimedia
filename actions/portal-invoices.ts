@@ -6,7 +6,8 @@ import {
   generateAndStoreReceiptPdf,
 } from '@/lib/pdf/generate'
 import { invoicePdfPath, receiptPdfPath } from '@/lib/r2/paths'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 import { getInvoiceIfOwnedByUser } from '@/lib/portal/verify-invoice-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
@@ -21,14 +22,6 @@ async function requirePortalAuthUserId(): Promise<string | null> {
     data: { user },
   } = await supabase.auth.getUser()
   return user?.id ?? null
-}
-
-function presignKey(key: string): Promise<string> {
-  const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-  if (!bucket) {
-    throw new Error('File storage is not configured')
-  }
-  return generatePresignedDownloadUrl(bucket, key, 900)
 }
 
 export async function getPortalInvoicePdfUrl(
@@ -57,8 +50,7 @@ export async function getPortalInvoicePdfUrl(
       if (generated) key = generated
     }
 
-    const url = await presignKey(key)
-    return { url }
+    return { url: r2DocumentHref(normalizeR2ObjectKey(key)) }
   } catch (e) {
     return {
       error: e instanceof Error ? e.message : 'Could not open invoice PDF',
@@ -103,8 +95,7 @@ export async function getPortalReceiptPdfUrl(
 
       await generateAndStoreReceiptPdf(installment.id)
       const key = receiptPdfPath(invoice.reference, installment.id)
-      const url = await presignKey(key)
-      return { url }
+      return { url: r2DocumentHref(normalizeR2ObjectKey(key)) }
     }
 
     if (invoice.payment_method === 'paystack' && invoice.paystack_reference) {
@@ -113,8 +104,7 @@ export async function getPortalReceiptPdfUrl(
         invoice.reference,
         `paystack-${invoice.paystack_reference.slice(-8)}`,
       )
-      const url = await presignKey(key)
-      return { url }
+      return { url: r2DocumentHref(normalizeR2ObjectKey(key)) }
     }
 
     const { data: latest } = await admin
@@ -131,8 +121,7 @@ export async function getPortalReceiptPdfUrl(
 
     await generateAndStoreReceiptPdf(latest.id)
     const key = receiptPdfPath(invoice.reference, latest.id)
-    const url = await presignKey(key)
-    return { url }
+    return { url: r2DocumentHref(normalizeR2ObjectKey(key)) }
   } catch (e) {
     return {
       error: e instanceof Error ? e.message : 'Could not open receipt PDF',

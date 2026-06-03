@@ -38,7 +38,7 @@ async function requireSuperAdminAction(): Promise<{
 export async function inviteAdmin(data: {
   fullName: string
   email: string
-  role: 'admin' | 'superadmin'
+  role: 'admin' | 'superadmin' | 'accounts'
 }): Promise<{ error?: string; success?: boolean }> {
   let callerAdminId: string
 
@@ -94,9 +94,11 @@ export async function inviteAdmin(data: {
   })
 
   await logAuditEvent({
-    adminId: callerAdminId,
-    action: 'admin.invited',
-    entityType: 'admin_invite',
+    actorId: callerAdminId,
+    actorType: 'admin',
+    action: 'admin_invited',
+    targetType: 'admin_invite',
+    metadata: { email, role: payload.role },
     newValue: { email, role: payload.role },
   })
 
@@ -305,16 +307,20 @@ export async function acceptAdminInvite(
     return { error: 'Failed to create account' }
   }
 
-  const { error: adminError } = await supabase.from('admins').insert({
-    auth_user_id: authUser.user.id,
-    full_name: invite.full_name,
-    email: invite.email,
-    role: invite.role,
-    is_active: true,
-    created_by: invite.invited_by,
-  })
+  const { data: newAdmin, error: adminError } = await supabase
+    .from('admins')
+    .insert({
+      auth_user_id: authUser.user.id,
+      full_name: invite.full_name,
+      email: invite.email,
+      role: invite.role,
+      is_active: true,
+      created_by: invite.invited_by,
+    })
+    .select('id')
+    .single()
 
-  if (adminError) {
+  if (adminError || !newAdmin) {
     await supabase.auth.admin.deleteUser(authUser.user.id)
     return { error: 'Failed to create admin profile' }
   }
@@ -322,8 +328,12 @@ export async function acceptAdminInvite(
   await supabase.from('admin_invites').update({ used: true }).eq('id', invite.id)
 
   await logAuditEvent({
-    action: 'admin.created',
-    entityType: 'admin',
+    actorId: newAdmin.id,
+    actorType: 'admin',
+    action: 'admin_role_changed',
+    targetType: 'admin',
+    targetId: newAdmin.id,
+    metadata: { email: invite.email, role: invite.role, source: 'invite_accepted' },
     newValue: { email: invite.email, role: invite.role },
   })
 

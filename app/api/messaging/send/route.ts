@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
+import { withApiHandler } from '@/lib/errors/api'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getAdminSession } from '@/lib/auth/admin'
 import { resolveCampaignRecipients } from '@/lib/messaging/recipients'
 import type { CampaignFilters } from '@/lib/messaging/types'
+import { toCampaignRecipientResult } from '@/lib/api/responses'
 import { messagingSendBodySchema } from '@/lib/validations/api'
 
-/** Resolves recipients for a campaign audience (admin-only). */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const session = await getAdminSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -32,12 +33,14 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     count: recipients.length,
-    recipients: recipients.map((r) => ({
-      studentId: r.studentId,
-      applicationId: r.applicationId,
-      fullName: r.fullName,
-      email: r.email,
-      phone: r.phone,
-    })),
+    recipients: recipients.map((r) =>
+      toCampaignRecipientResult({
+        fullName: r.fullName,
+        email: r.email,
+        phone: r.phone,
+      }),
+    ),
   })
 }
+
+export const POST = withApiHandler('messaging/send', handlePost)

@@ -1,9 +1,14 @@
+import { apiErrorResponse } from '@/lib/errors/api'
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { completePaystackCharge } from '@/lib/payments/complete-paystack-charge'
 import { resolvePaystackInvoiceRef } from '@/lib/payments/paystack-invoice'
 import { verifyTransaction } from '@/lib/payments/paystack'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logUnauthorizedAccessAttempt } from '@/lib/audit/log'
+import { getClientIp } from '@/lib/auth/getClientIp'
+import { redactSensitive } from '@/lib/logging/redact'
 import { createServerClient } from '@/lib/supabase/server'
 
 const bodySchema = z.object({
@@ -39,7 +44,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!invoiceRef) {
       console.error('[paystack:verify] could not resolve invoice', {
         reference: body.reference,
-        metadata: verified.metadata,
+        metadata: redactSensitive(verified.metadata),
       })
       return NextResponse.json(
         { error: 'Payment could not be matched to an invoice.' },
@@ -65,6 +70,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       ? (applicationRel[0] ?? null)
       : applicationRel
     if (!application || application.auth_user_id !== user.id) {
+      const ip = await getClientIp()
+      void logUnauthorizedAccessAttempt({
+        actorId: user.id,
+        actorType: 'student',
+        resource: `paystack/verify:${invoiceRef}`,
+        metadata: { invoiceId: invoice.id },
+        ipAddress: ip,
+      })
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -82,8 +95,11 @@ export async function POST(request: Request): Promise<NextResponse> {
           ? 'Payment amount did not match the invoice total. Contact support with your receipt.'
           : 'Payment could not be confirmed. Please try again or contact support.'
 
-      return NextResponse.json({ error: message, reason: result.reason }, { status: 400 })
+      return NextResponse.json({ error: message }, { status: 400 })
     }
+
+    revalidatePath('/portal/application')
+    revalidatePath('/portal/dashboard')
 
     return NextResponse.json({
       success: true,
@@ -91,15 +107,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       invoiceRef: result.invoiceRef,
     })
   } catch (e) {
-    console.error('[paystack:verify]', e)
-    return NextResponse.json(
-      {
-        error:
-          e instanceof Error
-            ? e.message
-            : 'Could not verify payment. Please wait a moment and refresh.',
-      },
-      { status: 502 },
-    )
+    return apiErrorResponse('paystack/verify', e, 502)
   }
 }

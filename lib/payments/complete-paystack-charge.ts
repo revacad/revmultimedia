@@ -1,12 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAuditEvent } from '@/lib/audit/log'
 import { runAfterResponse } from '@/lib/background'
-import { sendApplicationReceived } from '@/lib/notifications/email'
-import { sendMessage } from '@/lib/notifications/sms'
+import { deliverWhatsAppThenSms } from '@/lib/notifications/log-delivery'
 import {
   canPaystackSettleInvoice,
   resolvePaystackInvoiceRef,
 } from '@/lib/payments/paystack-invoice'
+import { syncApplicationFeePaidFlag } from '@/lib/payments/settle-invoice'
 import { settlePaystackCharge, type PaystackSettleInvoice } from '@/lib/payments/paystack-settle'
 
 export type CompletePaystackResult =
@@ -52,6 +52,19 @@ export async function completePaystackCharge(
   }
 
   if (invoice.status === 'paid' || invoice.status === 'waived') {
+    if (
+      invoice.type === 'application_fee' &&
+      invoice.application_id
+    ) {
+      const sync = await syncApplicationFeePaidFlag(
+        supabase,
+        invoice.application_id,
+        invoice.id,
+      )
+      if (sync.error) {
+        return { ok: false, reason: sync.error }
+      }
+    }
     return { ok: true, alreadyPaid: true, invoiceRef: invoice.reference }
   }
 
@@ -73,6 +86,19 @@ export async function completePaystackCharge(
       settlement.reason === 'already_settled' ||
       settlement.reason === 'duplicate_reference'
     ) {
+      if (
+        invoice.type === 'application_fee' &&
+        invoice.application_id
+      ) {
+        const sync = await syncApplicationFeePaidFlag(
+          supabase,
+          invoice.application_id,
+          invoice.id,
+        )
+        if (sync.error) {
+          return { ok: false, reason: sync.error }
+        }
+      }
       return { ok: true, alreadyPaid: true, invoiceRef: invoice.reference }
     }
     console.warn('[paystack:complete] settlement skipped', {
@@ -99,10 +125,6 @@ export async function completePaystackCharge(
         )
 
         await Promise.allSettled([
-          sendApplicationReceived(app.real_email, {
-            name: app.full_name,
-            reference: app.reference,
-          }),
           sendPaymentReceiptNotification({
             invoiceId: invoice.id,
             applicationId,
@@ -114,11 +136,13 @@ export async function completePaystackCharge(
             totalPaidGhs: totalGhs,
             remainingGhs: 0,
           }),
-          sendMessage(
-            app.phone,
-            `Rev Multimedia: Application fee received! Your application ${app.reference} is now under review. We'll update you soon.`,
-            'sms',
-          ),
+          deliverWhatsAppThenSms({
+            phone: app.phone,
+            message: `Rev Multimedia: Application fee received! Your application ${app.reference} is now under review. We'll update you soon.`,
+            applicationId,
+            eventType: 'payment_confirmed',
+            supabase,
+          }),
         ])
       }
     })
@@ -144,10 +168,19 @@ export async function completePaystackCharge(
   }
 
   await logAuditEvent({
-    adminId: params.auditAdminId ?? undefined,
-    action: 'payment.paystack_completed',
-    entityType: 'invoice',
-    entityId: invoice.id,
+    actorId: params.auditAdminId ?? null,
+    actorType: params.auditAdminId ? 'admin' : null,
+    action: 'payment_confirmed',
+    targetType: 'invoice',
+    targetId: invoice.id,
+    metadata: {
+      amount: totalGhs,
+      method: 'paystack',
+      invoiceRef: invoice.reference,
+      paystackReference: params.paystackReference,
+      type: invoice.type,
+      applicationId,
+    },
     newValue: {
       invoiceRef: invoice.reference,
       paystackReference: params.paystackReference,

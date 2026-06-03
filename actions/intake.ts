@@ -2,20 +2,116 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/lib/auth/admin";
+import { requireStaffAdmin } from "@/lib/auth/admin";
 import { invalidateCourse, invalidateIntakes } from "@/lib/redis/invalidate";
-import { intakeSchema } from "@/lib/validations/course";
+import {
+  createIntakesForCoursesSchema,
+  intakeInputSchema,
+  intakeSchema,
+} from "@/lib/validations/course";
 import { uuidIdSchema } from "@/lib/validations/common";
+import { safeActionFailure } from "@/lib/errors/action";
+import type { z } from "zod";
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
+export type IntakeInput = z.infer<typeof intakeInputSchema>;
+
+async function invalidateCoursesByIds(courseIds: string[]): Promise<void> {
+  const unique = [...new Set(courseIds)];
+  await Promise.all(
+    unique.map(async (courseId) => {
+      const courseSlug = await getCourseSlug(courseId);
+      if (courseSlug) {
+        invalidateCourse(courseSlug);
+      }
+      invalidateIntakes(courseId);
+    }),
+  );
+}
+
+export async function createIntakesForCourses(
+  courseIds: string[],
+  intake: IntakeInput,
+): Promise<ActionResult<{ count: number }>> {
+  try {
+    await requireStaffAdmin();
+
+    const parsed = createIntakesForCoursesSchema.safeParse({ courseIds, intake });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid input",
+      };
+    }
+
+    const supabase = createAdminClient();
+    const rows = parsed.data.courseIds.map((course_id) => ({
+      ...parsed.data.intake,
+      course_id,
+    }));
+
+    const { data, error } = await supabase
+      .from("intakes")
+      .insert(rows)
+      .select("id, course_id");
+
+    if (error) {
+      return safeActionFailure("intake.createForCourses", error, "Failed to create intakes.");
+    }
+
+    await invalidateCoursesByIds(parsed.data.courseIds);
+    revalidatePath("/admin/intakes");
+    revalidatePath("/courses");
+
+    return { success: true, data: { count: data?.length ?? rows.length } };
+  } catch (e) {
+    return safeActionFailure("intake.createForCourses", e, "Failed to create intakes.");
+  }
+}
+
+export async function createIntakeForAllCourses(
+  intake: IntakeInput,
+): Promise<ActionResult<{ count: number }>> {
+  try {
+    await requireStaffAdmin();
+
+    const parsedIntake = intakeInputSchema.safeParse(intake);
+    if (!parsedIntake.success) {
+      return {
+        success: false,
+        error: parsedIntake.error.issues[0]?.message ?? "Invalid intake details",
+      };
+    }
+
+    const supabase = createAdminClient();
+    const { data: courses, error: coursesError } = await supabase
+      .from("courses")
+      .select("id")
+      .order("title");
+
+    if (coursesError) {
+      return safeActionFailure("intake.createForAllCourses", coursesError, "Failed to load courses.");
+    }
+
+    const courseIds = (courses ?? []).map((row) => row.id);
+    if (courseIds.length === 0) {
+      return { success: false, error: "No courses found to create intakes for." };
+    }
+
+    return createIntakesForCourses(courseIds, parsedIntake.data);
+  } catch (e) {
+    return safeActionFailure("intake.createForAllCourses", e, "Failed to create intakes.");
+  }
+}
+
 export async function createIntake(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const raw = {
       course_id: String(formData.get("course_id") ?? ""),
@@ -42,23 +138,16 @@ export async function createIntake(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("intake.create", error, "Failed to create intake.");
     }
 
-    const courseSlug = await getCourseSlug(data.course_id);
-    if (courseSlug) {
-      invalidateCourse(courseSlug);
-    }
-    invalidateIntakes(data.course_id);
+    await invalidateCoursesByIds([data.course_id]);
     revalidatePath("/admin/intakes");
     revalidatePath("/courses");
 
     return { success: true, data: { id: data.id } };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to create intake",
-    };
+    return safeActionFailure("intake.create", e, "Failed to create intake.");
   }
 }
 
@@ -67,7 +156,7 @@ export async function updateIntake(
   formData: FormData,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const raw = {
       course_id: String(formData.get("course_id") ?? ""),
@@ -95,24 +184,17 @@ export async function updateIntake(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("intake.update", error, "Failed to update intake.");
     }
 
-    const courseSlug = await getCourseSlug(data.course_id);
-    if (courseSlug) {
-      invalidateCourse(courseSlug);
-    }
-    invalidateIntakes(data.course_id);
+    await invalidateCoursesByIds([data.course_id]);
     revalidatePath("/admin/intakes");
     revalidatePath(`/admin/intakes/${id}`);
     revalidatePath("/courses");
 
     return { success: true };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to update intake",
-    };
+    return safeActionFailure("intake.update", e, "Failed to update intake.");
   }
 }
 
@@ -123,7 +205,7 @@ export async function closeIntake(id: string): Promise<ActionResult> {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid intake id" };
     }
 
-    await requireAdmin();
+    await requireStaffAdmin();
 
     const supabase = createAdminClient();
     const { data, error } = await supabase
@@ -134,28 +216,74 @@ export async function closeIntake(id: string): Promise<ActionResult> {
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return safeActionFailure("intake.close", error, "Failed to close intake.");
     }
 
-    const courseSlug = await getCourseSlug(data.course_id);
-    if (courseSlug) {
-      invalidateCourse(courseSlug);
-    }
-    invalidateIntakes(data.course_id);
+    await invalidateCoursesByIds([data.course_id]);
     revalidatePath("/admin/intakes");
     revalidatePath("/courses");
 
     return { success: true };
   } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Failed to close intake",
-    };
+    return safeActionFailure("intake.close", e, "Failed to close intake.");
   }
 }
 
 export async function markSessionComplete(id: string): Promise<ActionResult> {
   return closeIntake(id);
+}
+
+export async function deleteIntake(intakeId: string): Promise<ActionResult> {
+  try {
+    const parsed = uuidIdSchema.safeParse({ id: intakeId });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid intake id" };
+    }
+
+    await requireStaffAdmin();
+
+    const supabase = createAdminClient();
+
+    const { count, error: countError } = await supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("intake_id", parsed.data.id);
+
+    if (countError) {
+      return safeActionFailure("intake.delete", countError, "Failed to delete intake.");
+    }
+
+    const applicationCount = count ?? 0;
+    if (applicationCount > 0) {
+      return {
+        success: false,
+        error: `This intake has ${applicationCount} application(s) linked to it and cannot be deleted. Close or reassign those applications first.`,
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("intakes")
+      .delete()
+      .eq("id", parsed.data.id)
+      .select("course_id")
+      .maybeSingle();
+
+    if (error) {
+      return safeActionFailure("intake.delete", error, "Failed to delete intake.");
+    }
+
+    if (!data) {
+      return { success: false, error: "Intake not found." };
+    }
+
+    await invalidateCoursesByIds([data.course_id]);
+    revalidatePath("/admin/intakes");
+    revalidatePath("/courses");
+
+    return { success: true };
+  } catch (e) {
+    return safeActionFailure("intake.delete", e, "Failed to delete intake.");
+  }
 }
 
 async function getCourseSlug(courseId: string): Promise<string | null> {

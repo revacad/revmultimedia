@@ -9,6 +9,10 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
+        design: 'bg-primary-light text-primary',
+        video_motion: 'bg-secondary-light text-secondary-hover',
+        technology: 'bg-accent-light text-accent-hover',
+        marketing: 'bg-[#FEF0F4] text-[#C74A86]',
         graphic_design: 'bg-primary-light text-primary',
         motion_graphics: 'bg-secondary-light text-secondary-hover',
         video_editing: 'bg-accent-light text-accent-hover',

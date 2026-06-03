@@ -75,7 +75,7 @@ export default function ContactPageClient() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
-  const [website, setWebsite] = useState('')
+  const [honeypot, setHoneypot] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -86,7 +86,7 @@ export default function ContactPageClient() {
     setFormSuccess(false)
     startTransition(async () => {
       const result = await submitContactForm({
-        website,
+        _hp: honeypot,
         name,
         email,
         phone: phone || undefined,
@@ -101,7 +101,7 @@ export default function ContactPageClient() {
       setEmail('')
       setPhone('')
       setMessage('')
-      setWebsite('')
+      setHoneypot('')
     })
   }
 
@@ -150,7 +150,7 @@ export default function ContactPageClient() {
           className="relative rounded-2xl border border-gray-100 bg-surface p-8 shadow-md"
           onSubmit={handleContactSubmit}
         >
-          <HoneypotField value={website} onChange={setWebsite} />
+          <HoneypotField value={honeypot} onChange={setHoneypot} />
           <h2 className="font-display text-2xl font-bold text-dark">Send a message</h2>
           <p className="mt-2 text-sm text-gray-600">
             We typically respond within one business day.

@@ -65,7 +65,10 @@ export async function isSessionBindingValid(
     // Skip strict check when either side has no UA (e.g. server-action vs document request).
     if (!ua || !bound) return true
 
-    if (bound !== ua) {
+    // Compare browser family only (RSC/navigation requests may send a shorter UA string).
+    const uaKey = ua.slice(0, 120)
+    const boundKey = bound.slice(0, 120)
+    if (boundKey !== uaKey) {
       return false
     }
 

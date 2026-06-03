@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { Receiver } from '@upstash/qstash'
 import { Client } from '@upstash/qstash'
-import { processCampaignBatch } from '@/lib/messaging/process-batch'
 import { z } from 'zod'
+import { withApiHandler } from '@/lib/errors/api'
+import { processCampaignBatch } from '@/lib/messaging/process-batch'
 
 type ProcessBody = {
   campaignId: string
@@ -12,7 +13,7 @@ const processBodySchema = z.object({
   campaignId: z.string().uuid('Invalid campaignId'),
 })
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   let bodyText: string
 
   if (process.env.NODE_ENV === 'development') {
@@ -78,3 +79,5 @@ export async function POST(request: Request) {
     done: result.done,
   })
 }
+
+export const POST = withApiHandler('messaging/process', handlePost)

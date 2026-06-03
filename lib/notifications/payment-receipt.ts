@@ -1,9 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateAndStorePaystackReceiptPdf, generateAndStoreReceiptPdf } from '@/lib/pdf/generate'
 import { sendPaymentReceiptEmail } from '@/lib/notifications/email'
-import { sendMessage } from '@/lib/notifications/sms'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
-import { paymentTypeLabelFromSlug } from '@/lib/payments/payment-types'
+import {
+  deliverWhatsAppThenSms,
+  logNotification,
+} from '@/lib/notifications/log-delivery'
+import { r2DocumentAbsoluteUrl } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
+import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
@@ -49,11 +53,9 @@ export async function sendPaymentReceiptNotification(options: {
   const paymentType = firstRelation(
     invoice.payment_types as { label: string } | { label: string }[] | null,
   )
-  const paymentForLabel =
-    paymentType?.label ?? paymentTypeLabelFromSlug(invoice.type)
+  const paymentForLabel = formatInvoiceType(invoice.type, paymentType?.label)
 
   let receiptPdfUrl = ''
-  const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
   let pdfKey: string | null = null
   if (options.installmentId) {
     pdfKey = await generateAndStoreReceiptPdf(options.installmentId)
@@ -63,29 +65,53 @@ export async function sendPaymentReceiptNotification(options: {
       options.transactionRef,
     )
   }
-  if (pdfKey && bucket) {
-    receiptPdfUrl = await generatePresignedDownloadUrl(bucket, pdfKey, 86400 * 7)
+  if (pdfKey) {
+    receiptPdfUrl = r2DocumentAbsoluteUrl(normalizeR2ObjectKey(pdfKey))
   }
 
-  await sendPaymentReceiptEmail(application.real_email, {
-    name: application.full_name,
-    invoiceReference: invoice.reference,
-    paymentForLabel,
-    amountPaidGhs: options.amountPaidGhs,
-    totalInvoiceGhs: Number(invoice.total_ghs),
-    totalPaidGhs: options.totalPaidGhs ?? options.amountPaidGhs,
-    remainingGhs: options.remainingGhs ?? 0,
-    fullyPaid: options.fullyPaid,
-    paymentMethod: options.paymentMethod,
-    receiptPdfUrl: receiptPdfUrl || undefined,
-  })
+  try {
+    await sendPaymentReceiptEmail(application.real_email, {
+      name: application.full_name,
+      invoiceReference: invoice.reference,
+      paymentForLabel,
+      amountPaidGhs: options.amountPaidGhs,
+      totalInvoiceGhs: Number(invoice.total_ghs),
+      totalPaidGhs: options.totalPaidGhs ?? options.amountPaidGhs,
+      remainingGhs: options.remainingGhs ?? 0,
+      fullyPaid: options.fullyPaid,
+      paymentMethod: options.paymentMethod,
+      receiptPdfUrl: receiptPdfUrl || undefined,
+    })
+    await logNotification(supabase, {
+      applicationId: options.applicationId,
+      channel: 'email',
+      eventType: 'payment_confirmed',
+      recipient: application.real_email,
+      status: 'sent',
+    })
+  } catch (err) {
+    await logNotification(supabase, {
+      applicationId: options.applicationId,
+      channel: 'email',
+      eventType: 'payment_confirmed',
+      recipient: application.real_email,
+      status: 'failed',
+      providerResponse: {
+        error: err instanceof Error ? err.message : 'Payment receipt email failed',
+      },
+    })
+  }
 
   const smsAmount = options.amountPaidGhs.toFixed(2)
-  await sendMessage(
-    application.phone,
-    options.fullyPaid
-      ? `Rev Multimedia: Payment of GHS ${smsAmount} received for ${paymentForLabel} (${invoice.reference}). Thank you!`
-      : `Rev Multimedia: Payment of GHS ${smsAmount} recorded for ${invoice.reference}. Balance remaining on your invoice.`,
-    'sms',
-  )
+  const smsBody = options.fullyPaid
+    ? `Rev Multimedia: Payment of GHS ${smsAmount} received for ${paymentForLabel} (${invoice.reference}). Thank you!`
+    : `Rev Multimedia: Payment of GHS ${smsAmount} recorded for ${invoice.reference}. Balance remaining on your invoice.`
+
+  await deliverWhatsAppThenSms({
+    phone: application.phone,
+    message: smsBody,
+    applicationId: options.applicationId,
+    eventType: 'payment_confirmed',
+    supabase,
+  })
 }

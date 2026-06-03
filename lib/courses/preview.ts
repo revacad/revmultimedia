@@ -5,7 +5,7 @@ export const PREVIEW_GRAPHIC_DESIGN_COURSE: Course = {
   id: "preview-graphic-design",
   title: "Graphic Design",
   slug: "graphic-design",
-  category: "graphic_design",
+  category: "design",
   mode: "in_person",
   description:
     "Master visual communication. Typography, layout, brand systems, and digital design built on principles that outlast any software update.",
@@ -15,6 +15,10 @@ export const PREVIEW_GRAPHIC_DESIGN_COURSE: Course = {
   max_slots: 20,
   is_published: true,
   thumbnail_r2_key: null,
+  instructor_name: null,
+  instructor_title: null,
+  instructor_bio: null,
+  instructor_photo_r2_key: null,
   intakes: [
     {
       id: "preview-intake-1",
@@ -30,9 +34,9 @@ export const PREVIEW_GRAPHIC_DESIGN_COURSE: Course = {
   ],
 };
 
-/** TEMP: shown when no courses are in DB yet */
+/** TEMP: shown when no courses are in DB yet (development only). */
 export function withPreviewCourses(courses: Course[]): Course[] {
-  if (courses.length > 0) {
+  if (process.env.NODE_ENV === 'production' || courses.length > 0) {
     return courses;
   }
   return [PREVIEW_GRAPHIC_DESIGN_COURSE];

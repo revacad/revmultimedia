@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import PortalErrorState from '@/components/portal/PortalErrorState'
 
 interface PaystackButtonProps {
   applicationRef: string
@@ -33,17 +34,43 @@ export function PaystackButton({
 }: PaystackButtonProps) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ title: string; message: string } | null>(null)
+  const [paystackReady, setPaystackReady] = useState(false)
+
+  const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
 
   useEffect(() => {
+    if (!publicKey) {
+      setError({
+        title: 'Online payment unavailable',
+        message:
+          'Card payments are temporarily unavailable. Use the bank transfer instructions on this page, or try again later.',
+      })
+      return
+    }
+
+    if (window.PaystackPop) {
+      setPaystackReady(true)
+      return
+    }
+
     const script = document.createElement('script')
     script.src = 'https://js.paystack.co/v1/inline.js'
     script.async = true
-    document.head.appendChild(script)
-    return () => {
-      document.head.removeChild(script)
+    script.onload = () => setPaystackReady(true)
+    script.onerror = () => {
+      setError({
+        title: 'Payment form did not load',
+        message: 'We could not open the payment window. Check your connection and try again.',
+      })
     }
-  }, [])
+    document.head.appendChild(script)
+
+    return () => {
+      script.onload = null
+      script.onerror = null
+    }
+  }, [publicKey])
 
   async function confirmPaymentOnServer(reference: string) {
     setConfirming(true)
@@ -56,28 +83,47 @@ export function PaystackButton({
         body: JSON.stringify({ reference }),
       })
 
-      const data = (await res.json()) as { error?: string; success?: boolean }
+      const data = (await res.json()) as {
+        error?: string
+        success?: boolean
+        alreadyPaid?: boolean
+      }
 
-      if (!res.ok) {
-        setError(data.error ?? 'Payment verification failed. Please refresh in a moment.')
+      if (!res.ok || !data.success) {
+        setError({
+          title: 'Payment not confirmed yet',
+          message:
+            'We could not confirm your payment right away. If Paystack charged you, wait a minute and try again.',
+        })
         return
       }
 
       router.refresh()
     } catch {
-      setError(
-        'We could not confirm your payment yet. If Paystack charged you, refresh this page in a minute.',
-      )
+      setError({
+        title: 'Payment not confirmed yet',
+        message:
+          'We could not confirm your payment right away. If Paystack charged you, wait a minute and try again.',
+      })
     } finally {
       setConfirming(false)
     }
   }
 
   const handlePayment = () => {
-    const key = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
-    if (!key || !window.PaystackPop) {
-      console.error('Paystack is not configured')
-      setError('Online payment is not configured. Please contact the academy.')
+    if (!publicKey || !paystackReady || !window.PaystackPop) {
+      setError(
+        !publicKey
+          ? {
+              title: 'Online payment unavailable',
+              message:
+                'Card payments are temporarily unavailable. Use the bank transfer instructions on this page.',
+            }
+          : {
+              title: 'Payment form is loading',
+              message: 'Please wait a moment, then try again.',
+            },
+      )
       return
     }
 
@@ -86,7 +132,7 @@ export function PaystackButton({
     const paystackRef = `${invoiceRef}-${Date.now()}`
 
     const handler = window.PaystackPop.setup({
-      key,
+      key: publicKey,
       email,
       amount,
       currency: 'GHS',
@@ -107,7 +153,7 @@ export function PaystackButton({
     handler.openIframe()
   }
 
-  const disabled = amount <= 0 || confirming
+  const disabled = amount <= 0 || confirming || !paystackReady || !publicKey
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -131,12 +177,28 @@ export function PaystackButton({
       >
         {confirming
           ? 'Confirming payment…'
-          : disabled && amount <= 0
-            ? 'Nothing left to pay'
-            : `Pay GHS ${(amount / 100).toFixed(2)}`}
+          : !publicKey
+            ? 'Payment unavailable'
+            : !paystackReady
+              ? 'Loading payment…'
+              : amount <= 0
+                ? 'Nothing left to pay'
+                : `Pay GHS ${(amount / 100).toFixed(2)}`}
       </button>
       {error && (
-        <p className="max-w-sm text-center font-body text-sm text-[#E84A4A]">{error}</p>
+        <PortalErrorState
+          variant="inline"
+          title={error.title}
+          message={error.message}
+          onRetry={() => {
+            setError(null)
+            if (paystackReady) {
+              handlePayment()
+            } else {
+              router.refresh()
+            }
+          }}
+        />
       )}
     </div>
   )

@@ -4,6 +4,9 @@ import { withRetry } from '@/lib/retry'
 import type { CommunicationChannel } from '@/lib/messaging/types'
 
 import { escapeHtml } from '@/lib/security/escape-html'
+import { logServerError } from '@/lib/errors/log'
+
+const SEND_ERROR = 'Message could not be sent. Please try again.'
 
 export async function sendCampaignMessage(params: {
   channel: CommunicationChannel
@@ -38,13 +41,15 @@ export async function sendCampaignMessage(params: {
         { maxRetries: 3, baseDelayMs: 1000 },
       )
       if (error) {
-        return { sent: false, error: error.message }
+        logServerError('messaging/send:email', error)
+        return { sent: false, error: SEND_ERROR }
       }
       return { sent: true }
     } catch (e) {
+      logServerError('messaging/send:email', e)
       return {
         sent: false,
-        error: e instanceof Error ? e.message : 'Email send failed',
+        error: SEND_ERROR,
       }
     }
   }
@@ -59,7 +64,8 @@ export async function sendCampaignMessage(params: {
     return { sent: false, skipped: true, error: 'SMS provider not configured' }
   }
   if (result.error) {
-    return { sent: false, error: result.error }
+    logServerError('messaging/send:sms', new Error(result.error))
+    return { sent: false, error: SEND_ERROR }
   }
   return {
     sent: true,

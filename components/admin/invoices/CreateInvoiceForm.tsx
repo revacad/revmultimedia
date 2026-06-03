@@ -278,7 +278,9 @@ export default function CreateInvoiceForm({
             <div className="space-y-3">
               {settings.momo_number_1 && (
                 <div className="rounded-lg border border-[#EFEFF5] bg-[#F7F8FC] p-3">
-                  <p className="font-body text-xs font-semibold uppercase text-[#9898B8]">MoMo</p>
+                  <p className="font-body text-sm font-semibold text-[#1A1A2E]">
+                    Pay via {settings.momo_provider?.trim() || 'MTN MoMo'}
+                  </p>
                   <p className="font-body text-sm text-[#1A1A2E]">{settings.momo_number_1}</p>
                 </div>
               )}

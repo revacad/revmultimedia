@@ -43,51 +43,76 @@ BEGIN
     updated_at = now()
   WHERE id = p_invoice_id;
 
-  v_student_id := public.generate_student_id();
+  SELECT s.id, s.student_id
+  INTO v_student_pk, v_student_id
+  FROM students s
+  WHERE s.application_id = v_application.id
+  ORDER BY s.created_at ASC NULLS LAST, s.id ASC
+  LIMIT 1;
 
-  INSERT INTO students (
-    student_id,
-    application_id,
-    auth_user_id,
-    full_name,
-    real_email,
-    phone,
-    date_of_birth,
-    gender,
-    country,
-    address,
-    state_region,
-    city
-  ) VALUES (
-    v_student_id,
-    v_application.id,
-    v_application.auth_user_id,
-    v_application.full_name,
-    v_application.real_email,
-    v_application.phone,
-    v_application.date_of_birth,
-    v_application.gender,
-    v_application.country,
-    v_application.address,
-    v_application.state_region,
-    v_application.city
-  )
-  RETURNING id INTO v_student_pk;
+  IF v_student_pk IS NULL THEN
+    v_student_id := public.generate_student_id();
 
-  INSERT INTO enrollments (
-    student_id,
-    course_id,
-    intake_id,
-    application_id,
-    status
-  ) VALUES (
-    v_student_pk,
-    v_application.course_id,
-    v_application.intake_id,
-    v_application.id,
-    'active'
-  )
-  RETURNING id INTO v_enrollment_id;
+    INSERT INTO students (
+      student_id,
+      application_id,
+      auth_user_id,
+      full_name,
+      real_email,
+      phone,
+      date_of_birth,
+      gender,
+      country,
+      address,
+      state_region,
+      city
+    ) VALUES (
+      v_student_id,
+      v_application.id,
+      v_application.auth_user_id,
+      v_application.full_name,
+      v_application.real_email,
+      v_application.phone,
+      v_application.date_of_birth,
+      v_application.gender,
+      v_application.country,
+      v_application.address,
+      v_application.state_region,
+      v_application.city
+    )
+    ON CONFLICT (application_id) DO NOTHING;
+
+    SELECT s.id, s.student_id
+    INTO v_student_pk, v_student_id
+    FROM students s
+    WHERE s.application_id = v_application.id
+    ORDER BY s.created_at ASC NULLS LAST, s.id ASC
+    LIMIT 1;
+  END IF;
+
+  SELECT e.id
+  INTO v_enrollment_id
+  FROM enrollments e
+  WHERE e.application_id = v_application.id
+  ORDER BY e.enrolled_at ASC NULLS LAST, e.id ASC
+  LIMIT 1;
+
+  IF v_enrollment_id IS NULL THEN
+    INSERT INTO enrollments (
+      student_id,
+      course_id,
+      intake_id,
+      application_id,
+      status
+    ) VALUES (
+      v_student_pk,
+      v_application.course_id,
+      v_application.intake_id,
+      v_application.id,
+      'active'
+    )
+    RETURNING id INTO v_enrollment_id;
+  END IF;
 
   UPDATE applications
   SET status = 'accepted', updated_at = now()

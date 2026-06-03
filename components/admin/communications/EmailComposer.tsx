@@ -2,8 +2,6 @@
 
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
-import Link from '@tiptap/extension-link'
 import { useEffect } from 'react'
 
 interface EmailComposerProps {
@@ -37,9 +35,10 @@ function ToolbarButton({
 export default function EmailComposer({ value, onChange }: EmailComposerProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] } }),
-      Underline,
-      Link.configure({ openOnClick: false }),
+      StarterKit.configure({
+        heading: { levels: [2, 3] },
+        link: { openOnClick: false },
+      }),
     ],
     content: value || '<p></p>',
     onUpdate: ({ editor: ed }) => {

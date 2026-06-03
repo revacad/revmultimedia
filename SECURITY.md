@@ -13,14 +13,14 @@ This document describes how user input and outbound security controls work in th
 1. Define a **Zod schema** in `lib/validations/` (length limits, enums, UUIDs, email format).
 2. Parse at the server boundary (Server Action, Route Handler, or RPC caller).
 3. For plain text fields, run **`sanitizePlainText()`** from `lib/security/html.ts` before insert.
-4. For admin rich text (curriculum, HTML descriptions), run **`sanitizeRichHtml()`** before save.
+4. For admin rich text (curriculum, HTML descriptions), run **`sanitizeCourseContent()`** (`lib/security/sanitize-html.ts`) before save and on public render.
 5. For file metadata, use **`sanitizeFileName()`** and whitelisted **`APPLICATION_DOCUMENT_TYPES`** (`lib/security/files.ts`).
 6. For redirect query params, use **`sanitizeRedirectPath()`** (portal paths only).
 
 ## Displaying user-generated content
 
 - **Plain text in React**: use `{value}` in JSX (React escapes HTML by default).
-- **Rich HTML**: render only through **`SanitizedHtml`** (DOMPurify allowlist in `lib/security/html.ts`).
+- **Rich HTML**: render only through **`SanitizedHtml`** (`sanitizeCourseContent()` allowlist).
 - **Email HTML**: interpolate user data only via **`escapeHtml()`** (`lib/security/html.ts` / `lib/notifications/email-components.ts`).
 
 ## HTTP security headers
@@ -62,9 +62,12 @@ Limiters live in **`lib/redis/ratelimit.ts`**. Use **`rateLimitOrNull()`** in Ro
 
 ## File uploads
 
-- Validate MIME type and size on the server (`app/api/r2/presign/route.ts`, `app/api/r2/upload/route.ts`).
-- Presigned keys must match `uploadContext` (draft ID, document type enum).
-- Private bucket objects are not served directly; use presigned download URLs where needed.
+- Allowed types: **jpg, jpeg, png, webp, pdf** only (`lib/security/upload-policy.ts`).
+- All bytes pass through **`/api/r2/upload`**: magic-byte sniffing, double-extension rejection, Sharp re-encode for images (strips metadata), PDF marker scan (`lib/security/upload-validate.ts`).
+- **`/api/r2/presign`** allocates random object keys only (no direct browser PUT to R2).
+- Rate limits: `fileUploadBurstLimit` (10/min per IP), `applicationUploadLimit` (30/hour) on presign/upload/confirm.
+- Private objects: **`/api/r2/document`** (auth + short-lived signed URL, `Content-Disposition: attachment`).
+- Suspicious uploads logged via `logSuspiciousUpload()` (IP, user id, reason).
 
 ## URL / query parameters
 

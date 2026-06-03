@@ -10,6 +10,7 @@ import type { ApplicationFormData, UploadedFileMeta } from '@/lib/apply/types'
 interface Step4DocumentsProps {
   formData: Partial<ApplicationFormData>
   draftId: string
+  uploadToken: string
   fieldErrors?: ApplyFieldErrors
   showValidation?: boolean
   onChange: (patch: Partial<ApplicationFormData>) => void
@@ -18,6 +19,7 @@ interface Step4DocumentsProps {
 export default function Step4Documents({
   formData,
   draftId,
+  uploadToken,
   fieldErrors = {},
   showValidation = false,
   onChange,
@@ -42,6 +44,7 @@ export default function Step4Documents({
             accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
             maxSizeBytes={5 * 1024 * 1024}
             draftId={draftId}
+            uploadToken={uploadToken}
             documentType={isGhana ? 'national_id' : 'passport'}
             value={formData.idDocument}
             fieldError={err('idDocument')}
@@ -57,6 +60,7 @@ export default function Step4Documents({
             accept=".jpg,.jpeg,.png,image/jpeg,image/png"
             maxSizeBytes={2 * 1024 * 1024}
             draftId={draftId}
+            uploadToken={uploadToken}
             documentType="passport_photo"
             value={formData.passportPhoto}
             fieldError={err('passportPhoto')}
@@ -66,6 +70,7 @@ export default function Step4Documents({
 
         <CertificatesUpload
           draftId={draftId}
+          uploadToken={uploadToken}
           certificates={formData.certificates ?? []}
           onChange={(certificates) => onChange({ certificates })}
         />
@@ -113,10 +118,12 @@ function CertificateFileRow({
 
 function CertificatesUpload({
   draftId,
+  uploadToken,
   certificates,
   onChange,
 }: {
   draftId: string
+  uploadToken: string
   certificates: NonNullable<ApplicationFormData['certificates']>
   onChange: (files: ApplicationFormData['certificates']) => void
 }) {
@@ -127,7 +134,7 @@ function CertificatesUpload({
   const canAddMore = certificates.length < 3
 
   const uploadCertificate = async (file: File, index: number): Promise<UploadedFileMeta> => {
-    return uploadApplicationDocument(file, draftId, `certificate_${index}`)
+    return uploadApplicationDocument(file, draftId, `certificate_${index}`, uploadToken)
   }
 
   const handleCertificatesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

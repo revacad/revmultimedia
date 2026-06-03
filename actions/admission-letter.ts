@@ -1,16 +1,22 @@
 'use server'
 
+import { safeActionError } from '@/lib/errors/action'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import { generateAndStoreAdmissionLetterPdf } from '@/lib/pdf/generate'
 import { sendAdmissionLetterEmail } from '@/lib/notifications/email'
+import { logAuditEvent } from '@/lib/audit/log'
+import { logNotification } from '@/lib/notifications/log-delivery'
 import {
   deriveProgramLifecycleStatus,
   sumTuitionPaidFromInvoices,
 } from '@/lib/enrollment/program-status'
+import { ensureStudentRecordForApplication } from '@/lib/enrollment/ensure-student-record'
 import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
 import { sendAdmissionLetterSchema } from '@/lib/validations/admission-letter'
+
+const ADMISSION_LETTER_EMAIL_URL_TTL_SECONDS = 604800 // 7 days
 
 export async function sendAdmissionLetter(
   applicationId: string,
@@ -20,7 +26,7 @@ export async function sendAdmissionLetter(
     return { error: parsed.error.issues[0]?.message ?? 'Invalid request' }
   }
 
-  const session = await requireAdmin().catch(() => null)
+  const session = await requireStaffAdmin().catch(() => null)
   if (!session) {
     return { error: 'Not an admin' }
   }
@@ -55,7 +61,7 @@ export async function sendAdmissionLetter(
 
   if (application.status !== 'accepted') {
     return {
-      error: 'Admission letters can only be sent for accepted applications.',
+      error: 'Enrollment letters can only be sent for accepted applications.',
     }
   }
 
@@ -82,23 +88,30 @@ export async function sendAdmissionLetter(
   if (effectiveTuitionPaid <= 0) {
     return {
       error:
-        'Record at least one tuition payment before sending the admission letter.',
+        'Record at least one tuition payment before sending the enrollment letter.',
+    }
+  }
+
+  const ensuredStudent = await ensureStudentRecordForApplication(
+    supabase,
+    parsed.data.applicationId,
+  )
+  if (!ensuredStudent) {
+    return {
+      error:
+        'Could not create a student record for this application. Ensure the applicant has a portal account (auth link) before sending the enrollment letter.',
     }
   }
 
   const pdfKey = await generateAndStoreAdmissionLetterPdf(parsed.data.applicationId)
   if (!pdfKey) {
-    return { error: 'Failed to generate admission letter PDF' }
+    return { error: 'Failed to generate enrollment letter PDF' }
   }
 
   const now = new Date().toISOString()
-  const fileName = `Admission-Letter-${application.reference}.pdf`
+  const fileName = `Enrollment-Letter-${application.reference}.pdf`
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('id')
-    .eq('application_id', parsed.data.applicationId)
-    .maybeSingle()
+  const student = ensuredStudent
 
   await supabase
     .from('documents')
@@ -108,7 +121,7 @@ export async function sendAdmissionLetter(
 
   await supabase.from('documents').insert({
     application_id: parsed.data.applicationId,
-    student_id: student?.id ?? null,
+    student_id: student.id,
     document_type: 'admission_letter',
     r2_key: pdfKey,
     file_name: fileName,
@@ -131,13 +144,26 @@ export async function sendAdmissionLetter(
     .eq('id', parsed.data.applicationId)
 
   if (updateError) {
-    return { error: updateError.message }
+    return safeActionError('admission-letter.update', updateError, 'Failed to send admission letter.')
   }
 
   const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-  let pdfUrl = ''
-  if (bucket) {
-    pdfUrl = await generatePresignedDownloadUrl(bucket, pdfKey, 86400 * 7)
+  if (!bucket) {
+    return { error: 'Storage not configured' }
+  }
+
+  let pdfUrl: string
+  try {
+    pdfUrl = await generatePresignedDownloadUrl(
+      bucket,
+      pdfKey,
+      ADMISSION_LETTER_EMAIL_URL_TTL_SECONDS,
+    )
+  } catch (presignError) {
+    console.error('[admission-letter] presigned download URL failed', {
+      message: presignError instanceof Error ? presignError.message : String(presignError),
+    })
+    return { error: 'Failed to create download link for enrollment letter' }
   }
 
   const courseRel = application.courses as
@@ -152,27 +178,34 @@ export async function sendAdmissionLetter(
       name: application.full_name,
       courseName: courseName ?? 'your programme',
       applicationReference: application.reference,
-      pdfUrl: pdfUrl || undefined,
+      pdfUrl,
     })
     emailStatus = 'sent'
   } catch {
     emailStatus = 'failed'
   }
 
-  await supabase.from('notifications_log').insert({
-    application_id: parsed.data.applicationId,
-    student_id: student?.id ?? null,
+  await logAuditEvent({
+    actorId: admin.id,
+    actorType: 'admin',
+    action: 'enrollment_letter_sent',
+    targetType: 'application',
+    targetId: application.reference,
+    metadata: { applicationId: parsed.data.applicationId, studentId: student.id },
+  })
+
+  await logNotification(supabase, {
+    applicationId: parsed.data.applicationId,
+    studentId: student.id,
     channel: 'email',
-    event_type: 'admission_letter_sent',
+    eventType: 'admission_letter_sent',
     recipient: application.real_email,
     status: emailStatus,
-    provider_response: pdfUrl ? { pdfUrl } : null,
+    providerResponse: { documentKey: pdfKey },
   })
 
   revalidatePath(`/admin/applications/${parsed.data.applicationId}`)
-  if (student?.id) {
-    revalidatePath(`/admin/students/${student.id}`)
-  }
+  revalidatePath(`/admin/students/${student.id}`)
   revalidatePath('/admin/students')
 
   const lifecycle = deriveProgramLifecycleStatus({

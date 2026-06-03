@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/errors/api";
+import { assertDraftUploadAuthorized } from "@/lib/apply/verify-draft-upload-token";
 import { applicationUploadLimit } from "@/lib/redis/ratelimit";
 import { getRequestIp, rateLimitOrNull } from "@/lib/security/rate-limit-request";
 import { r2ConfirmBodySchema } from "@/lib/validations/api";
@@ -22,6 +24,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Invalid upload key" }, { status: 400 });
     }
 
+    const authError = await assertDraftUploadAuthorized(request, body.draftId);
+    if (authError) return authError;
+
     return NextResponse.json({
       success: true,
       key: body.r2Key,
@@ -30,7 +35,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       fileSize: body.fileSize,
       mimeType: body.mimeType,
     });
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  } catch (error) {
+    return apiErrorResponse("r2/confirm", error);
   }
 }

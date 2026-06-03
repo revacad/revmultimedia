@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import { normalisePhone } from '@/lib/phone'
 import {
   addAdminNoteSchema,
@@ -11,13 +11,20 @@ import {
 } from '@/lib/validations/application'
 import { checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency'
 import {
-  sendApplicationReceived,
   sendAdminNewApplication,
   sendStatusChanged,
 } from '@/lib/notifications/email'
-import { sendMessage } from '@/lib/notifications/sms'
+import {
+  deliverApplicationReceivedEmail,
+  deliverWaitlistConfirmationEmail,
+  deliverWhatsAppThenSms,
+  logNotification,
+} from '@/lib/notifications/log-delivery'
+import { notifyParentLevelUpApplicationSubmitted } from '@/lib/notifications/parent-level-up'
 import { runAfterResponse } from '@/lib/background'
 import { logAuditEvent } from '@/lib/audit/log'
+import { safeActionError } from '@/lib/errors/action'
+import { createApplicantAuthUserAndLink } from '@/lib/auth/link-application-auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   createTuitionInvoice,
@@ -36,6 +43,8 @@ type RpcResult = {
   reference?: string
   application_id?: string
   invoice_reference?: string
+  waitlisted?: boolean
+  waitlist_position?: number
 }
 
 const UUID_RE =
@@ -44,6 +53,9 @@ const UUID_RE =
 const RPC_TIMEOUT_MS = 15_000
 
 function isPreviewApplication(courseId: string, intakeId: string): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false
+  }
   return (
     courseId === 'preview-graphic-design' ||
     intakeId === 'preview-intake-sept-2025' ||
@@ -73,7 +85,7 @@ type SubmitPayload = {
   country: string
   fullName: string
   email: string
-  password: string
+  password?: string
   documents: {
     idDocument: { key: string; fileName: string; fileSize: number; mimeType: string }
     passportPhoto: { key: string; fileName: string; fileSize: number; mimeType: string }
@@ -129,19 +141,19 @@ async function runPostSubmitSideEffects(
 
   const { error: docsError } = await supabase.from('documents').insert(documentRows)
   if (docsError) {
-    console.error('Documents insert error:', docsError)
+    console.error('Documents insert error:', {
+      message: docsError.message,
+      code: docsError.code,
+    })
   }
 
-  const internalEmail = `${rpc.reference}@${process.env.INTERNAL_EMAIL_DOMAIN!}`
-
-  const { error: authError } = await supabase.auth.admin.createUser({
-    email: internalEmail,
-    password: data.password,
-    email_confirm: true,
-  })
-
-  if (authError && !authError.message.includes('already registered')) {
-    console.error('Auth error:', authError)
+  if (rpc.application_id && rpc.reference && data.password) {
+    await createApplicantAuthUserAndLink(
+      supabase,
+      rpc.application_id,
+      rpc.reference,
+      data.password,
+    )
   }
 
   await storeIdempotencyResult(idempotencyKey, successResult)
@@ -153,14 +165,26 @@ export async function submitApplication(formData: unknown) {
     return { error: 'Invalid form data', details: parsed.error.flatten() }
   }
 
-  const data = parsed.data
+  const data = {
+    ...parsed.data,
+    ...(parsed.data.applicationChannel === 'level_up'
+      ? {
+          qualification: 'wassce' as const,
+          institution:
+            parsed.data.institution?.trim() ||
+            parsed.data.shsSchoolNameFreeform?.trim() ||
+            '',
+        }
+      : {}),
+  }
   const ip = await getClientIp()
 
   const guard = await guardFormSubmission({
     form: 'apply',
     ip,
     email: data.email,
-    honeypot: data.website,
+    honeypot: data._hp ?? data.fax,
+    phone: data.phone,
     fieldValues: [
       data.fullName,
       data.email,
@@ -168,9 +192,9 @@ export async function submitApplication(formData: unknown) {
       data.address,
       data.stateRegion ?? '',
       data.city ?? '',
-      data.institution,
+      data.institution ?? '',
       data.priorExperience ?? '',
-      data.password,
+      data.password ?? '',
     ],
   })
   if (!guard.ok) return { error: guard.error }
@@ -200,7 +224,7 @@ export async function submitApplication(formData: unknown) {
     ...data,
     fullName: sanitizePlainText(data.fullName, 200),
     address: sanitizePlainText(data.address, 500),
-    institution: sanitizePlainText(data.institution, 200),
+    institution: sanitizePlainText(data.institution ?? '', 200),
     stateRegion: data.stateRegion
       ? sanitizePlainText(data.stateRegion, 120)
       : undefined,
@@ -252,8 +276,8 @@ export async function submitApplication(formData: unknown) {
     })
     const previewResult = {
       success: true as const,
-      reference: 'REVAPP202500001',
-      invoiceReference: 'REVAPF202500001',
+      reference: 'PREVIEW-APP-REF',
+      invoiceReference: 'PREVIEW-INV-REF',
       isPreview: true,
       applicantName: data.fullName,
       email: data.email,
@@ -266,15 +290,18 @@ export async function submitApplication(formData: unknown) {
 
   const supabase = createAdminClient()
 
+  const applicantEmail = sanitisedData.email
+  const applicantName = sanitisedData.fullName
+
   let result: RpcResult | null = null
   let error: { message: string; code?: string; details?: string; hint?: string } | null = null
 
   try {
     const rpcResponse = await rpcWithTimeout(
       supabase.rpc('create_application', {
-        p_real_email: sanitisedData.email,
+        p_real_email: applicantEmail,
         p_phone: normalisedPhone,
-        p_full_name: sanitisedData.fullName,
+        p_full_name: applicantName,
         p_date_of_birth: sanitisedData.dateOfBirth,
         p_gender: sanitisedData.gender,
         p_country: sanitisedData.country,
@@ -282,7 +309,7 @@ export async function submitApplication(formData: unknown) {
         p_state_region: sanitisedData.stateRegion || null,
         p_city: sanitisedData.city || null,
         p_qualification: sanitisedData.qualification,
-        p_institution: sanitisedData.institution,
+        p_institution: sanitisedData.institution ?? '',
         p_year_completed: pYearCompleted,
         p_prior_experience: sanitisedData.priorExperience || null,
         p_course_id: sanitisedData.courseId,
@@ -298,7 +325,6 @@ export async function submitApplication(formData: unknown) {
     console.error('RPC create_application timed out:', rpcTimeoutError)
     return {
       error: 'Submission timed out. Please try again.',
-      debug: rpcTimeoutError instanceof Error ? rpcTimeoutError.message : 'RPC timeout',
     }
   }
 
@@ -311,7 +337,6 @@ export async function submitApplication(formData: unknown) {
     })
     return {
       error: 'Failed to submit application. Please try again.',
-      debug: error.message,
     }
   }
 
@@ -326,16 +351,23 @@ export async function submitApplication(formData: unknown) {
   }
 
   if (!rpc?.reference || !rpc.application_id) {
-    console.error('RPC create_application returned unexpected payload:', result)
+    console.error('RPC create_application returned unexpected payload', {
+      hasReference: Boolean(rpc?.reference),
+      hasApplicationId: Boolean(rpc?.application_id),
+    })
     return { error: 'Failed to submit application. Please try again.' }
   }
+
+  const isWaitlisted = Boolean(rpc.waitlisted)
 
   const successResult = {
     success: true as const,
     reference: rpc.reference,
     invoiceReference: rpc.invoice_reference,
-    applicantName: data.fullName,
-    email: data.email,
+    applicantName,
+    email: applicantEmail,
+    waitlisted: isWaitlisted,
+    waitlistPosition: rpc.waitlist_position,
   }
 
   const [{ data: courseRow }, { data: intakeRow }] = await Promise.all([
@@ -346,19 +378,56 @@ export async function submitApplication(formData: unknown) {
   const courseTitle = courseRow?.title ?? data.courseId
   const intakeName = intakeRow?.name
 
-  try {
-    await Promise.race([
-      sendApplicationReceived(data.email, {
-        name: data.fullName,
-        reference: rpc.reference,
-        courseName: courseTitle,
-        intakeName,
-      }),
-      new Promise<void>((resolve) => setTimeout(resolve, 5000)),
-    ])
-  } catch (err) {
-    console.error('Application email failed:', err)
+  const channel = data.applicationChannel ?? 'standard'
+
+  let parentWhatsappNormalized: string | null = null
+  if (channel === 'level_up') {
+    try {
+      parentWhatsappNormalized = normalisePhone(data.parentGuardianWhatsapp!, 'GH')
+    } catch {
+      return { error: 'Invalid parent/guardian WhatsApp number' }
+    }
+
+    const { error: levelUpUpdateError } = await supabase
+      .from('applications')
+      .update({
+        application_channel: 'level_up',
+        parent_guardian_whatsapp: parentWhatsappNormalized,
+        parent_guardian_email: data.parentGuardianEmail?.trim() || null,
+        shs_school_id: data.shsSchoolId ?? null,
+        shs_school_name_freeform: data.shsSchoolNameFreeform?.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', rpc.application_id)
+
+    if (levelUpUpdateError) {
+      console.error('Level Up application update failed:', levelUpUpdateError)
+    }
   }
+
+  void Promise.race([
+    isWaitlisted
+      ? deliverWaitlistConfirmationEmail({
+          email: applicantEmail,
+          name: applicantName,
+          reference: rpc.reference,
+          courseName: courseTitle,
+          intakeName: intakeName ?? 'your intake',
+          waitlistPosition: rpc.waitlist_position ?? 1,
+          applicationId: rpc.application_id!,
+          supabase,
+        })
+      : deliverApplicationReceivedEmail({
+          email: applicantEmail,
+          name: applicantName,
+          reference: rpc.reference,
+          courseName: courseTitle,
+          intakeName,
+          applicationId: rpc.application_id!,
+          supabase,
+        }),
+    new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+  ])
 
   runAfterResponse(async () => {
     await runPostSubmitSideEffects(
@@ -370,26 +439,50 @@ export async function submitApplication(formData: unknown) {
       successResult,
       courseTitle,
     )
-    await Promise.allSettled([
-      sendMessage(
-        normalisedPhone,
-        `Rev Multimedia: Hi ${data.fullName.split(' ')[0]}, your application ${rpc.reference} has been received. Log in to your portal to track it.`,
-        'sms',
-      ),
-      sendAdminNewApplication({
-        applicantName: data.fullName,
+
+    const studentSms = isWaitlisted
+      ? `Rev Multimedia: Hi ${applicantName.split(' ')[0]}, you are #${rpc.waitlist_position ?? 1} on the waitlist for ${courseTitle} (${rpc.reference}). We will contact you when a spot opens.`
+      : `Rev Multimedia: Hi ${applicantName.split(' ')[0]}, your application ${rpc.reference} has been received. Log in to your portal to track it.`
+
+    await deliverWhatsAppThenSms({
+      phone: normalisedPhone,
+      message: studentSms,
+      applicationId: rpc.application_id,
+      eventType: isWaitlisted ? 'waitlist_confirmation' : 'student_application_sms',
+      supabase,
+    })
+
+    if (channel === 'level_up' && parentWhatsappNormalized) {
+      await notifyParentLevelUpApplicationSubmitted({
+        applicationId: rpc.application_id!,
+        studentName: data.fullName,
+        reference: rpc.reference!,
+        courseName: courseTitle,
+        parentWhatsapp: parentWhatsappNormalized,
+        parentEmail: data.parentGuardianEmail,
+        supabase,
+      })
+    }
+
+    try {
+      await sendAdminNewApplication({
+        applicantName,
         reference: rpc.reference!,
         course: courseTitle,
-      }),
-    ])
+      })
+    } catch (err) {
+      console.error('Admin new application email failed:', err)
+    }
   })
 
   return {
     success: true,
     reference: rpc.reference,
     invoiceReference: rpc.invoice_reference,
-    applicantName: data.fullName,
-    email: data.email,
+    applicantName,
+    email: applicantEmail,
+    waitlisted: isWaitlisted,
+    waitlistPosition: rpc.waitlist_position,
   }
 }
 
@@ -403,7 +496,7 @@ export async function updateApplicationStatus(
       return { error: parsed.error.issues[0]?.message ?? 'Invalid request' }
     }
 
-    const session = await requireAdmin()
+    const session = await requireStaffAdmin()
     const { applicationId: appId, status: newStatus } = parsed.data
 
     const supabase = createAdminClient()
@@ -481,14 +574,16 @@ export async function updateApplicationStatus(
       .eq('id', appId)
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('application.updateStatus', error, 'Failed to update application status.')
     }
 
     await logAuditEvent({
-      adminId: admin.id,
-      action: 'application.status_changed',
-      entityType: 'application',
-      entityId: String(appId),
+      actorId: admin.id,
+      actorType: 'admin',
+      action: 'status_changed',
+      targetType: 'application',
+      targetId: String(appId),
+      metadata: { oldStatus: currentStatus, newStatus: newStatus },
       oldValue: { status: currentStatus },
       newValue: { status: newStatus },
     })
@@ -509,25 +604,41 @@ export async function updateApplicationStatus(
         deferred: `Rev Multimedia: Your application ${app.reference} has been deferred. Check your email for details.`,
       }
 
-      const results = await Promise.allSettled([
-        sendStatusChanged(app.real_email, {
+      try {
+        await sendStatusChanged(app.real_email, {
           name: app.full_name,
           status: newStatus,
           reference: app.reference,
-        }),
-        statusMessages[newStatus]
-          ? sendMessage(app.phone, statusMessages[newStatus], 'sms')
-          : Promise.resolve(),
-      ])
+        })
+        await logNotification(supabase, {
+          applicationId: appId,
+          channel: 'email',
+          eventType: 'status_changed',
+          recipient: app.real_email,
+          status: 'sent',
+        })
+      } catch (err) {
+        await logNotification(supabase, {
+          applicationId: appId,
+          channel: 'email',
+          eventType: 'status_changed',
+          recipient: app.real_email,
+          status: 'failed',
+          providerResponse: {
+            error: err instanceof Error ? err.message : 'Status email failed',
+          },
+        })
+      }
 
-      const emailFailed = results[0].status === 'rejected'
-      await supabase.from('notifications_log').insert({
-        application_id: appId,
-        channel: 'email',
-        event_type: 'status_changed',
-        recipient: app.real_email,
-        status: emailFailed ? 'failed' : 'sent',
-      })
+      if (statusMessages[newStatus]) {
+        await deliverWhatsAppThenSms({
+          phone: app.phone,
+          message: statusMessages[newStatus],
+          applicationId: appId,
+          eventType: 'status_changed',
+          supabase,
+        })
+      }
     })
 
     revalidatePath(`/admin/applications/${appId}`)
@@ -538,9 +649,7 @@ export async function updateApplicationStatus(
     }
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to update status',
-    }
+    return safeActionError('application.updateStatus', e, 'Failed to update application status.')
   }
 }
 
@@ -554,7 +663,7 @@ export async function addAdminNote(
       return { error: parsed.error.issues[0]?.message ?? 'Invalid note' }
     }
 
-    const session = await requireAdmin()
+    const session = await requireStaffAdmin()
     const { applicationId: appId, note: trimmed } = parsed.data
     const safeNote = sanitizePlainText(trimmed, 2000)
 
@@ -576,14 +685,12 @@ export async function addAdminNote(
     })
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('application.addNote', error, 'Failed to add note.')
     }
 
     revalidatePath(`/admin/applications/${appId}`)
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to add note',
-    }
+    return safeActionError('application.addNote', e, 'Failed to add note.')
   }
 }

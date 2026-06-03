@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { BreadcrumbJsonLd, CourseJsonLd } from '@/components/seo/JsonLd'
 import CourseDetailView from '@/components/public/courses/CourseDetailView'
 import { getCourseBySlug } from '@/lib/courses/queries'
-import { getPublicUrl } from '@/lib/r2/presign'
+import { presignCourseMediaKey } from '@/lib/r2/course-media-urls'
 import {
   courseTitle,
   plainCourseDescription,
@@ -58,12 +58,11 @@ export async function generateMetadata({
 
   let ogImage = `${siteUrl}/images/og-default.jpg`
   if (course.thumbnail_r2_key) {
-    try {
-      ogImage = course.thumbnail_r2_key.startsWith('http')
-        ? course.thumbnail_r2_key
-        : getPublicUrl(course.thumbnail_r2_key)
-    } catch {
-      ogImage = `${siteUrl}/images/og-default.jpg`
+    const presigned = await presignCourseMediaKey(course.thumbnail_r2_key)
+    if (presigned) {
+      ogImage = presigned
+    } else if (course.thumbnail_r2_key.startsWith('http')) {
+      ogImage = course.thumbnail_r2_key
     }
   }
 

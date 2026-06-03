@@ -22,8 +22,14 @@ export function formatPaymentDateTime(date: string | Date): string {
 }
 
 export function isOverdue(dueDate: string | null, status: string): boolean {
-  if (!dueDate || status === 'paid' || status === 'waived') return false
-  return new Date(dueDate) < new Date(new Date().toDateString())
+  if (!dueDate) return false
+  if (status !== 'unpaid' && status !== 'partially_paid') return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(dueDate)
+  due.setHours(0, 0, 0, 0)
+  return due < today
 }
 
 export function sumInstallments(

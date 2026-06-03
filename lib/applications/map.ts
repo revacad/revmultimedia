@@ -13,12 +13,25 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 export function mapApplicationListRow(row: Record<string, unknown>): ApplicationListRow {
   const courses = firstRelation(row.courses as ApplicationListRow['courses'] | ApplicationListRow['courses'][] | null)
   const intakes = firstRelation(row.intakes as ApplicationListRow['intakes'] | ApplicationListRow['intakes'][] | null)
+  const students = (row.students as { student_id: string }[] | { student_id: string } | null) ?? null
+  const returningStudent =
+    (row.returning_student as { student_id: string }[] | { student_id: string } | null) ?? null
+
+  const directStudentId =
+    (Array.isArray(students) ? students?.[0]?.student_id : students?.student_id) ?? null
+  const returningStudentId =
+    (Array.isArray(returningStudent)
+      ? returningStudent?.[0]?.student_id
+      : returningStudent?.student_id) ?? null
+
+  const student_id = directStudentId ?? returningStudentId ?? null
 
   return {
     id: row.id as string,
     reference: row.reference as string,
     full_name: row.full_name as string,
     real_email: row.real_email as string,
+    student_id,
     phone: row.phone as string,
     country: row.country as string,
     status: row.status as ApplicationListRow['status'],
@@ -46,6 +59,12 @@ export function mapApplicationDetail(row: Record<string, unknown>): ApplicationD
   const intakes = firstRelation(
     row.intakes as ApplicationDetail['intakes'] | NonNullable<ApplicationDetail['intakes']>[] | null,
   )
+  const seniorHighSchool = firstRelation(
+    row.senior_high_schools as
+      | ApplicationDetail['senior_high_schools']
+      | NonNullable<ApplicationDetail['senior_high_schools']>[]
+      | null,
+  )
   const adminNotesRaw = (row.admin_notes as ApplicationAdminNote[] | null) ?? []
   const admin_notes = adminNotesRaw.map((note) => ({
     ...note,
@@ -62,6 +81,7 @@ export function mapApplicationDetail(row: Record<string, unknown>): ApplicationD
         }
       : null,
     intakes,
+    senior_high_schools: seniorHighSchool,
     documents: (row.documents as ApplicationDetail['documents']) ?? [],
     invoices: ((row.invoices as Record<string, unknown>[]) ?? []).map((inv) => {
       const paymentType = firstRelation(
@@ -76,6 +96,8 @@ export function mapApplicationDetail(row: Record<string, unknown>): ApplicationD
         amount_ghs: Number(inv.amount_ghs),
         total_ghs: Number(inv.total_ghs),
         status: inv.status as string,
+        payment_method: (inv.payment_method as string | null) ?? null,
+        paystack_reference: (inv.paystack_reference as string | null) ?? null,
         created_at: (inv.created_at as string | null) ?? null,
         installments: installmentsRaw.map((row) => ({
           amount_ghs: Number(row.amount_ghs),

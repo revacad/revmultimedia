@@ -12,8 +12,11 @@ import {
   adminFieldClassName,
 } from '@/components/admin/AdminFormPrimitives'
 import { createCourse, updateCourse } from '@/actions/course'
+import { presignCourseMediaForPreview } from '@/actions/course-media'
 import { curriculumHtml, isVideoIntroUrl } from '@/lib/courses/curriculum'
 import { getCourseThumbnailSrc } from '@/lib/courses/thumbnail'
+import { getInstructorPhotoSrc } from '@/lib/courses/instructor-photo'
+import { COURSE_CATEGORIES } from '@/lib/courses/categories'
 import type { Course } from '@/lib/courses/types'
 
 interface CourseFormProps {
@@ -33,10 +36,19 @@ export default function CourseForm({ course }: CourseFormProps) {
   const [videoUrlError, setVideoUrlError] = useState<string | null>(null)
   const [thumbnailKey, setThumbnailKey] = useState(course?.thumbnail_r2_key ?? '')
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(() =>
-    course?.thumbnail_r2_key ? getCourseThumbnailSrc(course) : null,
+    course ? getCourseThumbnailSrc(course) : null,
   )
   const [thumbnailError, setThumbnailError] = useState<string | null>(null)
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false)
+  const instructorPhotoInputRef = useRef<HTMLInputElement>(null)
+  const [instructorPhotoKey, setInstructorPhotoKey] = useState(
+    course?.instructor_photo_r2_key ?? '',
+  )
+  const [instructorPhotoUrl, setInstructorPhotoUrl] = useState<string | null>(() =>
+    course ? getInstructorPhotoSrc(course) : null,
+  )
+  const [instructorPhotoError, setInstructorPhotoError] = useState<string | null>(null)
+  const [isUploadingInstructorPhoto, setIsUploadingInstructorPhoto] = useState(false)
 
   const canUploadImages = Boolean(course?.id)
 
@@ -59,18 +71,15 @@ export default function CourseForm({ course }: CourseFormProps) {
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       throw new Error(data.error ?? 'Upload failed')
     }
-    const { presignedUrl, publicUrl } = (await res.json()) as {
-      presignedUrl: string
+    const { key, publicUrl } = (await res.json()) as {
+      key: string
       publicUrl: string
     }
-    const uploadRes = await fetch(presignedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: { 'Content-Type': file.type },
+    const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
+    await uploadFileToR2ViaServer(file, key, {
+      type: 'course_content',
+      courseId: course.id,
     })
-    if (!uploadRes.ok) {
-      throw new Error('Failed to upload image')
-    }
     return publicUrl
   }
 
@@ -103,6 +112,7 @@ export default function CourseForm({ course }: CourseFormProps) {
           fileType: file.type,
           fileSize: file.size,
           uploadContext: 'course_thumbnail',
+          ...(course?.id ? { courseId: course.id } : {}),
         }),
       })
 
@@ -111,28 +121,82 @@ export default function CourseForm({ course }: CourseFormProps) {
         throw new Error(data.error ?? 'Upload failed')
       }
 
-      const { presignedUrl, publicUrl, key } = (await presignRes.json()) as {
-        presignedUrl: string
-        publicUrl: string
-        key: string
-      }
+      const { key } = (await presignRes.json()) as { key: string }
 
-      const uploadRes = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
+      const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
+      await uploadFileToR2ViaServer(file, key, {
+        type: 'course_thumbnail',
+        ...(course?.id ? { courseId: course.id } : {}),
       })
 
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed')
-      }
-
-      setThumbnailUrl(publicUrl)
+      const preview = await presignCourseMediaForPreview(key)
+      setThumbnailUrl(
+        preview && 'url' in preview ? preview.url : URL.createObjectURL(file),
+      )
       setThumbnailKey(key)
     } catch {
       setThumbnailError('Upload failed. Please try again.')
     } finally {
       setIsUploadingThumbnail(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleInstructorPhotoClick = () => {
+    instructorPhotoInputRef.current?.click()
+  }
+
+  const handleInstructorPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !course?.id) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setInstructorPhotoError('Please upload a JPG, PNG or WebP image')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setInstructorPhotoError('Image must be under 5MB')
+      return
+    }
+
+    setIsUploadingInstructorPhoto(true)
+    setInstructorPhotoError(null)
+
+    try {
+      const presignRes = await fetch('/api/r2/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          uploadContext: 'course_instructor_photo',
+          courseId: course.id,
+        }),
+      })
+
+      if (!presignRes.ok) {
+        const data = (await presignRes.json().catch(() => ({}))) as { error?: string }
+        throw new Error(data.error ?? 'Upload failed')
+      }
+
+      const { key } = (await presignRes.json()) as { key: string }
+
+      const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
+      await uploadFileToR2ViaServer(file, key, {
+        type: 'course_instructor_photo',
+        courseId: course.id,
+      })
+
+      const preview = await presignCourseMediaForPreview(key)
+      setInstructorPhotoUrl(
+        preview && 'url' in preview ? preview.url : URL.createObjectURL(file),
+      )
+      setInstructorPhotoKey(key)
+    } catch {
+      setInstructorPhotoError('Upload failed. Please try again.')
+    } finally {
+      setIsUploadingInstructorPhoto(false)
       e.target.value = ''
     }
   }
@@ -145,6 +209,7 @@ export default function CourseForm({ course }: CourseFormProps) {
     const formData = new FormData(e.currentTarget)
     formData.set('curriculum_html', curriculumHtmlValue)
     formData.set('thumbnail_r2_key', thumbnailKey)
+    formData.set('instructor_photo_r2_key', instructorPhotoKey)
 
     try {
       const result = course
@@ -219,12 +284,14 @@ export default function CourseForm({ course }: CourseFormProps) {
                   id="category"
                   name="category"
                   className={adminFieldClassName}
-                  defaultValue={course?.category ?? 'graphic_design'}
+                  defaultValue={course?.category ?? 'design'}
                   required
                 >
-                  <option value="graphic_design">Graphic Design</option>
-                  <option value="motion_graphics">Motion Graphics</option>
-                  <option value="video_editing">Video Editing</option>
+                  {Object.entries(COURSE_CATEGORIES).map(([value, meta]) => (
+                    <option key={value} value={value}>
+                      {meta.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -440,6 +507,86 @@ export default function CourseForm({ course }: CourseFormProps) {
                 </p>
               )}
             </div>
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection title="Instructor">
+          <div className="flex flex-col gap-5">
+            <AdminFieldGrid>
+              <div>
+                <AdminLabel htmlFor="instructor_name">Name</AdminLabel>
+                <input
+                  id="instructor_name"
+                  name="instructor_name"
+                  className={adminFieldClassName}
+                  defaultValue={course?.instructor_name ?? ''}
+                  placeholder="e.g. Godfred Ferdinand Appiah"
+                />
+              </div>
+              <div>
+                <AdminLabel htmlFor="instructor_title">Title</AdminLabel>
+                <input
+                  id="instructor_title"
+                  name="instructor_title"
+                  className={adminFieldClassName}
+                  defaultValue={course?.instructor_title ?? ''}
+                  placeholder="e.g. Lead Instructor"
+                />
+              </div>
+            </AdminFieldGrid>
+            <div>
+              <AdminLabel htmlFor="instructor_bio">Bio</AdminLabel>
+              <textarea
+                id="instructor_bio"
+                name="instructor_bio"
+                rows={4}
+                className={adminFieldClassName}
+                defaultValue={course?.instructor_bio ?? ''}
+                placeholder="Short bio shown on the public course page"
+              />
+            </div>
+            <div>
+              <AdminLabel>Instructor photo</AdminLabel>
+              <input
+                ref={instructorPhotoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={(ev) => void handleInstructorPhotoChange(ev)}
+              />
+              {!canUploadImages ? (
+                <p className="font-body text-xs text-[#9898B8]">
+                  Save the course first to upload an instructor photo.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleInstructorPhotoClick}
+                  disabled={isUploadingInstructorPhoto}
+                  className="rounded-[10px] border border-dashed border-[#D8D8E8] bg-[#F7F8FC] px-4 py-3 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary disabled:opacity-50"
+                >
+                  {isUploadingInstructorPhoto
+                    ? 'Uploading…'
+                    : instructorPhotoUrl
+                      ? 'Change instructor photo'
+                      : 'Upload instructor photo'}
+                </button>
+              )}
+              {instructorPhotoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={instructorPhotoUrl}
+                  alt="Instructor"
+                  className="mt-3 h-24 w-24 rounded-full object-cover"
+                />
+              )}
+              {instructorPhotoError && (
+                <p className="mt-1 font-body text-xs text-red-600">{instructorPhotoError}</p>
+              )}
+            </div>
+            <p className="font-body text-xs text-[#9898B8]">
+              The instructor block on public course pages is hidden when name is empty.
+            </p>
           </div>
         </AdminFormSection>
 

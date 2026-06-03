@@ -1,38 +1,21 @@
-import { createAdminClient } from '@/lib/supabase/admin'
+export {
+  logAuditEvent,
+  logUnauthorizedAccessAttempt,
+  type AuditAction,
+  type AuditActorType,
+  type LogAuditEventParams,
+} from '@/lib/audit/log-event'
 
-export type AuditLogParams = {
-  adminId?: string | null
-  action: string
-  entityType?: string
-  entityId?: string | null
-  oldValue?: unknown
-  newValue?: unknown
-}
+/** @deprecated Use LogAuditEventParams from log-event */
+export type AuditLogParams = import('@/lib/audit/log-event').LogAuditEventParams
 
-export type AuditLogEntry = AuditLogParams
+/** @deprecated Use LogAuditEventParams */
+export type AuditLogEntry = import('@/lib/audit/log-event').LogAuditEventParams
 
-export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
-  try {
-    const supabase = createAdminClient()
-
-    const { error } = await supabase.from('audit_logs').insert({
-      admin_id: entry.adminId || null,
-      action: entry.action,
-      entity_type: entry.entityType ?? null,
-      entity_id: entry.entityId ? String(entry.entityId) : null,
-      old_value: entry.oldValue ?? null,
-      new_value: entry.newValue ?? null,
-    })
-
-    if (error) {
-      console.error('Audit log INSERT error:', JSON.stringify(error))
-    }
-  } catch (err) {
-    console.error('Audit log EXCEPTION:', err)
-  }
-}
-
-/** @deprecated Use await logAuditEvent() synchronously instead. */
-export async function logAuditEventBackground(entry: AuditLogEntry): Promise<void> {
-  await logAuditEvent(entry)
+/** @deprecated Use logAuditEvent from log-event */
+export async function logAuditEventBackground(
+  entry: import('@/lib/audit/log-event').LogAuditEventParams,
+): Promise<void> {
+  const { logAuditEvent: log } = await import('@/lib/audit/log-event')
+  await log(entry)
 }

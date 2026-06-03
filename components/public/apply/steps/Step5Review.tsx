@@ -9,12 +9,14 @@ import { formatDate, formatGHS } from '@/lib/utils'
 import { GENDER_OPTIONS, QUALIFICATION_OPTIONS } from '@/lib/apply/constants'
 import {
   needsHybridConfirmation,
+  type ApplicationChannel,
   type ApplyCourse,
   type ApplicationFormData,
 } from '@/lib/apply/types'
 import { formatFileSize } from '@/lib/apply/upload'
 
 interface Step5ReviewProps {
+  applicationChannel?: ApplicationChannel
   formData: Partial<ApplicationFormData>
   courses: ApplyCourse[]
   emailVerified: boolean
@@ -34,6 +36,7 @@ function labelFor<T extends { value: string; label: string }>(
 }
 
 export default function Step5Review({
+  applicationChannel = 'standard',
   formData,
   courses,
   emailVerified,
@@ -48,6 +51,9 @@ export default function Step5Review({
   const intake = course?.intakes.find((i) => i.id === formData.intakeId)
   const showHybridCheckbox = needsHybridConfirmation(course?.mode, formData.country)
   const isGhana = formData.country === 'Ghana'
+  const isLevelUp = applicationChannel === 'level_up'
+  const shsSchoolName =
+    formData.shsSchoolDisplayName?.trim() || formData.shsSchoolNameFreeform?.trim()
 
   const password = formData.password ?? ''
   const checks = [
@@ -124,12 +130,18 @@ export default function Step5Review({
       </ReviewSection>
 
       <ReviewSection title="Education">
+        {isLevelUp && shsSchoolName && (
+          <ReviewRow label="Senior high school" value={shsSchoolName} />
+        )}
         <ReviewRow
           label="Qualification"
           value={labelFor(QUALIFICATION_OPTIONS, formData.qualification)}
         />
-        <ReviewRow label="Institution" value={formData.institution} />
-        <ReviewRow label="Year completed" value={formData.yearCompleted?.toString()} />
+        {!isLevelUp && <ReviewRow label="Institution" value={formData.institution} />}
+        <ReviewRow
+          label={isLevelUp ? 'SHS year' : 'Year completed'}
+          value={formData.yearCompleted?.toString()}
+        />
         {formData.priorExperience?.trim() && (
           <ReviewRow label="Experience" value={formData.priorExperience} />
         )}

@@ -71,8 +71,8 @@ export default function SendAdmissionLetterCard({
       }
       setSuccess(
         result.enrolled
-          ? 'Admission letter sent. This applicant is now enrolled for this programme.'
-          : 'Admission letter sent.',
+          ? 'Enrollment letter sent. This applicant is now enrolled for this programme.'
+          : 'Enrollment letter sent.',
       )
     })
   }
@@ -80,7 +80,7 @@ export default function SendAdmissionLetterCard({
   return (
     <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
       <h2 className="mb-1 font-body text-base font-semibold text-[#1A1A2E]">
-        Admission letter &amp; enrolment
+        Enrollment letter
       </h2>
       <p className="mb-4 font-body text-sm text-[#9898B8]">
         Enrolment is confirmed only after at least one tuition payment and this PDF is
@@ -118,13 +118,13 @@ export default function SendAdmissionLetterCard({
 
       {applicationStatus !== 'accepted' && (
         <p className="mb-4 font-body text-sm text-[#C4701E]">
-          Accept this application before sending an admission letter.
+          Accept this application before sending an enrollment letter.
         </p>
       )}
 
       {applicationStatus === 'accepted' && effectiveTuitionPaid <= 0 && (
         <p className="mb-4 font-body text-sm text-[#C4701E]">
-          Record at least one tuition payment before sending the admission letter.
+          Record at least one tuition payment before sending the enrollment letter.
         </p>
       )}
 
@@ -138,8 +138,8 @@ export default function SendAdmissionLetterCard({
           {pending
             ? 'Sending…'
             : admissionLetterSentAt
-              ? 'Resend admission letter'
-              : 'Send admission letter (PDF)'}
+              ? 'Resend enrollment letter'
+              : 'Send enrollment letter (PDF)'}
         </button>
         {admissionLetterR2Key && (
           <ViewDocumentButton r2Key={admissionLetterR2Key} />

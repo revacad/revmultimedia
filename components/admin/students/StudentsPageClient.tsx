@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
 import { formatApplicationDate } from '@/lib/applications/format'
 import type { ProgramLifecycleStatus } from '@/lib/enrollment/program-status'
+import { StateWrapper } from '@/components/ui/StateWrapper'
 
 export type StudentListRow = {
   id: string
@@ -20,13 +22,18 @@ export type StudentListRow = {
   is_active: boolean
   lifecycleStatus: ProgramLifecycleStatus
   lifecycleLabel: string
+  profilePhotoUrl?: string | null
 }
 
 interface StudentsPageClientProps {
   students: StudentListRow[]
+  fetchError?: string | null
 }
 
-export default function StudentsPageClient({ students }: StudentsPageClientProps) {
+export default function StudentsPageClient({
+  students,
+  fetchError = null,
+}: StudentsPageClientProps) {
   const [query, setQuery] = useState('')
 
   const filtered = useMemo(() => {
@@ -53,7 +60,7 @@ export default function StudentsPageClient({ students }: StudentsPageClientProps
           {registeredCount} registered only
         </p>
         <p className="mt-1 font-body text-xs text-[#9898B8]">
-          Enrolled = at least one tuition payment recorded and admission letter PDF sent from
+          Enrolled = at least one tuition payment recorded and enrollment letter PDF sent from
           the application page.
         </p>
       </header>
@@ -66,6 +73,19 @@ export default function StudentsPageClient({ students }: StudentsPageClientProps
         className="mb-6 w-full max-w-md rounded-[10px] border border-[#D8D8E8] px-4 py-3 font-body text-sm text-[#1A1A2E]"
       />
 
+      <StateWrapper
+        loading={false}
+        error={fetchError}
+        empty={!fetchError && filtered.length === 0}
+        emptyTitle={
+          students.length === 0 ? 'No students enrolled yet' : 'No matching students'
+        }
+        emptyMessage={
+          students.length === 0
+            ? 'Student registrations will appear here once applications are accepted.'
+            : 'Try a different search term.'
+        }
+      >
       <div className="overflow-hidden rounded-xl bg-white shadow-card">
         <table className="w-full min-w-[800px] text-left">
           <thead className="border-b border-[#EFEFF5] bg-[#F8F8FC]">
@@ -108,11 +128,20 @@ export default function StudentsPageClient({ students }: StudentsPageClientProps
 
                 return (
                   <tr key={student.id} className="border-b border-[#EFEFF5] last:border-0">
-                    <td className="px-4 py-3 font-mono text-sm font-medium text-primary">
-                      {student.student_id ?? '—'}
-                      <span className="mt-0.5 block font-body text-xs font-semibold text-[#9898B8]">
-                        {student.reference}
-                      </span>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <AdminStudentAvatar
+                          fullName={student.full_name}
+                          photoUrl={student.profilePhotoUrl}
+                          size="sm"
+                        />
+                        <div className="min-w-0 font-mono text-sm font-medium text-primary">
+                          {student.student_id ?? '—'}
+                          <span className="mt-0.5 block font-body text-xs font-semibold text-[#9898B8]">
+                            {student.reference}
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-body text-sm font-medium text-[#1A1A2E]">
@@ -165,6 +194,7 @@ export default function StudentsPageClient({ students }: StudentsPageClientProps
           </tbody>
         </table>
       </div>
+      </StateWrapper>
     </div>
   )
 }

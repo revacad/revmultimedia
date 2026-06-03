@@ -6,7 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatGHS(amount: number): string {
-  return `GHS ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const value = Number.parseFloat(Number(amount).toFixed(2))
+  const formatted = new Intl.NumberFormat('en-GH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+  return `GHS ${formatted}`
 }
 
 export function formatDate(date: Date | string): string {

@@ -1,21 +1,17 @@
-import type { CourseCategory, CourseMode } from "@/lib/courses/types";
-
-export const CATEGORY_LABELS: Record<CourseCategory, string> = {
-  graphic_design: "Graphic Design",
-  motion_graphics: "Motion Graphics",
-  video_editing: "Video Editing",
-};
+import { getCategoryLabel } from '@/lib/courses/categories'
+import type { CourseCategory } from '@/lib/courses/categories'
+import type { CourseMode } from '@/lib/courses/types'
 
 export const MODE_LABELS: Record<CourseMode, string> = {
-  online: "Online",
-  in_person: "In-Person",
-  hybrid: "Hybrid",
-};
+  online: 'Online',
+  in_person: 'In-Person',
+  hybrid: 'Hybrid',
+}
 
-export function formatCategory(category: CourseCategory): string {
-  return CATEGORY_LABELS[category];
+export function formatCategory(category: CourseCategory | string): string {
+  return getCategoryLabel(category)
 }
 
 export function formatMode(mode: CourseMode): string {
-  return MODE_LABELS[mode];
+  return MODE_LABELS[mode]
 }

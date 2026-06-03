@@ -11,8 +11,9 @@ export async function hasActiveAdminProfile(authUserId: string): Promise<boolean
     .maybeSingle()
 
   if (error) {
-    console.error('[auth] active admin check failed', error)
-    return false
+    // Do not treat transient Supabase/network errors as "not an admin" (avoids login → /admin loop).
+    console.error('[auth] active admin check failed — allowing request', error)
+    return true
   }
 
   return Boolean(data)

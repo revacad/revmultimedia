@@ -7,10 +7,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
 import { redis } from '@/lib/redis/client'
 import { invalidateAllAuthSessions } from '@/lib/auth/invalidate-sessions'
+import { linkApplicationByInternalEmail } from '@/lib/auth/link-application-auth'
 import { onLoginSuccess, signInWithFreshSession } from '@/lib/auth/login-session'
 import { assertPasswordAttemptAllowed } from '@/lib/auth/password-attempts'
 import { clearSessionBinding } from '@/lib/auth/session-binding'
 import { checkRateLimit, passwordResetLimit } from '@/lib/redis/ratelimit'
+import { logAuditEvent } from '@/lib/audit/log'
 import { getClientIp } from '@/lib/auth/getClientIp'
 import { sendPasswordReset } from '@/lib/notifications/email'
 import {
@@ -21,6 +23,7 @@ import {
   passwordResetRequestSchema,
   STUDENT_ID_RE,
 } from '@/lib/validations/auth'
+import type { PortalIdentifierType } from '@/lib/auth/detect-portal-identifier'
 
 function portalBaseUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000'
@@ -68,9 +71,17 @@ export async function loginAdmin(
     return { error: 'This account has been deactivated.' }
   }
 
-  const role = admin.role as 'admin' | 'superadmin'
+  const role = admin.role as 'admin' | 'superadmin' | 'accounts'
   await adminClient.auth.admin.updateUserById(authData.user.id, {
     app_metadata: { role },
+  })
+
+  void logAuditEvent({
+    actorId: admin.id,
+    actorType: 'admin',
+    action: 'admin_login',
+    targetType: 'admin',
+    targetId: admin.id,
   })
 
   await onLoginSuccess(authData.user.id)
@@ -115,6 +126,7 @@ export async function logoutAllAdminDevices() {
 export async function portalLogin(
   identifier: string,
   password: string,
+  identifierType?: PortalIdentifierType,
 ): Promise<{ error?: string }> {
   const parsed = portalLoginSchema.safeParse({ identifier, password })
   if (!parsed.success) {
@@ -128,10 +140,16 @@ export async function portalLogin(
 
   const trimmed = parsed.data.identifier
   const admin = createAdminClient()
+  const ip = await getClientIp()
 
   let internalEmail: string | null = null
+  let applicationReference: string | null = null
 
-  if (STUDENT_ID_RE.test(trimmed)) {
+  const treatAsStudentId =
+    identifierType === 'student_id' ||
+    (identifierType !== 'application_reference' && STUDENT_ID_RE.test(trimmed))
+
+  if (treatAsStudentId) {
     const { data: student } = await admin
       .from('students')
       .select('application_id, student_id')
@@ -150,46 +168,112 @@ export async function portalLogin(
   } else {
     const { data: application } = await admin
       .from('applications')
-      .select('internal_email')
+      .select('id, internal_email, reference')
       .eq('reference', trimmed)
       .maybeSingle()
 
-    internalEmail = application?.internal_email ?? null
+    if (application) {
+      applicationReference = application.reference
+      const { data: enrolledStudent } = await admin
+        .from('students')
+        .select('id')
+        .eq('application_id', application.id)
+        .maybeSingle()
+
+      if (enrolledStudent) {
+        return {
+          error:
+            'You are enrolled. Sign in with your permanent student ID (e.g. REV2026000001), not your application reference.',
+        }
+      }
+
+      internalEmail = application.internal_email ?? null
+    }
   }
 
   if (!internalEmail) {
+    void logAuditEvent({
+      action: 'portal_login_failed',
+      targetType: 'application',
+      targetId: applicationReference ?? trimmed,
+      metadata: { reason: 'unknown_identifier' },
+      ipAddress: ip,
+    })
     return { error: 'Invalid ID or password' }
   }
 
   const supabase = await createServerClient()
-  const { error } = await signInWithFreshSession(supabase, {
+  const { data: authData, error } = await signInWithFreshSession(supabase, {
     email: internalEmail,
     password: parsed.data.password,
   })
 
-  if (error) {
+  if (error || !authData.user) {
+    void logAuditEvent({
+      action: 'portal_login_failed',
+      targetType: 'application',
+      targetId: applicationReference ?? trimmed,
+      metadata: { reason: 'invalid_credentials' },
+      ipAddress: ip,
+    })
     return { error: 'Invalid ID or password' }
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  let redirectTo = '/portal/application'
-  if (user) {
-    const { data: student } = await admin
-      .from('students')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .maybeSingle()
-
-    if (student) {
-      redirectTo = '/portal/dashboard'
-    }
-    await onLoginSuccess(user.id)
+  const userId = authData.user.id
+  if (authData.user.email) {
+    await linkApplicationByInternalEmail(admin, userId, authData.user.email)
   }
 
-  revalidatePath('/', 'layout')
+  let redirectTo = '/portal/dashboard'
+  const { data: student } = await admin
+    .from('students')
+    .select('id')
+    .eq('auth_user_id', userId)
+    .maybeSingle()
+
+  if (student) {
+    redirectTo = '/portal/dashboard'
+  }
+
+  if (!applicationReference && treatAsStudentId) {
+    const { data: studentRow } = await admin
+      .from('students')
+      .select('application_id')
+      .eq('auth_user_id', userId)
+      .maybeSingle()
+
+    if (studentRow?.application_id) {
+      const { data: linkedApp } = await admin
+        .from('applications')
+        .select('reference')
+        .eq('id', studentRow.application_id)
+        .maybeSingle()
+      applicationReference = linkedApp?.reference ?? null
+    }
+  }
+
+  if (!applicationReference) {
+    const { data: latestApp } = await admin
+      .from('applications')
+      .select('reference')
+      .eq('auth_user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    applicationReference = latestApp?.reference ?? trimmed
+  }
+
+  void logAuditEvent({
+    actorId: userId,
+    actorType: 'student',
+    action: 'portal_login',
+    targetType: 'application',
+    targetId: applicationReference,
+    ipAddress: ip,
+  })
+
+  void onLoginSuccess(userId)
+
   redirect(redirectTo)
 }
 

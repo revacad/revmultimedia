@@ -6,7 +6,7 @@ const BRAND_DOTS = [
   { color: '#C74A86' },
   { color: '#F18F3B' },
   { color: '#2DBFB8' },
-  { color: 'rgba(199, 74, 134, 0.7)' },
+  { color: '#E8A4C4' },
 ] as const
 
 type BrandDotsProps = {
@@ -44,9 +44,69 @@ export function BrandDots({ size = 10, gap = 5, opacity = 1 }: BrandDotsProps) {
 type PdfBrandHeaderProps = {
   documentTitle: string
   subtitle?: string
+  /** Enrollment letter: logo block on the right, all black, brand fonts */
+  variant?: 'default' | 'enrollment'
 }
 
-export function PdfBrandHeader({ documentTitle, subtitle }: PdfBrandHeaderProps) {
+export function PdfBrandHeader({
+  documentTitle,
+  subtitle,
+  variant = 'default',
+}: PdfBrandHeaderProps) {
+  if (variant === 'enrollment') {
+    const black = '#000000'
+    return (
+      <View
+        style={{
+          marginBottom: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: black,
+          paddingBottom: 8,
+          alignItems: 'flex-end',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
+            <Text
+              style={{
+                fontFamily: 'Helvetica',
+                fontSize: 14,
+                fontWeight: 'bold',
+                color: black,
+              }}
+            >
+              Rev Multimedia
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Helvetica',
+                fontSize: 10,
+                fontWeight: 'bold',
+                color: black,
+                marginTop: 3,
+              }}
+            >
+              {documentTitle}
+            </Text>
+            {subtitle ? (
+              <Text
+                style={{
+                  fontFamily: 'Helvetica',
+                  fontSize: 8,
+                  color: black,
+                  marginTop: 2,
+                }}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          <BrandDots size={9} gap={4} />
+        </View>
+      </View>
+    )
+  }
+
   return (
     <View style={pdfStyles.header}>
       <View style={pdfStyles.headerRow}>

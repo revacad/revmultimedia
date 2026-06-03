@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import {
   createPromoCodeSchema,
   setPromoCodeActiveSchema,
 } from '@/lib/validations/promo'
+import { safeActionError } from '@/lib/errors/action'
 
 export async function createPromoCode(data: {
   code: string
@@ -23,7 +24,7 @@ export async function createPromoCode(data: {
       }
     }
 
-    const session = await requireAdmin()
+    const session = await requireStaffAdmin()
     const supabase = createAdminClient()
     const payload = parsed.data
 
@@ -47,15 +48,13 @@ export async function createPromoCode(data: {
     })
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('promo.create', error, 'Failed to create promo code.')
     }
 
     revalidatePath('/admin/promo-codes')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to create promo code',
-    }
+    return safeActionError('promo.create', e, 'Failed to create promo code.')
   }
 }
 
@@ -71,7 +70,7 @@ export async function setPromoCodeActive(
       }
     }
 
-    await requireAdmin()
+    await requireStaffAdmin()
     const supabase = createAdminClient()
 
     const { error } = await supabase
@@ -80,14 +79,12 @@ export async function setPromoCodeActive(
       .eq('id', parsed.data.promoId)
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('promo.setActive', error, 'Failed to update promo code.')
     }
 
     revalidatePath('/admin/promo-codes')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to update promo code',
-    }
+    return safeActionError('promo.setActive', e, 'Failed to update promo code.')
   }
 }

@@ -1,6 +1,8 @@
 import Link from 'next/link'
+import OverdueInvoiceBanner from '@/components/admin/OverdueInvoiceBanner'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
+import CopyableReference from '@/components/ui/CopyableReference'
 import RecordPaymentForm from '@/components/admin/payments/RecordPaymentForm'
 import ResendInvoiceButton from '@/components/admin/payments/ResendInvoiceButton'
 import { getEffectiveInvoiceBalance } from '@/lib/payments/guards'
@@ -11,7 +13,7 @@ import {
   formatPaymentDateTime,
   isOverdue,
 } from '@/lib/payments/format'
-import { paymentTypeLabelFromSlug } from '@/lib/payments/payment-types'
+import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
 import type { InvoiceDetail } from '@/lib/payments/types'
 import { cn } from '@/lib/utils'
 
@@ -22,7 +24,7 @@ interface PaymentDetailViewProps {
 export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
   const application = invoice.applications
   const paymentForLabel =
-    invoice.payment_type?.label ?? paymentTypeLabelFromSlug(invoice.type)
+    formatInvoiceType(invoice.type, invoice.payment_type?.label)
   const { paid, remaining, overpaid } = getEffectiveInvoiceBalance(
     {
       status: invoice.status,
@@ -49,14 +51,19 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">
         <div>
           <section className="mb-6 rounded-xl bg-white p-6 shadow-card">
-            <p className="font-mono text-2xl font-medium text-[#C74A86]">{invoice.reference}</p>
+            <CopyableReference reference={invoice.reference} monoClassName="text-2xl font-medium" />
             <div className="mt-3 flex flex-wrap gap-2">
               <InvoiceTypeBadge
                 type={invoice.type}
                 label={invoice.payment_type?.label}
               />
-              <InvoiceStatusBadge status={invoice.status} />
+              <InvoiceStatusBadge status={invoice.status} dueDate={invoice.due_date} />
             </div>
+            {overdue ? (
+              <div className="mt-4">
+                <OverdueInvoiceBanner contactLabel="Contact student" />
+              </div>
+            ) : null}
             <p className="mt-4 font-display text-xl font-semibold text-[#1A1A2E]">
               {application?.full_name ?? '—'}
             </p>
@@ -170,6 +177,8 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
             </h2>
             <RecordPaymentForm
               invoiceId={invoice.id}
+              totalGhs={invoice.total_ghs}
+              paidGhs={paid}
               remainingGhs={remaining}
               status={invoice.status}
               paymentForLabel={paymentForLabel}

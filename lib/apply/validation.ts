@@ -1,8 +1,11 @@
 import type { ApplicationFormData, ApplyCourse } from '@/lib/apply/types'
 import { needsHybridConfirmation } from '@/lib/apply/types'
-import { courseHasOpenIntake, isIntakeFull } from '@/lib/apply/intake-availability'
 
 export type ApplyFieldKey =
+  | 'parentGuardianWhatsapp'
+  | 'parentGuardianEmail'
+  | 'shsSchoolId'
+  | 'parentContactConsent'
   | 'fullName'
   | 'dateOfBirth'
   | 'gender'
@@ -46,8 +49,11 @@ export function getStepValidation(
     emailVerified: boolean
     courses: ApplyCourse[]
     hybridWarningAccepted: boolean
+    applicationChannel?: 'standard' | 'level_up'
+    skipPassword?: boolean
   },
 ): StepValidationResult {
+  const isLevelUp = options.applicationChannel === 'level_up'
   const errors: ApplyFieldErrors = {}
 
   switch (step) {
@@ -75,6 +81,16 @@ export function getStepValidation(
       if (!formData.address?.trim()) {
         errors.address = 'Enter your residential address.'
       }
+      if (isLevelUp) {
+        if (!formData.parentGuardianWhatsapp?.trim()) {
+          errors.parentGuardianWhatsapp = 'Enter parent or guardian WhatsApp number.'
+        }
+        if (!formData.parentContactConsent) {
+          errors.parentContactConsent =
+            'Confirm that the parent/guardian agrees to be contacted about fees.'
+        }
+      }
+
       if (formData.country === 'Ghana') {
         if (!formData.stateRegion) {
           errors.stateRegion = 'Select your region.'
@@ -98,8 +114,6 @@ export function getStepValidation(
           errors.courseId = 'Selected course is no longer available. Choose another.'
         } else if (course.intakes.length === 0) {
           errors.courseId = 'This course has no open intakes. Choose another course or contact us.'
-        } else if (!courseHasOpenIntake(course)) {
-          errors.courseId = 'All intakes for this course are full. Choose another course or contact us.'
         }
       }
 
@@ -108,8 +122,8 @@ export function getStepValidation(
       } else {
         const course = options.courses.find((c) => c.id === formData.courseId)
         const intake = course?.intakes.find((i) => i.id === formData.intakeId)
-        if (intake && isIntakeFull(intake)) {
-          errors.intakeId = 'This intake is full. Choose another intake or course.'
+        if (course && !intake) {
+          errors.intakeId = 'Selected intake is no longer available. Choose another.'
         }
       }
 
@@ -125,16 +139,33 @@ export function getStepValidation(
       break
     }
     case 3: {
-      if (!formData.qualification) {
-        errors.qualification = 'Select your highest qualification.'
-      }
-      if (!formData.institution?.trim()) {
-        errors.institution = 'Enter the institution you attended.'
-      }
-      if (!formData.yearCompleted) {
-        errors.yearCompleted = 'Enter the year you completed your qualification.'
-      } else if (formData.yearCompleted < 1990 || formData.yearCompleted > new Date().getFullYear()) {
-        errors.yearCompleted = `Enter a year between 1990 and ${new Date().getFullYear()}.`
+      if (isLevelUp) {
+        if (!formData.shsSchoolId && !formData.shsSchoolNameFreeform?.trim()) {
+          errors.shsSchoolId = 'Select your school or type it if not listed.'
+        }
+        if (!formData.yearCompleted) {
+          errors.yearCompleted = 'Enter the year you completed or will complete Senior High School (SHS).'
+        } else if (
+          formData.yearCompleted < 1990 ||
+          formData.yearCompleted > new Date().getFullYear() + 2
+        ) {
+          errors.yearCompleted = `Enter a year between 1990 and ${new Date().getFullYear() + 2}.`
+        }
+      } else {
+        if (!formData.qualification) {
+          errors.qualification = 'Select your highest qualification.'
+        }
+        if (!formData.institution?.trim()) {
+          errors.institution = 'Enter the institution you attended.'
+        }
+        if (!formData.yearCompleted) {
+          errors.yearCompleted = 'Enter the year you completed your qualification.'
+        } else if (
+          formData.yearCompleted < 1990 ||
+          formData.yearCompleted > new Date().getFullYear()
+        ) {
+          errors.yearCompleted = `Enter a year between 1990 and ${new Date().getFullYear()}.`
+        }
       }
       break
     }
@@ -148,13 +179,15 @@ export function getStepValidation(
       break
     }
     case 5: {
-      if (!formData.password || formData.password.length < 8) {
-        errors.password = 'Create a password with at least 8 characters.'
-      }
-      if (!formData.confirmPassword) {
-        errors.confirmPassword = 'Confirm your password.'
-      } else if (formData.password !== formData.confirmPassword) {
-        errors.confirmPassword = 'Passwords do not match.'
+      if (!options.skipPassword) {
+        if (!formData.password || formData.password.length < 8) {
+          errors.password = 'Create a password with at least 8 characters.'
+        }
+        if (!formData.confirmPassword) {
+          errors.confirmPassword = 'Confirm your password.'
+        } else if (formData.password !== formData.confirmPassword) {
+          errors.confirmPassword = 'Passwords do not match.'
+        }
       }
       if (!formData.infoConfirmed) {
         errors.infoConfirmed = 'Confirm that your information is accurate.'

@@ -15,6 +15,7 @@ import type { ApplyFieldErrors } from '@/lib/apply/validation'
 import { applyFieldId } from '@/lib/apply/validation'
 import { isInternational, needsHybridConfirmation, type ApplyCourse } from '@/lib/apply/types'
 import type { ApplicationFormData } from '@/lib/apply/types'
+import { formatGHS } from '@/lib/utils'
 
 interface Step2CourseProps {
   courses: ApplyCourse[]
@@ -29,14 +30,17 @@ interface Step2CourseProps {
 }
 
 function formatTuition(amount: number): string {
-  return `GHS ${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  return formatGHS(amount)
 }
 
 function intakeOptionLabel(intake: ApplyCourse['intakes'][0]): string {
   const remaining = intakeSlotsRemaining(intake)
+  const full = isIntakeFull(intake)
+  if (full) {
+    return `${intake.name} — Full - join waitlist`
+  }
   if (remaining !== null) {
-    const full = remaining <= 0
-    return `${intake.name}, ${full ? 'Full' : `${remaining} spot${remaining === 1 ? '' : 's'} left`}`
+    return `${intake.name}, ${remaining} spot${remaining === 1 ? '' : 's'} left`
   }
   return intake.name
 }
@@ -65,7 +69,7 @@ export default function Step2Course({
   useEffect(() => {
     if (!preselectedCourse || formData.courseId) return
     const match = courses.find((c) => c.slug === preselectedCourse)
-    if (match && courseHasOpenIntake(match)) {
+    if (match && match.intakes.length > 0) {
       onChange({ courseId: match.id, intakeId: undefined })
     }
   }, [preselectedCourse, courses, formData.courseId, onChange])
@@ -74,7 +78,7 @@ export default function Step2Course({
     if (!preselectedIntake || formData.intakeId) return
     if (!selectedCourse) return
     const intake = selectedCourse.intakes.find((i) => i.id === preselectedIntake)
-    if (intake && !isIntakeFull(intake)) {
+    if (intake) {
       onChange({ intakeId: intake.id })
     }
   }, [preselectedIntake, selectedCourse, formData.intakeId, onChange])
@@ -88,15 +92,15 @@ export default function Step2Course({
   const intakeError = showValidation ? fieldErrors.intakeId : undefined
   const hybridError = showValidation ? fieldErrors.hybridAttendanceConfirmed : undefined
 
-  const allIntakesFull =
-    selectedCourse && selectedCourse.intakes.length > 0 && !courseHasOpenIntake(selectedCourse)
+  const selectedIntakeFull = selectedIntake ? isIntakeFull(selectedIntake) : false
 
   return (
     <div>
       <h2 className="font-display text-2xl text-dark">What do you want to learn?</h2>
       <p className="mb-6 mt-2 font-body text-[15px] text-gray-400">
-        Choose the course and intake you want to apply for. You can only apply for one course at a
-        time.
+        Choose the course and intake you want to apply for. Each course can have several intakes
+        (cohorts). Full intakes accept waitlist applications — no payment is required until a spot
+        is confirmed.
       </p>
 
       <div className="flex flex-col gap-4">
@@ -132,6 +136,7 @@ export default function Step2Course({
               const hasOpen = courseHasOpenIntake(course)
               const openCount = openIntakeCount(course)
               const noIntakes = course.intakes.length === 0
+              const allFull = !noIntakes && !hasOpen
 
               return (
                 <label
@@ -149,8 +154,8 @@ export default function Step2Course({
                         ? '1.5px solid #E84A4A'
                         : '1.5px solid #EFEFF5',
                     borderRadius: '14px',
-                    cursor: hasOpen ? 'pointer' : 'not-allowed',
-                    opacity: hasOpen ? 1 : 0.72,
+                    cursor: noIntakes ? 'not-allowed' : 'pointer',
+                    opacity: noIntakes ? 0.72 : 1,
                     transition: 'all 0.2s ease',
                     boxShadow: selected ? '0 0 0 3px rgba(199,74,134,0.10)' : 'none',
                   }}
@@ -160,9 +165,9 @@ export default function Step2Course({
                     name="course"
                     className="sr-only"
                     checked={selected}
-                    disabled={!hasOpen}
+                    disabled={noIntakes}
                     onChange={() => {
-                      if (!hasOpen) return
+                      if (noIntakes) return
                       onChange({ courseId: course.id, intakeId: undefined })
                     }}
                   />
@@ -208,9 +213,14 @@ export default function Step2Course({
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={course.category}>{formatCategory(course.category)}</Badge>
                       <ModeBadge mode={course.mode} />
-                      {!hasOpen && (
+                      {noIntakes && (
                         <span className="rounded-full bg-[#FEF0F0] px-2.5 py-0.5 text-xs font-medium text-[#E84A4A]">
-                          {noIntakes ? 'No open intakes' : 'All intakes full'}
+                          No open intakes
+                        </span>
+                      )}
+                      {allFull && (
+                        <span className="rounded-full bg-[#F3EEFF] px-2.5 py-0.5 text-xs font-medium text-[#7B5AE8]">
+                          All intakes full - join waitlist
                         </span>
                       )}
                       {hasOpen && openCount > 0 && course.intakes.length > 1 && (
@@ -245,66 +255,58 @@ export default function Step2Course({
 
         {selectedCourse && selectedCourse.intakes.length > 0 && (
           <div id={applyFieldId('intakeId')}>
+            <div className="mb-4 rounded-[14px] border border-[#EFEFF5] bg-[#F7F8FC] px-4 py-3">
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-[#9898B8]">
+                Course tuition
+              </p>
+              <p className="mt-1 font-display text-xl font-semibold text-[#C74A86]">
+                {formatGHS(selectedCourse.tuition_fee_ghs)}
+              </p>
+            </div>
+
             <FormFieldLabel htmlFor="intake-select" required>
               Select an intake
             </FormFieldLabel>
 
-            {allIntakesFull ? (
+            <select
+              id="intake-select"
+              value={formData.intakeId ?? ''}
+              onChange={(e) => onChange({ intakeId: e.target.value })}
+              aria-invalid={Boolean(intakeError)}
+              aria-describedby={intakeError ? 'intake-error' : undefined}
+              style={{
+                width: '100%',
+                padding: '13px 16px',
+                border: intakeError ? '1.5px solid #E84A4A' : '1.5px solid #D8D8E8',
+                borderRadius: '10px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '15px',
+                color: '#1A1A2E',
+                background: 'white',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="" disabled>
+                Choose intake
+              </option>
+              {selectedCourse.intakes.map((intake) => (
+                <option key={intake.id} value={intake.id}>
+                  {intakeOptionLabel(intake)}
+                </option>
+              ))}
+            </select>
+
+            {selectedIntakeFull && (
               <div
-                className="rounded-[14px] border-[1.5px] border-[#E84A4A] bg-[#FEF0F0] p-4"
-                role="alert"
+                className="mt-3 rounded-[14px] border-[1.5px] border-[#7B5AE8]/30 bg-[#F3EEFF] p-4"
+                role="status"
               >
-                <p className="text-sm font-medium text-dark">All intakes are full</p>
-                <p className="mt-1 text-sm text-gray-600">
-                  Every intake for {selectedCourse.title} is currently at capacity. Please choose
-                  another course or email us at info@revmultimediagh.com to join a waitlist.
+                <p className="text-sm font-medium text-[#5A3FC0]">This intake is full</p>
+                <p className="mt-1 text-sm text-[#5A5A7A]">
+                  Submitting will add you to the waitlist. No payment is required until a spot is
+                  confirmed.
                 </p>
               </div>
-            ) : (
-              <>
-                <select
-                  id="intake-select"
-                  value={formData.intakeId ?? ''}
-                  onChange={(e) => onChange({ intakeId: e.target.value })}
-                  aria-invalid={Boolean(intakeError)}
-                  aria-describedby={intakeError ? 'intake-error' : undefined}
-                  style={{
-                    width: '100%',
-                    padding: '13px 16px',
-                    border: intakeError ? '1.5px solid #E84A4A' : '1.5px solid #D8D8E8',
-                    borderRadius: '10px',
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '15px',
-                    color: '#1A1A2E',
-                    background: 'white',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="" disabled>
-                    Choose intake
-                  </option>
-                  {selectedCourse.intakes.map((intake) => {
-                    const full = isIntakeFull(intake)
-                    return (
-                      <option key={intake.id} value={intake.id} disabled={full}>
-                        {intakeOptionLabel(intake)}
-                      </option>
-                    )
-                  })}
-                </select>
-
-                {selectedIntake && isIntakeFull(selectedIntake) && (
-                  <p className="mt-2 text-sm text-[#E84A4A]" role="alert">
-                    This intake is full. Please select another intake.
-                  </p>
-                )}
-
-                {!formData.intakeId && !intakeError && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Intakes marked &ldquo;Full&rdquo; are not accepting new applications.
-                  </p>
-                )}
-              </>
             )}
 
             {intakeError && (

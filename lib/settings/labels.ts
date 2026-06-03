@@ -10,6 +10,7 @@ export const SETTINGS_TABS = [
       {
         title: 'MoMo',
         keys: [
+          'momo_provider',
           'momo_number_1',
           'momo_name_1',
           'momo_number_2',
@@ -32,7 +33,16 @@ export const SETTINGS_TABS = [
   {
     id: 'academy',
     title: 'Organisation Info',
-    sections: [{ keys: ['academy_email', 'academy_phone', 'academy_address'] as const }],
+    sections: [
+      { keys: ['academy_email', 'academy_phone', 'academy_address'] as const },
+      {
+        title: 'Enrollment letter',
+        keys: [
+          'enrollment_letter_signatory_name',
+          'enrollment_letter_signatory_title',
+        ] as const,
+      },
+    ],
   },
   {
     id: 'messaging',
@@ -70,6 +80,7 @@ export const SETTINGS_SECTIONS = SETTINGS_TABS.flatMap((tab) =>
 export const SETTINGS_LABELS: Record<string, string> = {
   application_fee_ghs: 'Application Fee (GHS)',
   application_deadline_message: 'Deadline Banner Message',
+  momo_provider: 'MoMo Provider',
   momo_number_1: 'Primary MoMo Number',
   momo_name_1: 'Primary MoMo Account Name',
   momo_number_2: 'Secondary MoMo Number (optional)',
@@ -83,12 +94,25 @@ export const SETTINGS_LABELS: Record<string, string> = {
   academy_email: 'Contact Email',
   academy_phone: 'Contact Phone',
   academy_address: 'Address',
+  enrollment_letter_signatory_name: 'Signatory name (printed on PDF)',
+  enrollment_letter_signatory_title: 'Signatory title',
 }
 
 export const SETTINGS_HELPERS: Record<string, string> = {
   application_deadline_message:
     'Shown on the home page. Leave blank to hide.',
+  enrollment_letter_signatory_name:
+    'Shown under the signature on enrollment letters.',
+  enrollment_letter_signatory_title:
+    'e.g. President. signature',
 }
+
+export const MAINTENANCE_SETTING_KEYS = [
+  'maintenance_full',
+  'maintenance_portal',
+  'maintenance_message',
+  'maintenance_deadline',
+] as const
 
 export const MESSAGING_SETTING_KEYS = [
   'sms_provider',

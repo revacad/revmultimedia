@@ -11,7 +11,10 @@ import {
   SETTINGS_TABS,
 } from '@/lib/settings/labels'
 import DataExportSection from '@/components/admin/settings/DataExportSection'
+import MaintenanceSettingsSection from '@/components/admin/settings/MaintenanceSettingsSection'
 import MessagingSettingsSection from '@/components/admin/settings/MessagingSettingsSection'
+import { MAINTENANCE_SETTING_KEYS } from '@/lib/settings/labels'
+import { MOMO_PROVIDER_OPTIONS } from '@/lib/settings/momo-provider'
 
 interface SettingsPageClientProps {
   values: Record<string, string>
@@ -54,29 +57,48 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
     })
   }
 
-  function renderFields(keys: readonly string[]) {
+  function renderField(key: string) {
+    if (key === 'momo_provider') {
+      const current = draft.momo_provider ?? MOMO_PROVIDER_OPTIONS[0]
+      return (
+        <div key={key}>
+          <AdminLabel htmlFor={key}>{SETTINGS_LABELS[key] ?? key}</AdminLabel>
+          <select
+            id={key}
+            value={current}
+            onChange={(e) =>
+              setDraft((prev) => ({ ...prev, [key]: e.target.value }))
+            }
+            className={adminFieldClassName}
+          >
+            {MOMO_PROVIDER_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+      )
+    }
+
     return (
-      <div className="space-y-4">
-        {keys.map((key) => (
-          <div key={key}>
-            <AdminLabel htmlFor={key}>{SETTINGS_LABELS[key] ?? key}</AdminLabel>
-            {SETTINGS_HELPERS[key] && (
-              <p className="mb-1 font-body text-xs text-[#9898B8]">
-                {SETTINGS_HELPERS[key]}
-              </p>
-            )}
-            <input
-              id={key}
-              value={draft[key] ?? ''}
-              onChange={(e) =>
-                setDraft((prev) => ({ ...prev, [key]: e.target.value }))
-              }
-              className={adminFieldClassName}
-            />
-          </div>
-        ))}
+      <div key={key}>
+        <AdminLabel htmlFor={key}>{SETTINGS_LABELS[key] ?? key}</AdminLabel>
+        {SETTINGS_HELPERS[key] && (
+          <p className="mb-1 font-body text-xs text-[#9898B8]">{SETTINGS_HELPERS[key]}</p>
+        )}
+        <input
+          id={key}
+          value={draft[key] ?? ''}
+          onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+          className={adminFieldClassName}
+        />
       </div>
     )
+  }
+
+  function renderFields(keys: readonly string[]) {
+    return <div className="space-y-4">{keys.map((key) => renderField(key))}</div>
   }
 
   function renderSaveRow(tabId: string, keys: readonly string[] | string[]) {
@@ -173,7 +195,15 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
 
         <Tabs.Content value="security" className="pt-4">
           <div className="rounded-xl bg-white p-6 shadow-card">
-            <p className="font-body text-sm text-[#9898B8]">Coming soon</p>
+            <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Maintenance</h2>
+            <MaintenanceSettingsSection
+              draft={draft}
+              setDraft={setDraft}
+              onSave={() => saveTab('security', MAINTENANCE_SETTING_KEYS)}
+              isSaved={savedTab === 'security'}
+              isPending={pendingTab === 'security'}
+              saveError={errorTab.security ?? null}
+            />
           </div>
         </Tabs.Content>
 

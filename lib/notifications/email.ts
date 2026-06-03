@@ -58,7 +58,10 @@ async function sendHtmlEmail(
       { maxRetries: 3, baseDelayMs: 1000 },
     )
   } catch (error) {
-    console.error('[email] send failed', { subject, error })
+    console.error('[email] send failed', {
+      subject,
+      message: error instanceof Error ? error.message : String(error),
+    })
   }
 }
 
@@ -170,6 +173,110 @@ export async function sendApplicationReceived(
           ${emailButton('Go to your portal', `${appUrl()}/portal/application`)}
 
           ${emailAlert('info', `Save your application reference: <strong>${escapeHtml(data.reference)}</strong>. You will need it to log in to your portal.`)}
+        `,
+    }),
+  )
+}
+
+export async function sendWaitlistConfirmation(
+  to: string,
+  data: {
+    name: string
+    reference: string
+    courseName: string
+    intakeName: string
+    waitlistPosition: number
+  },
+): Promise<void> {
+  await sendHtmlEmail(
+    to,
+    `You are on the waitlist - ${data.courseName}`,
+    emailTemplate({
+      previewText: `You are #${data.waitlistPosition} on the waitlist for ${data.courseName}. Reference: ${data.reference}`,
+      body: `
+          ${emailGreeting(data.name)}
+          ${emailHeading('You are on the waitlist')}
+          ${emailSubheading(`Thank you for your interest in ${escapeHtml(data.courseName)}.`)}
+
+          ${emailParagraph('The intake you selected is currently full. We have added you to the waitlist and will contact you if a spot becomes available.')}
+
+          ${emailReferenceCard('Your Application Reference', data.reference)}
+
+          ${emailInfoCard([
+            { label: 'Course', value: data.courseName },
+            { label: 'Intake', value: data.intakeName },
+            { label: 'Waitlist position', value: `#${data.waitlistPosition}` },
+          ])}
+
+          ${emailParagraph('No payment is required at this time. When a spot opens, we will notify you by email and SMS. You can then log in to your portal to confirm your interest and pay the application fee.')}
+
+          ${emailButton('Go to your portal', `${appUrl()}/portal/application`)}
+
+          ${emailAlert('info', `Save your application reference: <strong>${escapeHtml(data.reference)}</strong>. You will need it to log in to your portal.`)}
+        `,
+    }),
+  )
+}
+
+export async function sendWaitlistSpotAvailable(
+  to: string,
+  data: {
+    name: string
+    reference: string
+    courseName: string
+    intakeName: string
+  },
+): Promise<void> {
+  await sendHtmlEmail(
+    to,
+    `A spot may be available - ${data.courseName}`,
+    emailTemplate({
+      previewText: `A spot may have opened for ${data.courseName}. Log in to your portal to confirm interest.`,
+      body: `
+          ${emailGreeting(data.name)}
+          ${emailHeading('A spot may be available')}
+          ${emailSubheading(`Good news about your waitlist application for ${escapeHtml(data.courseName)}.`)}
+
+          ${emailParagraph('A place may have opened in your selected intake. Please log in to your student portal as soon as possible to confirm your interest and pay the application fee if you still wish to proceed.')}
+
+          ${emailReferenceCard('Your Application Reference', data.reference)}
+
+          ${emailInfoCard([
+            { label: 'Course', value: data.courseName },
+            { label: 'Intake', value: data.intakeName },
+          ])}
+
+          ${emailButton('Log in to your portal', `${appUrl()}/portal/application`)}
+
+          ${emailAlert('warning', 'Spots are offered in waitlist order. Prompt action helps secure your place.')}
+        `,
+    }),
+  )
+}
+
+export async function sendParentLevelUpApplicationSubmitted(
+  to: string,
+  data: {
+    studentName: string
+    reference: string
+    courseName: string
+  },
+): Promise<void> {
+  await sendHtmlEmail(
+    to,
+    `Application submitted - ${data.reference}`,
+    emailTemplate({
+      previewText: `${data.studentName} submitted a Level Up application at Rev Multimedia.`,
+      body: `
+          ${emailParagraph('Dear Parent/Guardian,')}
+          ${emailParagraph(
+            `<strong>${escapeHtml(data.studentName)}</strong> has submitted an application to Rev Multimedia Level Up for <strong>${escapeHtml(data.courseName)}</strong>.`,
+          )}
+          ${emailReferenceCard('Application reference', data.reference)}
+          ${emailParagraph(
+            'The application fee is GHS 100. Your ward will use their student portal to track progress and pay fees.',
+          )}
+          ${emailParagraph('If you have questions, contact us at info@revmultimediagh.com or +233 27 581 8525.')}
         `,
     }),
   )
@@ -312,6 +419,7 @@ export type InvoiceReadyEmailData = {
   dueDate: string
   invoiceLabel: string
   isInternational: boolean
+  momoProvider?: string
   momoNumber?: string
   momoName?: string
   bankName?: string
@@ -381,7 +489,7 @@ export async function sendInvoiceReadyEmail(
                 <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;
                   font-size:12px;color:#C74A86;font-weight:bold;
                   text-transform:uppercase;letter-spacing:0.06em;">
-                  Mobile Money (MoMo)
+                  Pay via ${escapeHtml(data.momoProvider ?? 'MTN MoMo')}
                 </p>
                 ${emailInfoCard([
                   { label: 'MoMo Number', value: data.momoNumber },
@@ -687,18 +795,18 @@ export async function sendAdmissionLetterEmail(
 ): Promise<void> {
   await sendHtmlEmail(
     to,
-    `Your admission letter - ${data.applicationReference}`,
+    `Your enrollment letter - ${data.applicationReference}`,
     emailTemplate({
       previewText: `You have been admitted to ${data.courseName} at Rev Multimedia.`,
       body: `
           ${emailGreeting(data.name)}
           ${emailHeading('Congratulations - you are admitted!')}
           ${emailParagraph(
-            `Please find your official admission letter for <strong>${escapeHtml(data.courseName)}</strong>. This confirms your enrolment in the programme after your tuition payment.`,
+            `Please find your official enrollment letter for <strong>${escapeHtml(data.courseName)}</strong>. This confirms your enrolment in the programme after your tuition payment.`,
           )}
           ${
             data.pdfUrl
-              ? emailButton('Download admission letter (PDF)', data.pdfUrl)
+              ? emailButton('Download enrollment letter (PDF)', data.pdfUrl)
               : emailAlert(
                   'warning',
                   'Your letter was generated. Contact the academy if you need the PDF link resent.',
@@ -835,4 +943,68 @@ export async function sendContactForm(data: {
       }),
     })
   }, { maxRetries: 3, baseDelayMs: 1000 })
+}
+
+export async function sendDeletionRequestReceived(
+  to: string,
+  name: string,
+): Promise<void> {
+  await sendHtmlEmail(
+    to,
+    'Account deletion request received — Rev Multimedia',
+    emailTemplate({
+      previewText:
+        'We received your request to delete your account and personal data.',
+      body: `
+        ${emailGreeting(name)}
+        ${emailHeading('Deletion request received')}
+        ${emailParagraph('We have received your request to permanently delete your Rev Multimedia student account and all associated personal data, including applications, documents, invoices, and enrollment records.')}
+        ${emailAlert(
+          'info',
+          'Under Ghana\'s Data Protection Act, we will process your request within <strong>30 days</strong>. You will receive a confirmation email once deletion is complete.',
+        )}
+        ${emailParagraph('If you submitted this request by mistake, contact us immediately at <a href="mailto:info@revmultimediagh.com" style="color:#C74A86;">info@revmultimediagh.com</a>.')}
+      `,
+    }),
+  )
+}
+
+export async function sendDeletionRequestAdminAlert(data: {
+  adminEmail: string
+  studentName: string
+  studentEmail: string
+}): Promise<void> {
+  const portalUrl = `${appUrl()}/admin/compliance`
+  await sendHtmlEmail(
+    data.adminEmail,
+    'Pending account deletion request — Rev Multimedia',
+    emailTemplate({
+      previewText: `${data.studentName} requested account deletion.`,
+      body: `
+        ${emailHeading('Account deletion request')}
+        ${emailParagraph('A student has requested permanent deletion of their account and associated data.')}
+        ${emailInfoCard([
+          { label: 'Student', value: escapeHtml(data.studentName) },
+          { label: 'Email', value: escapeHtml(data.studentEmail) },
+        ])}
+        ${emailButton('Review in admin', portalUrl)}
+      `,
+    }),
+  )
+}
+
+export async function sendAccountDeletionCompleted(to: string): Promise<void> {
+  await sendHtmlEmail(
+    to,
+    'Your account has been deleted — Rev Multimedia',
+    emailTemplate({
+      previewText: 'Your account and associated data have been permanently deleted.',
+      body: `
+        ${emailHeading('Deletion complete')}
+        ${emailParagraph('Your Rev Multimedia account and all associated personal data have been permanently deleted from our systems.')}
+        ${emailParagraph('This includes your applications, documents, invoices, and enrollment records. This action cannot be undone.')}
+        ${emailParagraph('If you believe this was done in error, contact us at <a href="mailto:info@revmultimediagh.com" style="color:#C74A86;">info@revmultimediagh.com</a>.')}
+      `,
+    }),
+  )
 }

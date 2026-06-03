@@ -1,9 +1,10 @@
 'use server'
 
+import { safeActionError } from '@/lib/errors/action'
 import { revalidatePath } from 'next/cache'
 import { getQStashClient, publishJSONWithRetry } from '@/lib/qstash/client'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import { sendMessage } from '@/lib/notifications/sms'
 import { sendCampaignMessage } from '@/lib/messaging/send'
 import { resolveCampaignRecipients } from '@/lib/messaging/recipients'
@@ -19,7 +20,7 @@ import {
 } from '@/lib/validations/communications'
 
 async function getAdminRecord() {
-  const session = await requireAdmin()
+  const session = await requireStaffAdmin()
   const supabase = createAdminClient()
   const { data: admin } = await supabase
     .from('admins')
@@ -189,7 +190,7 @@ export async function createCampaign(data: {
       .insert(logs)
 
     if (logsError) {
-      return { error: logsError.message }
+      return safeActionError('communications.createCampaign', logsError, 'Failed to create campaign.')
     }
 
     if (recipients.length === 1) {
@@ -280,7 +281,7 @@ export async function sendTestSms(
   phone: string,
 ): Promise<{ success: true } | { error: string }> {
   try {
-    await requireAdmin()
+    await requireStaffAdmin()
     const parsed = z
       .string()
       .trim()

@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireFinanceAccess } from '@/lib/auth/admin'
 import { logAuditEvent } from '@/lib/audit/log'
 
 function relationOne<T>(value: T | T[] | null | undefined): T | null {
@@ -19,7 +19,7 @@ function toCsv(headers: string[], rows: unknown[][]): string {
 }
 
 export async function exportApplicationsCSV(): Promise<string> {
-  const session = await requireAdmin()
+  const session = await requireFinanceAccess()
   const supabase = createAdminClient()
 
   const { data } = await supabase
@@ -100,7 +100,7 @@ export async function exportApplicationsCSV(): Promise<string> {
 }
 
 export async function exportStudentsCSV(): Promise<string> {
-  await requireAdmin()
+  await requireFinanceAccess()
   const supabase = createAdminClient()
 
   const { data } = await supabase
@@ -137,7 +137,7 @@ export async function exportStudentsCSV(): Promise<string> {
 }
 
 export async function exportPaymentsCSV(): Promise<string> {
-  await requireAdmin()
+  await requireFinanceAccess()
   const supabase = createAdminClient()
 
   const { data } = await supabase
@@ -178,7 +178,7 @@ export async function exportPaymentsCSV(): Promise<string> {
 }
 
 export async function exportEnrollmentsCSV(): Promise<string> {
-  await requireAdmin()
+  await requireFinanceAccess()
   const supabase = createAdminClient()
 
   const { data } = await supabase

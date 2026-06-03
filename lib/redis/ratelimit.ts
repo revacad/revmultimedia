@@ -65,6 +65,34 @@ export const applicationUploadLimit = new Ratelimit({
   prefix: "ratelimit:application-upload",
 });
 
+/** Burst limit for all R2 file uploads per IP. */
+export const fileUploadBurstLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 m"),
+  prefix: "ratelimit:file-upload-burst",
+});
+
+/** Return-student ID lookup on the public apply chooser. */
+export const verifyReturnStudentLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "1 m"),
+  prefix: "ratelimit:verify-return-student",
+});
+
+/** Application draft creation (upload token minting). */
+export const applicationDraftCreateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 h"),
+  prefix: "ratelimit:application-draft-create",
+});
+
+/** Portal personal data export (GDPR / DPA). */
+export const dataExportLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(1, "1 h"),
+  prefix: "ratelimit:portal-data-export",
+});
+
 /** OTP verify attempts per email (in addition to IP login limit). */
 export const otpVerifyEmailLimit = new Ratelimit({
   redis,

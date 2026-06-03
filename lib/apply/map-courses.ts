@@ -17,6 +17,7 @@ export function mapApplyCourses(rows: unknown[]): ApplyCourse[] {
       category: r.category as Course['category'],
       mode: r.mode as Course['mode'],
       tuition_fee_ghs: Number(r.tuition_fee_ghs),
+      thumbnail_r2_key: (r.thumbnail_r2_key as string | null) ?? null,
       intakes,
     }
   })

@@ -1,10 +1,10 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import NextError from 'next/error'
 import { useEffect } from 'react'
+import GlobalErrorFallback from '@/components/ui/GlobalErrorFallback'
 
-export default function GlobalError({
+export default function RootGlobalError({
   error,
 }: {
   error: Error & { digest?: string }
@@ -16,7 +16,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
-        <NextError statusCode={0} />
+        <GlobalErrorFallback />
       </body>
     </html>
   )

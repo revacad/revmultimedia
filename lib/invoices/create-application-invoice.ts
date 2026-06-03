@@ -10,7 +10,8 @@ import {
 } from '@/lib/payments/payment-types'
 import { fetchPromoById, validatePromoRow } from '@/lib/promo/validate'
 import { getSystemSettings } from '@/lib/settings/cache'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import { getMomoProviderName } from '@/lib/settings/momo-provider'
+import { r2DocumentAbsoluteUrl } from '@/lib/r2/document-url'
 
 export type ApplicationForInvoice = {
   id: string
@@ -120,12 +121,13 @@ export async function createApplicationInvoice(
     return { error: 'Payment type is not available. Check Payment Types in admin settings.' }
   }
 
-  const { data: invoiceRef, error: refError } = await supabase.rpc('generate_invoice_ref', {
-    p_type: 'inv',
-  })
+  const { data: invoiceRef, error: refError } = await supabase.rpc(
+    'generate_invoice_reference',
+    { prefix: 'REVINV' },
+  )
 
   if (refError || !invoiceRef) {
-    console.error('generate_invoice_ref error:', refError)
+    console.error('generate_invoice_reference error:', refError)
     return { error: 'Failed to generate invoice reference' }
   }
 
@@ -175,10 +177,16 @@ export async function createApplicationInvoice(
   }
 
   await logAuditEvent({
-    adminId: input.adminId,
-    action: 'invoice.generated',
-    entityType: 'invoice',
-    entityId: invoice.id,
+    actorId: input.adminId,
+    actorType: 'admin',
+    action: 'invoice_created',
+    targetType: 'invoice',
+    targetId: invoice.id,
+    metadata: {
+      reference: invoiceRef,
+      amount: totalGhs,
+      paymentType: input.paymentTypeSlug,
+    },
     newValue: {
       reference: invoiceRef,
       amount: totalGhs,
@@ -203,13 +211,7 @@ export async function sendApplicationInvoiceNotifications(
   paymentTypeLabel: string,
 ): Promise<void> {
   const pdfKey = await generateAndStoreInvoicePdf(invoiceId)
-  let pdfUrl = ''
-  if (pdfKey) {
-    const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME
-    if (bucket) {
-      pdfUrl = await generatePresignedDownloadUrl(bucket, pdfKey, 86400)
-    }
-  }
+  const pdfUrl = pdfKey ? r2DocumentAbsoluteUrl(pdfKey) : ''
 
   const settings = await getSystemSettings()
 
@@ -220,6 +222,7 @@ export async function sendApplicationInvoiceNotifications(
     dueDate,
     invoiceLabel: paymentTypeLabel,
     isInternational: application.country !== 'Ghana',
+    momoProvider: getMomoProviderName(settings),
     momoNumber: settings.momo_number_1 || undefined,
     momoName: settings.momo_name_1 || undefined,
     bankName: settings.bank_name || undefined,

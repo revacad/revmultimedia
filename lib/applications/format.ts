@@ -29,7 +29,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   passport: 'Passport',
   passport_photo: 'Passport Photo',
   certificate: 'Certificate',
-  admission_letter: 'Admission letter',
+  admission_letter: 'Enrollment letter',
   other: 'Other',
 }
 

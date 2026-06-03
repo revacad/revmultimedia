@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import StepIndicator from '@/components/public/apply/StepIndicator'
 import ConfirmationScreen from '@/components/public/apply/ConfirmationScreen'
+import LevelUpStep1Extras from '@/components/public/apply/LevelUpStep1Extras'
 import Step1Personal from '@/components/public/apply/steps/Step1Personal'
 import Step2Course from '@/components/public/apply/steps/Step2Course'
 import Step3Education from '@/components/public/apply/steps/Step3Education'
@@ -13,7 +14,8 @@ import Step4Documents from '@/components/public/apply/steps/Step4Documents'
 import Step5Review from '@/components/public/apply/steps/Step5Review'
 import HoneypotField from '@/components/public/HoneypotField'
 import { submitApplication } from '@/actions/application'
-import type { ApplicationFormData, ApplyCourse } from '@/lib/apply/types'
+import { createApplicationDraft } from '@/actions/application-draft'
+import type { ApplicationChannel, ApplicationFormData, ApplyCourse } from '@/lib/apply/types'
 import {
   type ApplyFieldErrors,
   applyFieldId,
@@ -22,27 +24,38 @@ import {
 } from '@/lib/apply/validation'
 
 const TOTAL_STEPS = 5
-const STORAGE_KEY = 'rev_application_draft'
+const STORAGE_KEY_STANDARD = 'rev_application_draft_standard'
+const STORAGE_KEY_LEVEL_UP = 'rev_application_draft_level_up'
 const SUBMIT_TIMEOUT_MS = 30_000
 
 interface ApplyPageClientProps {
+  applicationChannel: ApplicationChannel
   courses: ApplyCourse[]
   preselectedCourse?: string
   preselectedIntake?: string
 }
 
 export default function ApplyPageClient({
+  applicationChannel,
   courses,
   preselectedCourse,
   preselectedIntake,
 }: ApplyPageClientProps) {
-  const [draftId] = useState(() => crypto.randomUUID())
+  const storageKey =
+    applicationChannel === 'level_up' ? STORAGE_KEY_LEVEL_UP : STORAGE_KEY_STANDARD
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [uploadToken, setUploadToken] = useState<string | null>(null)
+  const [draftError, setDraftError] = useState<string | null>(null)
   const [idempotencyKey] = useState(
     () => `apply-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   )
   const [currentStep, setCurrentStep] = useState(1)
   const [restoredFromDraft, setRestoredFromDraft] = useState(false)
-  const [formData, setFormData] = useState<Partial<ApplicationFormData>>({})
+  const [formData, setFormData] = useState<Partial<ApplicationFormData>>({
+    applicationChannel,
+    country: applicationChannel === 'level_up' ? 'Ghana' : undefined,
+    qualification: applicationChannel === 'level_up' ? 'wassce' : undefined,
+  })
   const [emailVerified, setEmailVerified] = useState(false)
   const [hybridWarningAccepted, setHybridWarningAccepted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,20 +65,33 @@ export default function ApplyPageClient({
     reference?: string
     name: string
     email: string
+    waitlisted?: boolean
+    waitlistPosition?: number
   } | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<ApplyFieldErrors>({})
   const [showValidation, setShowValidation] = useState(false)
   const [shakeNext, setShakeNext] = useState(false)
-  const [website, setWebsite] = useState('')
+  const [honeypot, setHoneypot] = useState('')
 
   const patchForm = useCallback((patch: Partial<ApplicationFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }))
   }, [])
 
   useEffect(() => {
+    void createApplicationDraft()
+      .then(({ draftId: id, uploadToken: token }) => {
+        setDraftId(id)
+        setUploadToken(token)
+      })
+      .catch(() => {
+        setDraftError('Unable to start your application. Please refresh the page.')
+      })
+  }, [])
+
+  useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(STORAGE_KEY)
+      const saved = sessionStorage.getItem(storageKey)
       if (!saved) return
 
       const parsed = JSON.parse(saved) as {
@@ -93,7 +119,7 @@ export default function ApplyPageClient({
     if (currentStep > 1) {
       try {
         sessionStorage.setItem(
-          STORAGE_KEY,
+          storageKey,
           JSON.stringify({
             formData,
             currentStep,
@@ -105,7 +131,7 @@ export default function ApplyPageClient({
         // sessionStorage may be unavailable
       }
     }
-  }, [formData, currentStep, emailVerified])
+  }, [formData, currentStep, emailVerified, storageKey])
 
   const stepValidation = useMemo(
     () =>
@@ -113,8 +139,9 @@ export default function ApplyPageClient({
         emailVerified,
         courses,
         hybridWarningAccepted,
+        applicationChannel,
       }),
-    [currentStep, formData, emailVerified, courses, hybridWarningAccepted],
+    [currentStep, formData, emailVerified, courses, hybridWarningAccepted, applicationChannel],
   )
 
   useEffect(() => {
@@ -139,6 +166,7 @@ export default function ApplyPageClient({
       emailVerified,
       courses,
       hybridWarningAccepted,
+      applicationChannel,
     })
     if (!result.valid) {
       setFieldErrors(result.errors)
@@ -170,9 +198,17 @@ export default function ApplyPageClient({
 
     setIsSubmitting(true)
     setSubmitError(null)
+    setHoneypot('')
+
+    const shsSchoolLabel =
+      formData.shsSchoolDisplayName?.trim() ||
+      formData.shsSchoolNameFreeform?.trim() ||
+      formData.institution?.trim() ||
+      ''
 
     const payload = {
-      website,
+      applicationChannel,
+      _hp: honeypot,
       idempotencyKey,
       email: formData.email!,
       fullName: formData.fullName!,
@@ -183,19 +219,28 @@ export default function ApplyPageClient({
       address: formData.address!,
       stateRegion: formData.stateRegion,
       city: formData.city,
-      qualification: formData.qualification!,
-      institution: formData.institution!,
+      qualification:
+        formData.qualification ?? (applicationChannel === 'level_up' ? 'wassce' : undefined),
+      institution:
+        applicationChannel === 'level_up'
+          ? shsSchoolLabel
+          : formData.institution!.trim(),
       yearCompleted: formData.yearCompleted!,
       priorExperience: formData.priorExperience,
       courseId: formData.courseId!,
       intakeId: formData.intakeId!,
       hybridAttendanceConfirmed: formData.hybridAttendanceConfirmed ?? hybridWarningAccepted,
-      password: formData.password!,
+      password: formData.password,
       documents: {
         idDocument: formData.idDocument!,
         passportPhoto: formData.passportPhoto!,
         certificates: formData.certificates,
       },
+      parentGuardianWhatsapp: formData.parentGuardianWhatsapp,
+      parentGuardianEmail: formData.parentGuardianEmail,
+      shsSchoolId: formData.shsSchoolId,
+      shsSchoolNameFreeform: formData.shsSchoolNameFreeform,
+      parentContactConsent: formData.parentContactConsent,
     }
 
     const timeoutId = setTimeout(() => {
@@ -212,13 +257,26 @@ export default function ApplyPageClient({
       clearTimeout(timeoutId)
 
       if ('error' in result && result.error) {
+        const details = 'details' in result ? result.details : null
+        const fieldMessages =
+          details &&
+          typeof details === 'object' &&
+          'fieldErrors' in details &&
+          details.fieldErrors &&
+          typeof details.fieldErrors === 'object'
+            ? Object.values(details.fieldErrors as Record<string, string[]>)
+                .flat()
+                .filter(Boolean)
+            : []
         if (result.error === 'duplicate' && 'message' in result) {
           setSubmitError(result.message as string)
         } else {
-          setSubmitError(
+          const base =
             typeof result.error === 'string'
               ? result.error
-              : 'Failed to submit application. Please try again.',
+              : 'Failed to submit application. Please try again.'
+          setSubmitError(
+            fieldMessages.length > 0 ? `${base} ${fieldMessages[0]}` : base,
           )
         }
         return
@@ -226,7 +284,7 @@ export default function ApplyPageClient({
 
       if ('success' in result && result.success) {
         try {
-          sessionStorage.removeItem(STORAGE_KEY)
+          sessionStorage.removeItem(storageKey)
         } catch {
           // Ignore
         }
@@ -235,6 +293,11 @@ export default function ApplyPageClient({
           reference: result.reference,
           name: result.applicantName ?? formData.fullName ?? '',
           email: result.email ?? formData.email ?? '',
+          waitlisted: 'waitlisted' in result ? Boolean(result.waitlisted) : false,
+          waitlistPosition:
+            'waitlistPosition' in result && typeof result.waitlistPosition === 'number'
+              ? result.waitlistPosition
+              : undefined,
         })
       }
     } catch {
@@ -253,7 +316,9 @@ export default function ApplyPageClient({
           <ConfirmationScreen
             name={submitResult.name || formData.fullName || ''}
             email={submitResult.email || formData.email || ''}
-            reference={submitResult.reference || 'REVAPP202500001'}
+            reference={submitResult.reference ?? ''}
+            waitlisted={submitResult.waitlisted}
+            waitlistPosition={submitResult.waitlistPosition}
           />
         </div>
       </section>
@@ -291,7 +356,7 @@ export default function ApplyPageClient({
               type="button"
               onClick={() => {
                 try {
-                  sessionStorage.removeItem(STORAGE_KEY)
+                  sessionStorage.removeItem(storageKey)
                 } catch {
                   // Ignore
                 }
@@ -319,16 +384,26 @@ export default function ApplyPageClient({
         <div
           className="relative mx-auto max-w-[680px] rounded-3xl border border-[#EFEFF5] bg-white p-10 shadow-[var(--shadow-card)]"
         >
-          <HoneypotField value={website} onChange={setWebsite} />
+          <HoneypotField value={honeypot} onChange={setHoneypot} />
           {currentStep === 1 && (
-            <Step1Personal
-              formData={formData}
-              emailVerified={emailVerified}
-              fieldErrors={fieldErrors}
-              showValidation={showValidation}
-              onChange={patchForm}
-              onEmailVerified={setEmailVerified}
-            />
+            <>
+              <Step1Personal
+                formData={formData}
+                emailVerified={emailVerified}
+                fieldErrors={fieldErrors}
+                showValidation={showValidation}
+                onChange={patchForm}
+                onEmailVerified={setEmailVerified}
+              />
+              {applicationChannel === 'level_up' && (
+                <LevelUpStep1Extras
+                  formData={formData}
+                  fieldErrors={fieldErrors}
+                  showValidation={showValidation}
+                  onChange={patchForm}
+                />
+              )}
+            </>
           )}
           {currentStep === 2 && (
             <Step2Course
@@ -345,6 +420,7 @@ export default function ApplyPageClient({
           )}
           {currentStep === 3 && (
             <Step3Education
+              applicationChannel={applicationChannel}
               formData={formData}
               fieldErrors={fieldErrors}
               showValidation={showValidation}
@@ -352,16 +428,28 @@ export default function ApplyPageClient({
             />
           )}
           {currentStep === 4 && (
-            <Step4Documents
-              draftId={draftId}
-              formData={formData}
-              fieldErrors={fieldErrors}
-              showValidation={showValidation}
-              onChange={patchForm}
-            />
+            draftError ? (
+              <p className="text-sm text-[#E84A4A]" role="alert">
+                {draftError}
+              </p>
+            ) : draftId && uploadToken ? (
+              <Step4Documents
+                draftId={draftId}
+                uploadToken={uploadToken}
+                formData={formData}
+                fieldErrors={fieldErrors}
+                showValidation={showValidation}
+                onChange={patchForm}
+              />
+            ) : (
+              <div className="flex justify-center py-12">
+                <LogoLoader />
+              </div>
+            )
           )}
           {currentStep === 5 && (
             <Step5Review
+              applicationChannel={applicationChannel}
               formData={formData}
               courses={courses}
               emailVerified={emailVerified}

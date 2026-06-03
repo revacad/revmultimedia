@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireAdmin } from '@/lib/auth/admin'
+import { requireFinanceAccess } from '@/lib/auth/admin'
 import { PROTECTED_PAYMENT_TYPE_SLUGS } from '@/lib/payments/payment-types'
 import { sanitizePlainText } from '@/lib/security/html'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -10,6 +10,7 @@ import {
   setPaymentTypeActiveSchema,
   updatePaymentTypeSchema,
 } from '@/lib/validations/payment-types'
+import { safeActionError } from '@/lib/errors/action'
 
 export async function createPaymentType(data: {
   slug: string
@@ -25,7 +26,7 @@ export async function createPaymentType(data: {
       }
     }
 
-    await requireAdmin()
+    await requireFinanceAccess()
     const supabase = createAdminClient()
     const payload = parsed.data
 
@@ -43,16 +44,14 @@ export async function createPaymentType(data: {
       if (error.code === '23505') {
         return { error: 'A payment type with this slug already exists' }
       }
-      return { error: error.message }
+      return safeActionError('paymentType.create', error, 'Failed to create payment type.')
     }
 
     revalidatePath('/admin/payment-types')
     revalidatePath('/admin/payments')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to create payment type',
-    }
+    return safeActionError('paymentType.create', e, 'Failed to create payment type.')
   }
 }
 
@@ -71,7 +70,7 @@ export async function updatePaymentType(data: {
       }
     }
 
-    await requireAdmin()
+    await requireFinanceAccess()
     const supabase = createAdminClient()
     const payload = parsed.data
 
@@ -106,16 +105,14 @@ export async function updatePaymentType(data: {
       .eq('id', payload.id)
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('paymentType.update', error, 'Failed to update payment type.')
     }
 
     revalidatePath('/admin/payment-types')
     revalidatePath('/admin/payments')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to update payment type',
-    }
+    return safeActionError('paymentType.update', e, 'Failed to update payment type.')
   }
 }
 
@@ -131,7 +128,7 @@ export async function setPaymentTypeActive(
       }
     }
 
-    await requireAdmin()
+    await requireFinanceAccess()
     const supabase = createAdminClient()
 
     const { data: row } = await supabase
@@ -161,15 +158,13 @@ export async function setPaymentTypeActive(
       .eq('id', parsed.data.id)
 
     if (error) {
-      return { error: error.message }
+      return safeActionError('paymentType.setActive', error, 'Failed to update payment type status.')
     }
 
     revalidatePath('/admin/payment-types')
     revalidatePath('/admin/payments')
     return { success: true }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Failed to update payment type',
-    }
+    return safeActionError('paymentType.setActive', e, 'Failed to update payment type status.')
   }
 }

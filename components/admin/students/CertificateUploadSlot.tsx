@@ -3,6 +3,9 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { uploadCertificate } from '@/actions/certificate'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
+import { CERTIFICATE_UPLOAD_REQUIRES_ENROLLMENT_MESSAGE } from '@/lib/enrollment/certificate-upload'
 import { uploadViaPresign } from '@/lib/portal/upload'
 
 interface CertificateUploadSlotProps {
@@ -11,6 +14,7 @@ interface CertificateUploadSlotProps {
   enrollmentId: string
   courseId: string
   courseSlug: string
+  canUpload: boolean
   existing?: {
     fileName: string
     uploadedAt: string
@@ -24,6 +28,7 @@ export default function CertificateUploadSlot({
   enrollmentId,
   courseId,
   courseSlug,
+  canUpload,
   existing,
 }: CertificateUploadSlotProps) {
   const router = useRouter()
@@ -33,6 +38,10 @@ export default function CertificateUploadSlot({
 
   const handleFile = async (file: File) => {
     setError(null)
+    if (!canUpload) {
+      setError(CERTIFICATE_UPLOAD_REQUIRES_ENROLLMENT_MESSAGE)
+      return
+    }
     if (file.type !== 'application/pdf') {
       setError('Certificate must be a PDF file.')
       return
@@ -48,6 +57,7 @@ export default function CertificateUploadSlot({
         type: 'certificate',
         studentId: studentPublicId,
         courseSlug,
+        enrollmentId,
       })
 
       const result = await uploadCertificate({
@@ -79,14 +89,16 @@ export default function CertificateUploadSlot({
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <ViewCertificateButton r2Key={existing.r2Key} label="View" />
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={() => inputRef.current?.click()}
-            className="rounded-full border border-[#D8D8E8] px-3 py-1.5 font-body text-xs font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
-          >
-            {uploading ? 'Uploading…' : 'Replace'}
-          </button>
+          {canUpload && (
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => inputRef.current?.click()}
+              className="rounded-full border border-[#D8D8E8] px-3 py-1.5 font-body text-xs font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
+            >
+              {uploading ? 'Uploading…' : 'Replace'}
+            </button>
+          )}
         </div>
         <input
           ref={inputRef}
@@ -100,6 +112,16 @@ export default function CertificateUploadSlot({
           }}
         />
         {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+      </div>
+    )
+  }
+
+  if (!canUpload) {
+    return (
+      <div className="mt-3 rounded-lg border border-[#EFEFF5] bg-[#F8F8FC] p-4">
+        <p className="font-body text-sm text-[#5A5A7A]">
+          {CERTIFICATE_UPLOAD_REQUIRES_ENROLLMENT_MESSAGE}
+        </p>
       </div>
     )
   }
@@ -133,25 +155,14 @@ export default function CertificateUploadSlot({
 }
 
 function ViewCertificateButton({ r2Key, label }: { r2Key: string; label: string }) {
-  const [loading, setLoading] = useState(false)
-
   return (
-    <button
-      type="button"
-      disabled={loading}
-      onClick={async () => {
-        setLoading(true)
-        try {
-          const { getDocumentUrl } = await import('@/actions/documents')
-          const url = await getDocumentUrl(r2Key)
-          window.open(url, '_blank', 'noopener,noreferrer')
-        } finally {
-          setLoading(false)
-        }
-      }}
+    <a
+      href={r2DocumentHref(normalizeR2ObjectKey(r2Key))}
+      target="_blank"
+      rel="noopener noreferrer"
       className="rounded-full bg-accent px-3 py-1.5 font-body text-xs font-semibold text-white"
     >
-      {loading ? 'Opening…' : label}
-    </button>
+      {label}
+    </a>
   )
 }

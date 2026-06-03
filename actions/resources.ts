@@ -3,14 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
+import { requireStaffAdmin } from '@/lib/auth/admin'
 import { logAuditEvent } from '@/lib/audit/log'
 import { logStudentActivity } from '@/lib/student-activity/log'
-import { generatePresignedDownloadUrl } from '@/lib/r2/presign'
+import { assertStudentCanAccessResource } from '@/lib/resources/student-access'
+import { r2DocumentHref } from '@/lib/r2/document-url'
+import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 import {
   deleteResourceSchema,
   resourceUrlSchema,
   uploadResourceSchema,
 } from '@/lib/validations/resources'
+import { safeActionError } from '@/lib/errors/action'
 
 export async function uploadResource(data: {
   title: string
@@ -28,11 +32,12 @@ export async function uploadResource(data: {
     return { error: parsed.error.issues[0]?.message ?? 'Invalid resource details' }
   }
 
-  const supabase = createAdminClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  let session
+  try {
+    session = await requireStaffAdmin()
+  } catch {
+    return { error: 'Not authenticated' }
+  }
 
   const payload = parsed.data
   if (payload.visibility === 'course_specific' && !payload.courseId) {
@@ -42,13 +47,7 @@ export async function uploadResource(data: {
     return { error: 'intakeId is required when visibility is intake_specific' }
   }
 
-  const { data: admin } = await supabase
-    .from('admins')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!admin) return { error: 'Not an admin' }
+  const supabase = createAdminClient()
 
   const { error } = await supabase.from('resources').insert({
     title: payload.title,
@@ -60,13 +59,13 @@ export async function uploadResource(data: {
     visibility: payload.visibility,
     course_id: payload.courseId || null,
     intake_id: payload.intakeId || null,
-    uploaded_by: admin.id,
+    uploaded_by: session.adminId,
   })
 
-  if (error) return { error: error.message }
+  if (error) return safeActionError('resource.upload', error, 'Failed to upload resource.')
 
   await logAuditEvent({
-    adminId: admin.id,
+    adminId: session.adminId,
     action: 'resource.created',
     entityType: 'resource',
     newValue: { title: payload.title, visibility: payload.visibility },
@@ -84,23 +83,16 @@ export async function deleteResource(
     return { error: parsed.error.issues[0]?.message ?? 'Invalid resource id' }
   }
 
+  try {
+    await requireStaffAdmin()
+  } catch {
+    return { error: 'Not authenticated' }
+  }
+
   const supabase = createAdminClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  const { data: admin } = await supabase
-    .from('admins')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!admin) return { error: 'Not an admin' }
-
   const { error } = await supabase.from('resources').delete().eq('id', resourceId)
 
-  if (error) return { error: error.message }
+  if (error) return safeActionError('resource.delete', error, 'Failed to delete resource.')
 
   revalidatePath('/admin/resources')
   return { success: true }
@@ -118,33 +110,37 @@ export async function getResourceUrl(resourceId: string): Promise<string> {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const { data: resource } = await supabase
-    .from('resources')
-    .select('file_r2_key, file_name')
-    .eq('id', resourceId)
-    .single()
+  const admin = createAdminClient()
 
-  if (!resource) throw new Error('Resource not found')
-
-  const { data: student } = await supabase
+  const { data: student } = await admin
     .from('students')
     .select('id')
     .eq('auth_user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (student) {
-    await logStudentActivity({
-      studentId: student.id,
-      action: 'resource.downloaded',
-      metadata: { resourceId, fileName: resource.file_name },
-    })
+  if (!student) {
+    throw new Error('You do not have access to this resource.')
   }
 
-  return generatePresignedDownloadUrl(
-    process.env.CLOUDFLARE_R2_BUCKET_NAME!,
-    resource.file_r2_key,
-    3600,
-  )
+  const { data: resource } = await admin
+    .from('resources')
+    .select('file_r2_key, file_name, visibility, course_id, intake_id, is_active')
+    .eq('id', parsed.data.resourceId)
+    .maybeSingle()
+
+  if (!resource) {
+    throw new Error('Resource not found')
+  }
+
+  await assertStudentCanAccessResource(admin, student.id, resource)
+
+  await logStudentActivity({
+    studentId: student.id,
+    action: 'resource.downloaded',
+    metadata: { resourceId: parsed.data.resourceId, fileName: resource.file_name },
+  })
+
+  return r2DocumentHref(normalizeR2ObjectKey(resource.file_r2_key))
 }
 
 export async function getAdminResourceUrl(resourceId: string): Promise<string> {
@@ -153,31 +149,20 @@ export async function getAdminResourceUrl(resourceId: string): Promise<string> {
     throw new Error(parsed.error.issues[0]?.message ?? 'Invalid resource id')
   }
 
+  try {
+    await requireStaffAdmin()
+  } catch {
+    throw new Error('Unauthorized')
+  }
+
   const supabase = createAdminClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const { data: admin } = await supabase
-    .from('admins')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!admin) throw new Error('Not an admin')
-
   const { data: resource } = await supabase
     .from('resources')
     .select('file_r2_key')
-    .eq('id', resourceId)
-    .single()
+    .eq('id', parsed.data.resourceId)
+    .maybeSingle()
 
   if (!resource) throw new Error('Resource not found')
 
-  return generatePresignedDownloadUrl(
-    process.env.CLOUDFLARE_R2_BUCKET_NAME!,
-    resource.file_r2_key,
-    3600,
-  )
+  return r2DocumentHref(normalizeR2ObjectKey(resource.file_r2_key))
 }

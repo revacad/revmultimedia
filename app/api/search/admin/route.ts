@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { authErrorResponse, apiErrorResponse } from '@/lib/errors/api'
+import {
+  toAdminSearchApplicationResult,
+  toAdminSearchCourseResult,
+  toAdminSearchStudentResult,
+} from '@/lib/api/responses'
 import { searchQuerySchema } from '@/lib/validations/api'
 
 export async function GET(request: NextRequest) {
+  try {
   const supabase = await createServerClient()
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (authError || !user) {
+    return authErrorResponse('search/admin', authError)
   }
 
   const adminClient = createAdminClient()
@@ -35,7 +43,7 @@ export async function GET(request: NextRequest) {
   const [students, applications, courses] = await Promise.all([
     adminClient
       .from('students')
-      .select('id, student_id, full_name, real_email')
+      .select('id, student_id, full_name')
       .textSearch('search_vector', query, { type: 'websearch', config: 'simple' })
       .limit(4),
     adminClient
@@ -52,9 +60,12 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     results: {
-      students: students.data ?? [],
-      applications: applications.data ?? [],
-      courses: courses.data ?? [],
+      students: (students.data ?? []).map(toAdminSearchStudentResult),
+      applications: (applications.data ?? []).map(toAdminSearchApplicationResult),
+      courses: (courses.data ?? []).map(toAdminSearchCourseResult),
     },
   })
+  } catch (error) {
+    return apiErrorResponse('search/admin', error)
+  }
 }

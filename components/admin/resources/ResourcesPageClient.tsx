@@ -140,20 +140,10 @@ export default function ResourcesPageClient({
           setError(data.error ?? 'Failed to prepare upload')
           return
         }
-        const { presignedUrl, key } = (await presignRes.json()) as {
-          presignedUrl: string
-          key: string
-        }
+        const { key } = (await presignRes.json()) as { key: string }
 
-        const uploadRes = await fetch(presignedUrl, {
-          method: 'PUT',
-          body: selectedFile,
-          headers: { 'Content-Type': selectedFile.type },
-        })
-        if (!uploadRes.ok) {
-          setError('Upload to storage failed')
-          return
-        }
+        const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
+        await uploadFileToR2ViaServer(selectedFile, key, { type: 'resource' })
 
         const result = await uploadResource({
           title: title.trim(),

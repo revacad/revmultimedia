@@ -7,6 +7,7 @@ export const APPLICATION_STATUSES = [
   'accepted',
   'rejected',
   'deferred',
+  'waitlisted',
 ] as const
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number]
@@ -16,6 +17,7 @@ export type ApplicationListRow = {
   reference: string
   full_name: string
   real_email: string
+  student_id: string | null
   phone: string
   country: string
   status: ApplicationStatus
@@ -43,6 +45,8 @@ export type ApplicationInvoice = {
   amount_ghs: number
   total_ghs: number
   status: string
+  payment_method?: string | null
+  paystack_reference?: string | null
   created_at: string | null
   installments?: { amount_ghs: number }[]
 }
@@ -54,9 +58,17 @@ export type ApplicationAdminNote = {
   admins: { full_name: string } | null
 }
 
+export type ApplicationChannel = 'standard' | 'level_up'
+
 export type ApplicationDetail = {
   id: string
   reference: string
+  application_channel?: ApplicationChannel
+  parent_guardian_whatsapp?: string | null
+  parent_guardian_email?: string | null
+  shs_school_id?: string | null
+  shs_school_name_freeform?: string | null
+  senior_high_schools?: { name: string; region: string | null } | null
   full_name: string
   real_email: string
   enrolled_at: string | null
@@ -75,6 +87,8 @@ export type ApplicationDetail = {
   prior_experience: string | null
   hybrid_attendance_confirmed: boolean
   status: ApplicationStatus
+  waitlist_position: number | null
+  waitlist_notified_at: string | null
   app_fee_paid: boolean
   created_at: string
   updated_at: string

@@ -25,7 +25,7 @@ export async function ensureDefaultGraphicDesignCourse(): Promise<boolean> {
         .insert({
           title: 'Graphic Design',
           slug: DEFAULT_SLUG,
-          category: 'graphic_design',
+          category: 'design',
           mode: 'in_person',
           tuition_fee_ghs: 2500,
           max_slots: 20,
