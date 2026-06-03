@@ -60,33 +60,37 @@ export async function loginAdmin(
   }
 
   const adminClient = createAdminClient()
-  const { data: admin, error: adminError } = await adminClient
+  console.log('[loginAdmin] looking up admin for user:', authData.user.id)
+  const { data: adminData, error: adminError } = await adminClient
     .from('admins')
     .select('id, role, is_active')
     .eq('auth_user_id', authData.user.id)
     .single()
 
-  if (adminError || !admin) {
+  console.log('[loginAdmin] admin lookup result:', JSON.stringify(adminData))
+  console.log('[loginAdmin] admin lookup error:', JSON.stringify(adminError))
+
+  if (adminError || !adminData) {
     await supabase.auth.signOut({ scope: 'local' })
     return { error: 'Invalid email or password' }
   }
 
-  if (!admin.is_active) {
+  if (!adminData.is_active) {
     await supabase.auth.signOut({ scope: 'global' })
     return { error: 'This account has been deactivated.' }
   }
 
-  const role = admin.role as 'admin' | 'superadmin' | 'accounts'
+  const role = adminData.role as 'admin' | 'superadmin' | 'accounts'
   await adminClient.auth.admin.updateUserById(authData.user.id, {
     app_metadata: { role },
   })
 
   void logAuditEvent({
-    actorId: admin.id,
+    actorId: adminData.id,
     actorType: 'admin',
     action: 'admin_login',
     targetType: 'admin',
-    targetId: admin.id,
+    targetId: adminData.id,
   })
 
   await onLoginSuccess(authData.user.id)
