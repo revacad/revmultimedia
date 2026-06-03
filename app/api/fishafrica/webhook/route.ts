@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getFishAfricaWebhookSignature,
-  verifyFishAfricaWebhookSignature,
+  verifyFishAfricaSignature,
 } from '@/lib/webhooks/fishafrica-signature'
 
 export async function POST(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!signature) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
-    if (!verifyFishAfricaWebhookSignature(rawBody, webhookSecret, signature)) {
+    if (!verifyFishAfricaSignature(rawBody, signature, webhookSecret)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
   }
