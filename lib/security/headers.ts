@@ -22,6 +22,27 @@ function r2ConnectSources(): string[] {
   return [`https://*.${accountId}.r2.cloudflarestorage.com`]
 }
 
+const PRODUCTION_APP_URLS = new Set([
+  'https://revmultimedia.com',
+  'https://www.revmultimedia.com',
+  'https://revmultimediagh.com',
+  'https://www.revmultimediagh.com',
+])
+
+function normalizeAppUrl(url: string): string {
+  return url.trim().replace(/\/$/, '')
+}
+
+/** Vercel Live / feedback scripts on local and staging (not production domain). */
+export function shouldAllowVercelLiveScripts(): boolean {
+  if (process.env.NODE_ENV !== 'production') return true
+  const appUrl = normalizeAppUrl(
+    process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '',
+  )
+  if (!appUrl) return false
+  return !PRODUCTION_APP_URLS.has(appUrl)
+}
+
 /** Build Content-Security-Policy for the public app (adjust when adding third-party scripts). */
 export function buildContentSecurityPolicy(isDev: boolean): string {
   const supabase = supabaseConnectSources()
@@ -29,6 +50,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
   const siteHost = hostFromEnvUrl(
     process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL,
   )
+  const allowVercelLive = shouldAllowVercelLiveScripts()
 
   const scriptSrc = [
     "'self'",
@@ -36,6 +58,9 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     'https://js.paystack.co',
     'https://www.googletagmanager.com',
     ...(isDev ? ["'unsafe-eval'"] : []),
+    ...(allowVercelLive
+      ? ['https://vercel.live', 'https://vercel-scripts.com']
+      : []),
   ]
 
   const workerSrc = ["'self'", 'blob:']
@@ -53,6 +78,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     'https://www.googletagmanager.com',
     ...(siteHost ? [`https://${siteHost}`, `wss://${siteHost}`] : []),
     ...(isDev ? ['ws://localhost:3000', 'wss://localhost:3000'] : []),
+    ...(allowVercelLive ? ['https://vercel.live', 'wss://vercel.live'] : []),
   ]
 
   const imgSrc = ["'self'", 'data:', 'blob:', 'https:']
@@ -66,7 +92,8 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     "font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com data:",
     `img-src ${imgSrc.join(' ')}`,
     `connect-src ${connectSrc.join(' ')}`,
-    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com",
+    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com" +
+      (allowVercelLive ? ' https://vercel.live' : ''),
     "media-src 'self' https: blob:",
     "object-src 'none'",
     "base-uri 'self'",

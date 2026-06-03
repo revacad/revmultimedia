@@ -76,22 +76,28 @@ function redirectWithPathname(
   return applySecurityHeaders(response)
 }
 
-/** Routes that must not block on Supabase auth in middleware (apply flow, public APIs). */
-function skipsSessionRefresh(path: string): boolean {
+/** Public routes that bypass Supabase session refresh and auth redirects. */
+function isPublicRoute(path: string): boolean {
+  if (path === '/manifest.json' || path === '/favicon.ico') return true
+  if (path.startsWith('/_next/')) return true
+  if (path.startsWith('/images/')) return true
+  if (path.startsWith('/fonts/')) return true
+  if (path.startsWith('/alumni/')) return true
+  if (path.startsWith('/api/otp/')) return true
+  if (path === '/api/paystack/webhook' || path === '/api/fishafrica/webhook') {
+    return true
+  }
   if (path.startsWith('/apply')) return true
   if (
     path === '/api/schools/search' ||
     path === '/api/r2/presign' ||
     path === '/api/r2/upload' ||
-    path === '/api/r2/confirm' ||
-    path === '/api/otp/send' ||
-    path === '/api/otp/verify'
+    path === '/api/r2/confirm'
   ) {
     return true
   }
   return (
     path === '/' ||
-    path === '/manifest.json' ||
     path.endsWith('.json') ||
     path.startsWith('/courses') ||
     path.startsWith('/about') ||
@@ -100,11 +106,9 @@ function skipsSessionRefresh(path: string): boolean {
     path.startsWith('/terms') ||
     path.startsWith('/forgot-password') ||
     path.startsWith('/reset-password') ||
-    path.startsWith('/images/') ||
     path.startsWith('/icons/') ||
     path.startsWith('/favicon') ||
     path.startsWith('/splash') ||
-    path.startsWith('/alumni/') ||
     path.startsWith('/members/')
   )
 }
@@ -179,6 +183,10 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(new NextResponse(null, { status: 404 }))
   }
 
+  if (isPublicRoute(path)) {
+    return nextWithoutSession(request, path)
+  }
+
   // Portal auth is enforced in server components. Skipping Supabase network refresh here
   // avoids cookie churn and redirect loops with /login in development.
   if (path.startsWith('/portal')) {
@@ -205,10 +213,6 @@ export async function proxy(request: NextRequest) {
     request.headers.get('accept')?.includes('text/x-component') === true
 
   if (isInternalRscRequest) {
-    return nextWithoutSession(request, path)
-  }
-
-  if (skipsSessionRefresh(path)) {
     return nextWithoutSession(request, path)
   }
 
@@ -346,6 +350,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }
