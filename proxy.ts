@@ -28,6 +28,18 @@ function isProtectedAdminPath(path: string): boolean {
   return path.startsWith('/admin') && !isAdminAuthPath(path)
 }
 
+/** Static assets that must never hit maintenance, session refresh, or auth redirects. */
+const STATIC_PUBLIC_FILES = new Set([
+  '/manifest.json',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+])
+
+function isStaticPublicFile(path: string): boolean {
+  return STATIC_PUBLIC_FILES.has(path)
+}
+
 function applySessionCookies(from: NextResponse, to: NextResponse): void {
   from.cookies.getAll().forEach((cookie) => {
     const { name, value, path, domain, maxAge, expires, httpOnly, secure, sameSite } =
@@ -78,7 +90,7 @@ function redirectWithPathname(
 
 /** Public routes that bypass Supabase session refresh and auth redirects. */
 function isPublicRoute(path: string): boolean {
-  if (path === '/manifest.json' || path === '/favicon.ico') return true
+  if (isStaticPublicFile(path)) return true
   if (path.startsWith('/_next/')) return true
   if (path.startsWith('/images/')) return true
   if (path.startsWith('/fonts/')) return true
@@ -165,6 +177,10 @@ export async function proxy(request: NextRequest) {
   if (path.startsWith('/api/')) {
     const preflight = corsPreflightResponse(request)
     if (preflight) return applySecurityHeaders(preflight)
+  }
+
+  if (isStaticPublicFile(path)) {
+    return nextWithoutSession(request, path)
   }
 
   try {
@@ -350,6 +366,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }
