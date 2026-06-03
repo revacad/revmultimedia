@@ -50,25 +50,16 @@ export async function loginAdmin(
     password: parsed.data.password,
   })
 
-  console.log('[loginAdmin] signInWithPassword data:', JSON.stringify(authData?.user?.id))
-  if (authError) {
-    console.error('[loginAdmin] signInWithPassword error:', JSON.stringify(authError))
-  }
-
   if (authError || !authData.user) {
     return { error: 'Invalid email or password' }
   }
 
   const adminClient = createAdminClient()
-  console.log('[loginAdmin] looking up admin for user:', authData.user.id)
   const { data: adminData, error: adminError } = await adminClient
     .from('admins')
     .select('id, role, is_active')
     .eq('auth_user_id', authData.user.id)
     .single()
-
-  console.log('[loginAdmin] admin lookup result:', JSON.stringify(adminData))
-  console.log('[loginAdmin] admin lookup error:', JSON.stringify(adminError))
 
   if (adminError || !adminData) {
     await supabase.auth.signOut({ scope: 'local' })

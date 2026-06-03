@@ -3,3 +3,5 @@ GRANT SELECT ON public.courses TO anon;
 GRANT SELECT ON public.intakes TO anon;
 GRANT SELECT ON public.senior_high_schools TO anon;
 GRANT SELECT ON public.payment_types TO anon;
+GRANT ALL ON public.admins TO service_role;
+GRANT SELECT ON public.admins TO authenticated;
