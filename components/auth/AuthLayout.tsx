@@ -6,9 +6,11 @@ import { QuotePanel } from './QuotePanel'
 interface AuthLayoutProps {
   children: ReactNode
   quote: Quote
+  /** Lock to viewport height with no page scroll (portal login). */
+  viewportLocked?: boolean
 }
 
-export function AuthLayout({ children, quote }: AuthLayoutProps) {
+export function AuthLayout({ children, quote, viewportLocked = false }: AuthLayoutProps) {
   return (
     <>
       <style>{`
@@ -20,7 +22,14 @@ export function AuthLayout({ children, quote }: AuthLayoutProps) {
         }
       `}</style>
 
-      <div style={{ minHeight: '100vh', display: 'flex' }}>
+      <div
+        style={{
+          minHeight: '100vh',
+          height: viewportLocked ? '100vh' : undefined,
+          overflow: viewportLocked ? 'hidden' : undefined,
+          display: 'flex',
+        }}
+      >
         <div className="quote-panel-desktop" style={{ width: '55%', flexShrink: 0 }}>
           <QuotePanel quote={quote} />
         </div>
@@ -33,16 +42,20 @@ export function AuthLayout({ children, quote }: AuthLayoutProps) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '48px 32px',
+            padding: viewportLocked ? '24px 32px' : '48px 32px',
             minHeight: '100vh',
+            height: viewportLocked ? '100vh' : undefined,
+            overflow: viewportLocked ? 'hidden' : undefined,
           }}
         >
           <div style={{ width: '100%', maxWidth: '420px' }}>
             {children}
 
-            <div className="mobile-quote-strip">
-              <MobileQuoteStrip quote={quote} />
-            </div>
+            {!viewportLocked ? (
+              <div className="mobile-quote-strip">
+                <MobileQuoteStrip quote={quote} />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

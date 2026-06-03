@@ -19,8 +19,9 @@ export default async function LoginPage({
   const quote = pickRandomQuote()
 
   return (
-    <AuthLayout quote={quote}>
+    <AuthLayout quote={quote} viewportLocked>
       <AuthPageShell
+        showBrand={false}
         title="Welcome back"
         subtitle="Sign in with your application reference or permanent student ID."
         footerNote={resetSuccess ? 'Your password has been reset. You can sign in now.' : undefined}

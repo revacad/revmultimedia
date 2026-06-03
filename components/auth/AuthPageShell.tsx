@@ -6,35 +6,44 @@ interface AuthPageShellProps {
   subtitle: string
   children: ReactNode
   footerNote?: string
+  showBrand?: boolean
 }
 
-export default function AuthPageShell({ title, subtitle, children, footerNote }: AuthPageShellProps) {
+export default function AuthPageShell({
+  title,
+  subtitle,
+  children,
+  footerNote,
+  showBrand = true,
+}: AuthPageShellProps) {
   return (
     <>
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-          <span
-            style={{
-              fontFamily: 'Clash Display, sans-serif',
-              fontWeight: 700,
-              fontSize: '24px',
-              color: '#C74A86',
-            }}
-          >
-            Rev
-          </span>
-          <span
-            style={{
-              fontFamily: 'Clash Display, sans-serif',
-              fontWeight: 600,
-              fontSize: '24px',
-              color: '#1A1A2E',
-            }}
-          >
-            Multimedia
-          </span>
+      {showBrand ? (
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+            <span
+              style={{
+                fontFamily: 'Clash Display, sans-serif',
+                fontWeight: 700,
+                fontSize: '24px',
+                color: '#C74A86',
+              }}
+            >
+              Rev
+            </span>
+            <span
+              style={{
+                fontFamily: 'Clash Display, sans-serif',
+                fontWeight: 600,
+                fontSize: '24px',
+                color: '#1A1A2E',
+              }}
+            >
+              Multimedia
+            </span>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div
         style={{

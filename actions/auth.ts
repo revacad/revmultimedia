@@ -50,6 +50,11 @@ export async function loginAdmin(
     password: parsed.data.password,
   })
 
+  console.log('[loginAdmin] signInWithPassword data:', JSON.stringify(authData?.user?.id))
+  if (authError) {
+    console.error('[loginAdmin] signInWithPassword error:', JSON.stringify(authError))
+  }
+
   if (authError || !authData.user) {
     return { error: 'Invalid email or password' }
   }

@@ -251,12 +251,10 @@ export default async function AdminDashboardPage() {
           <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Quick Actions</h2>
           <div className="space-y-2">
             <Link
-              href="/apply"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/admin/intakes/new"
               className="block w-full rounded-full border border-[#D8D8E8] px-4 py-2.5 text-center font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
             >
-              New Application
+              New Intake
             </Link>
             <Link
               href="/admin/courses/new"
