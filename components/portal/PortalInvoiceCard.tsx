@@ -9,6 +9,8 @@ import { PaystackButton } from '@/components/portal/PaystackButton'
 import PortalInvoicePaymentCard from '@/components/portal/PortalInvoicePaymentCard'
 import { formatApplicationDate } from '@/lib/applications/format'
 import PortalInvoiceDocuments from '@/components/portal/PortalInvoiceDocuments'
+import PaymentInstructions from '@/components/portal/PaymentInstructions'
+import ManualPaymentClaimForm from '@/components/portal/ManualPaymentClaimForm'
 import type { PortalReceiptLink } from '@/lib/portal/invoice-receipts'
 import type { PortalInvoiceRow } from '@/lib/portal/invoices'
 import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
@@ -22,6 +24,7 @@ interface PortalInvoiceCardProps {
   settings: Record<string, string>
   showInternational: boolean
   payerEmail: string
+  paystackEnabled: boolean
 }
 
 export default function PortalInvoiceCard({
@@ -30,6 +33,7 @@ export default function PortalInvoiceCard({
   settings,
   showInternational,
   payerEmail,
+  paystackEnabled,
 }: PortalInvoiceCardProps) {
   const typeLabel = formatInvoiceType(
     invoice.type,
@@ -50,6 +54,7 @@ export default function PortalInvoiceCard({
   const [expanded, setExpanded] = useState(isAppFee && status === 'paid')
 
   const allowPaystack = Boolean(invoice.payment_types?.allow_paystack)
+  const appFeePaystackEnabled = paystackEnabled && allowPaystack
   const showBankInstructions = status === 'unpaid' || status === 'partially_paid'
   const isTuition = invoice.type === 'tuition'
   const remainingGhs = Math.max(0, total - paidAmount)
@@ -68,7 +73,7 @@ export default function PortalInvoiceCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <p className="font-display text-2xl font-semibold text-[#1A1A2E]">{formatGHS(total)}</p>
+          <p className="font-display text-2xl font-semibold text-[#1A1A2E] md:text-3xl">{formatGHS(total)}</p>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -124,7 +129,14 @@ export default function PortalInvoiceCard({
               </div>
             )}
 
-            {showBankInstructions && isTuition && (
+            {showBankInstructions && isAppFee && !appFeePaystackEnabled && remainingGhs > 0 && (
+              <div className="mt-4 space-y-4">
+                <PaymentInstructions settings={settings} invoiceReference={invoice.reference} />
+                <ManualPaymentClaimForm invoiceId={invoice.id} />
+              </div>
+            )}
+
+            {showBankInstructions && !isAppFee && !allowPaystack && (
               <div className="mt-4">
                 <PortalInvoicePaymentCard
                   settings={settings}
@@ -134,17 +146,7 @@ export default function PortalInvoiceCard({
               </div>
             )}
 
-            {showBankInstructions && !isTuition && !allowPaystack && (
-              <div className="mt-4">
-                <PortalInvoicePaymentCard
-                  settings={settings}
-                  invoiceReference={invoice.reference}
-                  showInternational={showInternational}
-                />
-              </div>
-            )}
-
-            {showBankInstructions && allowPaystack && remainingGhs > 0 && (
+            {showBankInstructions && ((isAppFee && appFeePaystackEnabled) || (!isAppFee && allowPaystack)) && remainingGhs > 0 && (
               <div className="mt-4 space-y-4">
                 <div className="rounded-lg border border-[#EFEFF5] bg-[#F7F8FC] p-4">
                   <p className="font-body text-sm font-semibold text-[#1A1A2E]">Pay online</p>
@@ -161,11 +163,18 @@ export default function PortalInvoiceCard({
                   </div>
                 </div>
                 <p className="font-body text-xs text-[#9898B8]">Or pay manually:</p>
-                <PortalInvoicePaymentCard
-                  settings={settings}
-                  invoiceReference={invoice.reference}
-                  showInternational={showInternational}
-                />
+                {isAppFee ? (
+                  <>
+                    <PaymentInstructions settings={settings} invoiceReference={invoice.reference} />
+                    <ManualPaymentClaimForm invoiceId={invoice.id} />
+                  </>
+                ) : (
+                  <PortalInvoicePaymentCard
+                    settings={settings}
+                    invoiceReference={invoice.reference}
+                    showInternational={showInternational}
+                  />
+                )}
               </div>
             )}
 

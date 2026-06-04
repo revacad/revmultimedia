@@ -7,12 +7,5 @@ export const metadata = {
 
 export default async function NewCoursePage() {
   await requireStaffAdmin();
-  return (
-    <div>
-      <h1 className="font-display text-3xl font-bold text-dark mb-8">
-        Create course
-      </h1>
-      <CourseForm />
-    </div>
-  );
+  return <CourseForm />;
 }

@@ -11,7 +11,7 @@ interface PaymentDetailPageProps {
 }
 
 export default async function PaymentDetailPage({ params }: PaymentDetailPageProps) {
-  await requireFinanceAccess()
+  const admin = await requireFinanceAccess()
   const { id } = await params
   const supabase = createAdminClient()
 
@@ -21,7 +21,12 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
       `
       *,
       payment_types(id, slug, label, description),
-      applications(*, courses(title), intakes(name, start_date)),
+      applications(
+        id, reference, full_name, real_email, phone,
+        courses(title),
+        intakes(name, start_date),
+        students!students_application_id_fkey(full_name, student_id)
+      ),
       installments(*, admins(full_name)),
       promo_codes(code, discount_type, discount_value),
       admins(full_name)
@@ -34,5 +39,10 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
     notFound()
   }
 
-  return <PaymentDetailView invoice={mapInvoiceDetail(invoice as Record<string, unknown>)} />
+  return (
+    <PaymentDetailView
+      invoice={mapInvoiceDetail(invoice as Record<string, unknown>)}
+      viewerRole={admin.role}
+    />
+  )
 }

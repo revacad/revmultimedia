@@ -17,9 +17,14 @@ export type { NextIntakePreview }
 interface HomePageClientProps {
   courses: Course[]
   nextIntake?: NextIntakePreview | null
+  applicationFeeGhs: number
 }
 
-export default function HomePageClient({ courses, nextIntake }: HomePageClientProps) {
+export default function HomePageClient({
+  courses,
+  nextIntake,
+  applicationFeeGhs,
+}: HomePageClientProps) {
   const heroLeftRef = useRef<HTMLDivElement>(null)
   const heroCardRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLElement>(null)
@@ -42,7 +47,7 @@ export default function HomePageClient({ courses, nextIntake }: HomePageClientPr
       <CoursesSection courses={courses} />
       <WhyRevSection />
       <TestimonialsSection />
-      <CtaSection />
+      <CtaSection applicationFeeGhs={applicationFeeGhs} />
     </div>
   )
 }

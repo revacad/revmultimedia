@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function ContactPage() {
-  return <ContactPageClient />
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
+
+export default async function ContactPage() {
+  const applicationFeeGhs = await getApplicationFeeGhs()
+  return <ContactPageClient applicationFeeGhs={applicationFeeGhs} />
 }

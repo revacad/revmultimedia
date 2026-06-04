@@ -2,7 +2,9 @@
 
 import { useRef, useState } from 'react'
 import DocumentUploadSlot from '@/components/public/apply/DocumentUploadSlot'
+import UploadProgressBar from '@/components/public/apply/UploadProgressBar'
 import { uploadApplicationDocument, formatFileSize } from '@/lib/apply/upload'
+import { validateUploadFile } from '@/lib/apply/validate-upload-file'
 import type { ApplyFieldErrors } from '@/lib/apply/validation'
 import { applyFieldId } from '@/lib/apply/validation'
 import type { ApplicationFormData, UploadedFileMeta } from '@/lib/apply/types'
@@ -59,6 +61,7 @@ export default function Step4Documents({
             subtext="JPG or PNG only, max 2MB. This will be used as your profile photo if accepted."
             accept=".jpg,.jpeg,.png,image/jpeg,image/png"
             maxSizeBytes={2 * 1024 * 1024}
+            sizeKind="image"
             draftId={draftId}
             uploadToken={uploadToken}
             documentType="passport_photo"
@@ -129,12 +132,17 @@ function CertificatesUpload({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   const canAddMore = certificates.length < 3
+  const certificateAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'
+  const certificateMaxBytes = 5 * 1024 * 1024
 
-  const uploadCertificate = async (file: File, index: number): Promise<UploadedFileMeta> => {
-    return uploadApplicationDocument(file, draftId, `certificate_${index}`, uploadToken)
+  const uploadCertificate = async (file: File): Promise<UploadedFileMeta> => {
+    return uploadApplicationDocument(file, draftId, 'certificate', uploadToken, {
+      onProgress: setUploadProgress,
+    })
   }
 
   const handleCertificatesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,15 +154,26 @@ function CertificatesUpload({
     const selectedFiles = files.slice(0, remaining)
 
     setUploading(true)
+    setUploadProgress(0)
     setError(null)
 
     const uploaded: UploadedFileMeta[] = []
     try {
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i]!
-        const docIndex = certificates.length + uploaded.length + 1
-        const meta = await uploadCertificate(file, docIndex)
+      for (const file of selectedFiles) {
+        const validationError = validateUploadFile(
+          file,
+          certificateAccept,
+          certificateMaxBytes,
+          'document',
+        )
+        if (validationError) {
+          setError(validationError)
+          break
+        }
+
+        const meta = await uploadCertificate(file)
         uploaded.push(meta)
+        setUploadProgress(0)
       }
       if (uploaded.length > 0) {
         onChange([...certificates, ...uploaded])
@@ -166,6 +185,7 @@ function CertificatesUpload({
       }
     } finally {
       setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -200,8 +220,9 @@ function CertificatesUpload({
               />
             </svg>
             <p className="mt-3 text-sm font-medium text-dark">
-              {uploading ? 'Uploading…' : 'Click to upload or drag and drop'}
+              {uploading ? null : 'Click to upload or drag and drop'}
             </p>
+            {uploading && <UploadProgressBar percent={uploadProgress} />}
             <p className="mt-1 text-xs text-gray-400">
               Select up to {3 - certificates.length} file(s)
             </p>

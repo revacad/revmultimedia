@@ -33,6 +33,7 @@ interface ApplyPageClientProps {
   courses: ApplyCourse[]
   preselectedCourse?: string
   preselectedIntake?: string
+  applicationFeeGhs: number
 }
 
 export default function ApplyPageClient({
@@ -40,6 +41,7 @@ export default function ApplyPageClient({
   courses,
   preselectedCourse,
   preselectedIntake,
+  applicationFeeGhs,
 }: ApplyPageClientProps) {
   const storageKey =
     applicationChannel === 'level_up' ? STORAGE_KEY_LEVEL_UP : STORAGE_KEY_STANDARD
@@ -65,6 +67,7 @@ export default function ApplyPageClient({
     reference?: string
     name: string
     email: string
+    applicationFeeGhs?: number
     waitlisted?: boolean
     waitlistPosition?: number
   } | null>(null)
@@ -293,6 +296,10 @@ export default function ApplyPageClient({
           reference: result.reference,
           name: result.applicantName ?? formData.fullName ?? '',
           email: result.email ?? formData.email ?? '',
+          applicationFeeGhs:
+            'applicationFeeGhs' in result && typeof result.applicationFeeGhs === 'number'
+              ? result.applicationFeeGhs
+              : undefined,
           waitlisted: 'waitlisted' in result ? Boolean(result.waitlisted) : false,
           waitlistPosition:
             'waitlistPosition' in result && typeof result.waitlistPosition === 'number'
@@ -317,6 +324,7 @@ export default function ApplyPageClient({
             name={submitResult.name || formData.fullName || ''}
             email={submitResult.email || formData.email || ''}
             reference={submitResult.reference ?? ''}
+            applicationFeeGhs={submitResult.applicationFeeGhs ?? applicationFeeGhs}
             waitlisted={submitResult.waitlisted}
             waitlistPosition={submitResult.waitlistPosition}
           />

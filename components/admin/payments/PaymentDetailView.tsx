@@ -5,6 +5,8 @@ import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
 import CopyableReference from '@/components/ui/CopyableReference'
 import RecordPaymentForm from '@/components/admin/payments/RecordPaymentForm'
 import ResendInvoiceButton from '@/components/admin/payments/ResendInvoiceButton'
+import type { AdminRole } from '@/lib/auth/admin'
+import { isStaffAdmin } from '@/lib/auth/permissions'
 import { getEffectiveInvoiceBalance } from '@/lib/payments/guards'
 import { PAYMENT_METHOD_LABELS } from '@/lib/payments/status'
 import {
@@ -19,10 +21,12 @@ import { cn } from '@/lib/utils'
 
 interface PaymentDetailViewProps {
   invoice: InvoiceDetail
+  viewerRole: AdminRole
 }
 
-export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
+export default function PaymentDetailView({ invoice, viewerRole }: PaymentDetailViewProps) {
   const application = invoice.applications
+  const canViewApplication = isStaffAdmin(viewerRole)
   const paymentForLabel =
     formatInvoiceType(invoice.type, invoice.payment_type?.label)
   const { paid, remaining, overpaid } = getEffectiveInvoiceBalance(
@@ -69,6 +73,7 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
             </p>
             <p className="font-body text-sm text-[#9898B8]">
               {application?.courses?.title ?? '—'}
+              {application?.intakes?.name ? ` · ${application.intakes.name}` : ''}
             </p>
           </section>
 
@@ -195,15 +200,25 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
             {application ? (
               <div className="space-y-2 font-body text-sm text-[#5A5A7A]">
                 <p className="font-semibold text-[#1A1A2E]">{application.full_name}</p>
+                {application.students?.student_id ? (
+                  <p className="font-mono text-[13px] text-[#5A5A7A]">
+                    {application.students.student_id}
+                  </p>
+                ) : null}
                 <p>{application.real_email}</p>
-                <p>{application.phone}</p>
-                <p>{application.country}</p>
-                <Link
-                  href={`/admin/applications/${application.id}`}
-                  className="inline-block font-mono text-[13px] text-[#C74A86] hover:underline"
-                >
-                  {application.reference}
-                </Link>
+                <p>{application.phone || '—'}</p>
+                <p>{application.courses?.title ?? '—'}</p>
+                <p>{application.intakes?.name ?? '—'}</p>
+                {canViewApplication ? (
+                  <Link
+                    href={`/admin/applications/${application.id}`}
+                    className="inline-block font-mono text-[13px] text-[#C74A86] hover:underline"
+                  >
+                    {application.reference}
+                  </Link>
+                ) : (
+                  <p className="font-mono text-[13px] text-[#5A5A7A]">{application.reference}</p>
+                )}
               </div>
             ) : (
               <p className="text-sm text-[#9898B8]">—</p>
@@ -233,7 +248,7 @@ export default function PaymentDetailView({ invoice }: PaymentDetailViewProps) {
           <section className="rounded-xl bg-white p-6 shadow-card">
             <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Quick actions</h2>
             <div className="flex flex-col gap-3">
-              {application && (
+              {canViewApplication && application && (
                 <Link
                   href={`/admin/applications/${application.id}`}
                   className="font-body text-sm font-semibold text-primary hover:text-primary-hover"

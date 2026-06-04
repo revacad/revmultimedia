@@ -48,7 +48,7 @@ function CourseSaveButton({
         : 'Creating...'
       : isEditing
         ? 'Save course'
-        : 'Create Course')
+        : 'Add Course')
 
   return (
     <button
@@ -103,6 +103,8 @@ export default function CourseForm({ course }: CourseFormProps) {
   const isEditing = Boolean(course)
   const courseId =
     course?.id ?? (typeof params?.id === 'string' ? params.id : undefined)
+  const [draftCourseId] = useState(() => crypto.randomUUID())
+  const mediaCourseId = courseId ?? draftCourseId
   const thumbnailInputRef = useRef<HTMLInputElement>(null)
 
   const [error, setError] = useState<string | null>(null)
@@ -128,8 +130,7 @@ export default function CourseForm({ course }: CourseFormProps) {
   const [instructorPhotoError, setInstructorPhotoError] = useState<string | null>(null)
   const [isUploadingInstructorPhoto, setIsUploadingInstructorPhoto] = useState(false)
 
-  const canUploadCurriculumImages = Boolean(courseId)
-  const canUploadInstructorPhoto = Boolean(courseId)
+  const canUploadCurriculumImages = Boolean(mediaCourseId)
 
   useEffect(() => {
     if (!successMessage) return
@@ -138,7 +139,7 @@ export default function CourseForm({ course }: CourseFormProps) {
   }, [successMessage])
 
   async function handleCurriculumImageUpload(file: File): Promise<string> {
-    if (!courseId) {
+    if (!mediaCourseId) {
       throw new Error('Save the course first')
     }
     const res = await fetch('/api/r2/presign', {
@@ -149,7 +150,7 @@ export default function CourseForm({ course }: CourseFormProps) {
         fileType: file.type,
         fileSize: file.size,
         uploadContext: 'course_content',
-        courseId,
+        courseId: mediaCourseId,
       }),
     })
     if (!res.ok) {
@@ -163,7 +164,7 @@ export default function CourseForm({ course }: CourseFormProps) {
     const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
     await uploadFileToR2ViaServer(file, key, {
       type: 'course_content',
-      courseId,
+      courseId: mediaCourseId,
     })
     return publicUrl
   }
@@ -197,7 +198,7 @@ export default function CourseForm({ course }: CourseFormProps) {
           fileType: file.type,
           fileSize: file.size,
           uploadContext: 'course_thumbnail',
-          ...(courseId ? { courseId } : {}),
+          ...(mediaCourseId ? { courseId: mediaCourseId } : {}),
         }),
       })
 
@@ -211,7 +212,7 @@ export default function CourseForm({ course }: CourseFormProps) {
       const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
       await uploadFileToR2ViaServer(file, key, {
         type: 'course_thumbnail',
-        ...(courseId ? { courseId } : {}),
+        ...(mediaCourseId ? { courseId: mediaCourseId } : {}),
       })
 
       const preview = await presignCourseMediaForPreview(key)
@@ -233,7 +234,7 @@ export default function CourseForm({ course }: CourseFormProps) {
 
   const handleInstructorPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !courseId) return
+    if (!file) return
 
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setInstructorPhotoError('Please upload a JPG, PNG or WebP image')
@@ -256,7 +257,7 @@ export default function CourseForm({ course }: CourseFormProps) {
           fileType: file.type,
           fileSize: file.size,
           uploadContext: 'course_instructor_photo',
-          courseId,
+          courseId: mediaCourseId,
         }),
       })
 
@@ -270,7 +271,7 @@ export default function CourseForm({ course }: CourseFormProps) {
       const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
       await uploadFileToR2ViaServer(file, key, {
         type: 'course_instructor_photo',
-        courseId,
+        courseId: mediaCourseId,
       })
 
       const preview = await presignCourseMediaForPreview(key)
@@ -296,6 +297,9 @@ export default function CourseForm({ course }: CourseFormProps) {
     formData.set('curriculum_html', curriculumHtmlValue)
     formData.set('thumbnail_r2_key', thumbnailKey)
     formData.set('instructor_photo_r2_key', instructorPhotoKey)
+    if (!course) {
+      formData.set('course_draft_id', draftCourseId)
+    }
 
     try {
       const result = course
@@ -346,12 +350,22 @@ export default function CourseForm({ course }: CourseFormProps) {
               </p>
             )}
             <CourseSaveButton
-              isEditing={isEditing}
+              isEditing
               isSubmitting={isSubmitting}
               disabled={submitDisabled}
               label="Save course"
             />
           </div>
+        </div>
+      ) : !isEditing ? (
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <h1 className="font-display text-3xl font-bold text-dark">Create course</h1>
+          <CourseSaveButton
+            isEditing={false}
+            isSubmitting={isSubmitting}
+            disabled={submitDisabled}
+            label="Add course"
+          />
         </div>
       ) : null}
 
@@ -679,24 +693,18 @@ export default function CourseForm({ course }: CourseFormProps) {
                 style={{ display: 'none' }}
                 onChange={(ev) => void handleInstructorPhotoChange(ev)}
               />
-              {canUploadInstructorPhoto ? (
-                <button
-                  type="button"
-                  onClick={handleInstructorPhotoClick}
-                  disabled={isUploadingInstructorPhoto}
-                  className="rounded-[10px] border border-dashed border-[#D8D8E8] bg-[#F7F8FC] px-4 py-3 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary disabled:opacity-50"
-                >
-                  {isUploadingInstructorPhoto
-                    ? 'Uploading…'
-                    : instructorPhotoUrl
-                      ? 'Change instructor photo'
-                      : 'Upload instructor photo'}
-                </button>
-              ) : (
-                <p className="font-body text-xs text-[#9898B8]">
-                  Save the course first to upload an instructor photo.
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={handleInstructorPhotoClick}
+                disabled={isUploadingInstructorPhoto}
+                className="rounded-[10px] border border-dashed border-[#D8D8E8] bg-[#F7F8FC] px-4 py-3 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary disabled:opacity-50"
+              >
+                {isUploadingInstructorPhoto
+                  ? 'Uploading…'
+                  : instructorPhotoUrl
+                    ? 'Change instructor photo'
+                    : 'Upload instructor photo'}
+              </button>
               {instructorPhotoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -777,7 +785,7 @@ export default function CourseForm({ course }: CourseFormProps) {
             isEditing={isEditing}
             isSubmitting={isSubmitting}
             disabled={submitDisabled}
-            label={isEditing ? 'Update Course' : 'Create Course'}
+            label={isEditing ? 'Update Course' : 'Add Course'}
           />
         </div>
       </form>

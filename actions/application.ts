@@ -37,12 +37,14 @@ import { checkRateLimit, applySubmitLimit } from '@/lib/redis/ratelimit'
 import { guardFormSubmission } from '@/lib/security/abuse'
 import { sanitizePlainText } from '@/lib/security/html'
 import { sanitizeFileName } from '@/lib/security/files'
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
 
 type RpcResult = {
   error?: string
   reference?: string
   application_id?: string
   invoice_reference?: string
+  invoice_id?: string
   waitlisted?: boolean
   waitlist_position?: number
 }
@@ -281,6 +283,7 @@ export async function submitApplication(formData: unknown) {
       isPreview: true,
       applicantName: data.fullName,
       email: data.email,
+      applicationFeeGhs: await getApplicationFeeGhs(),
     }
     void storeIdempotencyResult(data.idempotencyKey, previewResult)
     return previewResult
@@ -360,12 +363,35 @@ export async function submitApplication(formData: unknown) {
 
   const isWaitlisted = Boolean(rpc.waitlisted)
 
+  let applicationFeeGhs = 0
+  if (!isWaitlisted) {
+    if (rpc.invoice_id) {
+      const { data: invoiceById } = await supabase
+        .from('invoices')
+        .select('total_ghs')
+        .eq('id', rpc.invoice_id)
+        .maybeSingle()
+      applicationFeeGhs = Number(invoiceById?.total_ghs ?? 0)
+    } else if (rpc.invoice_reference) {
+      const { data: invoiceByRef } = await supabase
+        .from('invoices')
+        .select('total_ghs')
+        .eq('reference', rpc.invoice_reference)
+        .maybeSingle()
+      applicationFeeGhs = Number(invoiceByRef?.total_ghs ?? 0)
+    }
+    if (!applicationFeeGhs) {
+      applicationFeeGhs = await getApplicationFeeGhs()
+    }
+  }
+
   const successResult = {
     success: true as const,
     reference: rpc.reference,
     invoiceReference: rpc.invoice_reference,
     applicantName,
     email: applicantEmail,
+    applicationFeeGhs,
     waitlisted: isWaitlisted,
     waitlistPosition: rpc.waitlist_position,
   }
@@ -423,6 +449,7 @@ export async function submitApplication(formData: unknown) {
           reference: rpc.reference,
           courseName: courseTitle,
           intakeName,
+          applicationFeeGhs,
           applicationId: rpc.application_id!,
           supabase,
         }),
@@ -460,6 +487,7 @@ export async function submitApplication(formData: unknown) {
         courseName: courseTitle,
         parentWhatsapp: parentWhatsappNormalized,
         parentEmail: data.parentGuardianEmail,
+        applicationFeeGhs,
         supabase,
       })
     }

@@ -1,8 +1,15 @@
 import { LegalPageLayout } from '@/components/public/legal/LegalPageLayout'
 import { LegalSection } from '@/components/public/legal/LegalSection'
 import { LegalHighlight, LegalList, LegalP } from '@/components/public/legal/legal-styles'
+import { formatGHS } from '@/lib/utils'
 
-export function TermsContent() {
+interface TermsContentProps {
+  applicationFeeGhs: number
+}
+
+export function TermsContent({ applicationFeeGhs }: TermsContentProps) {
+  const feeLabel = formatGHS(applicationFeeGhs)
+
   return (
     <LegalPageLayout
       title="Terms of Service"
@@ -22,14 +29,14 @@ export function TermsContent() {
           items={[
             'Applications are subject to review and approval',
             'Submission does not guarantee acceptance',
-            'The application fee (GHS 100) is non-refundable in all circumstances, including if your application is rejected or you withdraw after submission',
+            `The application fee (${feeLabel}) is non-refundable in all circumstances, including if your application is rejected or you withdraw after submission`,
             'You must provide accurate and truthful information',
             'Providing false information will result in immediate rejection or termination of enrollment',
           ]}
         />
         <LegalHighlight>
           <p style={{ margin: '0 0 8px' }}>
-            The GHS 100 application fee is non-refundable once paid, regardless of application
+            The {feeLabel} application fee is non-refundable once paid, regardless of application
             outcome.
           </p>
         </LegalHighlight>
@@ -40,7 +47,7 @@ export function TermsContent() {
           <strong style={{ color: '#1A1A2E' }}>Application fee:</strong>
         </LegalP>
         <LegalList
-          items={['GHS 100, non-refundable', 'Must be paid to complete your application']}
+          items={[`${feeLabel}, non-refundable`, 'Must be paid to complete your application']}
         />
         <LegalP>
           <strong style={{ color: '#1A1A2E' }}>Tuition fee:</strong>

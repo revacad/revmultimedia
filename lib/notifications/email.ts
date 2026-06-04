@@ -140,8 +140,10 @@ export async function sendApplicationReceived(
     reference: string
     courseName?: string
     intakeName?: string
+    applicationFeeGhs: number
   },
 ): Promise<void> {
+  const feeLabel = data.applicationFeeGhs.toFixed(2)
   const infoRows = data.courseName
     ? [
         { label: 'Course applied', value: data.courseName },
@@ -166,7 +168,7 @@ export async function sendApplicationReceived(
           ${infoRows.length > 0 ? emailInfoCard(infoRows) : ''}
 
           ${emailHeading('Next steps')}
-          ${emailParagraph('1. Pay your application fee (GHS 100) to complete your application.')}
+          ${emailParagraph(`1. Pay your application fee (GHS ${feeLabel}) to complete your application.`)}
           ${emailParagraph('2. Log in to your portal using your application reference and password.')}
           ${emailParagraph('3. Our team will review your application and update you within 5–7 working days.')}
 
@@ -260,8 +262,10 @@ export async function sendParentLevelUpApplicationSubmitted(
     studentName: string
     reference: string
     courseName: string
+    applicationFeeGhs: number
   },
 ): Promise<void> {
+  const feeLabel = data.applicationFeeGhs.toFixed(2)
   await sendHtmlEmail(
     to,
     `Application submitted - ${data.reference}`,
@@ -274,7 +278,7 @@ export async function sendParentLevelUpApplicationSubmitted(
           )}
           ${emailReferenceCard('Application reference', data.reference)}
           ${emailParagraph(
-            'The application fee is GHS 100. Your ward will use their student portal to track progress and pay fees.',
+            `The application fee is GHS ${feeLabel}. Your ward will use their student portal to track progress and pay fees.`,
           )}
           ${emailParagraph('If you have questions, contact us at info@revmultimediagh.com or +233 27 581 8525.')}
         `,

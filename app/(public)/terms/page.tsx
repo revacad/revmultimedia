@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function TermsPage() {
-  return <TermsContent />
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
+
+export default async function TermsPage() {
+  const applicationFeeGhs = await getApplicationFeeGhs()
+  return <TermsContent applicationFeeGhs={applicationFeeGhs} />
 }

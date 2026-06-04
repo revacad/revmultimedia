@@ -35,6 +35,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function AboutPage() {
-  return <AboutPageClient />
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
+
+export default async function AboutPage() {
+  const applicationFeeGhs = await getApplicationFeeGhs()
+  return <AboutPageClient applicationFeeGhs={applicationFeeGhs} />
 }

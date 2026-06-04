@@ -1,4 +1,10 @@
-export function FaqJsonLd() {
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
+import { formatGHS } from '@/lib/utils'
+
+export async function FaqJsonLd() {
+  const applicationFeeGhs = await getApplicationFeeGhs()
+  const feeLabel = formatGHS(applicationFeeGhs)
+
   const faqs = [
     {
       question: 'Where is Rev Multimedia located?',
@@ -18,7 +24,7 @@ export function FaqJsonLd() {
     {
       question: 'How much does it cost to apply to Rev Multimedia?',
       answer:
-        'The application fee is GHS 100. Tuition fees vary by course and intake. Payment plans are available.',
+        `The application fee is ${feeLabel}. Tuition fees vary by course and intake. Payment plans are available.`,
     },
     {
       question: 'How long are the courses at Rev Multimedia?',
@@ -97,7 +103,10 @@ export function BreadcrumbJsonLd({
   )
 }
 
-export function LocalBusinessJsonLd() {
+export async function LocalBusinessJsonLd() {
+  const applicationFeeGhs = await getApplicationFeeGhs()
+  const feeLabel = formatGHS(applicationFeeGhs)
+
   const data = {
     '@context': 'https://schema.org',
     '@type': ['EducationalOrganization', 'LocalBusiness'],
@@ -123,7 +132,7 @@ export function LocalBusinessJsonLd() {
     },
     telephone: '+233275818525',
     email: 'info@revmultimedia.com',
-    priceRange: 'GHS 100 application fee',
+    priceRange: `${feeLabel} application fee`,
     openingHoursSpecification: [
       {
         '@type': 'OpeningHoursSpecification',

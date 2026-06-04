@@ -416,3 +416,12 @@ input[type='number'] {
 .portal-timeline-scroll::-webkit-scrollbar {
   display: none;
 }
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}

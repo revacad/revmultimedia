@@ -1,6 +1,14 @@
 import Link from 'next/link'
 
-export default function CtaSection() {
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
+import { formatGHS } from '@/lib/utils'
+
+interface CtaSectionProps {
+  applicationFeeGhs: number
+}
+
+export default function CtaSection({ applicationFeeGhs }: CtaSectionProps) {
+  const feeLabel = formatGHS(applicationFeeGhs)
   return (
     <section
       className="reveal-section"
@@ -79,7 +87,7 @@ export default function CtaSection() {
               color: 'rgba(255,255,255,0.75)',
             }}
           >
-            Application fee: GHS 100 per application
+            Application fee: {feeLabel} per application
           </div>
           <div
             style={{

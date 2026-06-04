@@ -4,6 +4,7 @@ import { mapApplyCourses } from '@/lib/apply/map-courses'
 import { withCache } from '@/lib/redis/cache'
 import { siteUrl } from '@/lib/seo'
 import { createServerClient } from '@/lib/supabase/server'
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
 import { applySearchParamsSchema } from '@/lib/validations/common'
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default async function LevelUpApplyPage({
   const parsedParams = applySearchParamsSchema.safeParse(rawParams)
   const params = parsedParams.success ? parsedParams.data : {}
   const courses = await withCache('courses:published', 300, fetchPublishedCourses)
+  const applicationFeeGhs = await getApplicationFeeGhs()
 
   return (
     <ApplyPageClient
@@ -41,6 +43,7 @@ export default async function LevelUpApplyPage({
       courses={courses}
       preselectedCourse={params.course}
       preselectedIntake={params.intake}
+      applicationFeeGhs={applicationFeeGhs}
     />
   )
 }

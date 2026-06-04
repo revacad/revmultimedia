@@ -2,8 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import * as Tabs from '@radix-ui/react-tabs'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
+import PaymentClaimsSection, {
+  type ManualPaymentClaimRow,
+} from '@/components/admin/payments/PaymentClaimsSection'
 import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import type { AdminRole } from '@/lib/auth/admin'
 import {
@@ -35,6 +39,7 @@ const TYPE_FILTERS: { value: InvoiceType | 'all'; label: string }[] = [
 
 interface PaymentsPageClientProps {
   invoices: PaymentListRow[]
+  paymentClaims: ManualPaymentClaimRow[]
   fetchError?: string | null
   viewerRole: AdminRole
   currentPage: number
@@ -50,6 +55,18 @@ function studentDisplayName(inv: PaymentListRow): string {
   )
 }
 
+function studentId(inv: PaymentListRow): string {
+  return inv.applications?.students?.student_id ?? '—'
+}
+
+function studentPhone(inv: PaymentListRow): string {
+  return inv.applications?.phone?.trim() || '—'
+}
+
+function studentEmail(inv: PaymentListRow): string {
+  return inv.applications?.real_email ?? '—'
+}
+
 function latestPaymentDate(inv: PaymentListRow): string | null {
   const paidDates = inv.installments
     .map((installment) => installment.paid_at)
@@ -63,6 +80,7 @@ function latestPaymentDate(inv: PaymentListRow): string | null {
 
 export default function PaymentsPageClient({
   invoices,
+  paymentClaims,
   fetchError = null,
   viewerRole,
   currentPage,
@@ -110,6 +128,32 @@ export default function PaymentsPageClient({
         ))}
       </div>
 
+      <Tabs.Root defaultValue="invoices">
+        <Tabs.List className="mb-6 flex border-b border-[#EFEFF5]">
+          <Tabs.Trigger
+            value="invoices"
+            className="cursor-pointer border-b-2 border-transparent px-5 py-3 font-body text-sm font-medium text-[#9898B8] transition-colors hover:text-[#1A1A2E] data-[state=active]:border-[#C74A86] data-[state=active]:text-[#C74A86]"
+          >
+            Invoices
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="claims"
+            className="cursor-pointer border-b-2 border-transparent px-5 py-3 font-body text-sm font-medium text-[#9898B8] transition-colors hover:text-[#1A1A2E] data-[state=active]:border-[#C74A86] data-[state=active]:text-[#C74A86]"
+          >
+            Payment Claims
+            {paymentClaims.length > 0 ? (
+              <span className="ml-2 inline-flex min-w-[20px] items-center justify-center rounded-full bg-[#C74A86] px-1.5 py-0.5 font-body text-[11px] font-semibold text-white">
+                {paymentClaims.length}
+              </span>
+            ) : null}
+          </Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="claims" className="pt-2">
+          <PaymentClaimsSection claims={paymentClaims} />
+        </Tabs.Content>
+
+        <Tabs.Content value="invoices" className="pt-2">
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map((filter) => (
@@ -173,8 +217,12 @@ export default function PaymentsPageClient({
                     ? [
                         'Invoice Ref',
                         'Student',
+                        'Student ID',
+                        'Email',
+                        'Phone',
                         'Application Ref',
                         'Course',
+                        'Intake',
                         'Amount',
                         'Status',
                         'Payment Date',
@@ -230,10 +278,22 @@ export default function PaymentsPageClient({
                           {studentDisplayName(inv)}
                         </td>
                         <td className="px-4 py-4 font-mono text-[13px] text-[#5A5A7A]">
+                          {studentId(inv)}
+                        </td>
+                        <td className="px-4 py-4 font-body text-[13px] text-[#5A5A7A]">
+                          {studentEmail(inv)}
+                        </td>
+                        <td className="px-4 py-4 font-body text-[13px] text-[#5A5A7A]">
+                          {studentPhone(inv)}
+                        </td>
+                        <td className="px-4 py-4 font-mono text-[13px] text-[#5A5A7A]">
                           {inv.applications?.reference ?? '—'}
                         </td>
                         <td className="px-4 py-4 font-body text-sm text-[#1A1A2E]">
                           {inv.applications?.courses?.title ?? '—'}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-[#5A5A7A]">
+                          {inv.applications?.intakes?.name ?? '—'}
                         </td>
                         <td className="px-4 py-4">
                           <p className="font-body text-sm font-semibold text-[#1A1A2E]">
@@ -363,6 +423,8 @@ export default function PaymentsPageClient({
           className="mt-6"
         />
       </StateWrapper>
+        </Tabs.Content>
+      </Tabs.Root>
     </div>
   )
 }

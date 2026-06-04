@@ -28,8 +28,10 @@ export type PaymentListRow = {
     reference: string
     full_name: string
     real_email: string
+    phone: string | null
     country: string
     courses: { title: string } | null
+    intakes: { name: string } | null
     students: { full_name: string; student_id: string } | null
   } | null
   installments: { amount_ghs: number; paid_at?: string }[]
@@ -83,6 +85,7 @@ export type InvoiceDetail = {
     country: string
     courses: { title: string } | null
     intakes: { name: string; start_date: string } | null
+    students: { full_name: string; student_id: string } | null
   } | null
   installments: InstallmentRow[]
   admins: { full_name: string } | null

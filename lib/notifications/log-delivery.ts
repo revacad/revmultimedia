@@ -119,6 +119,7 @@ export async function deliverApplicationReceivedEmail(params: {
   reference: string
   courseName: string
   intakeName?: string
+  applicationFeeGhs: number
   applicationId: string
   supabase?: SupabaseClient
 }): Promise<void> {
@@ -130,6 +131,7 @@ export async function deliverApplicationReceivedEmail(params: {
       reference: params.reference,
       courseName: params.courseName,
       intakeName: params.intakeName,
+      applicationFeeGhs: params.applicationFeeGhs,
     })
     await logNotification(supabase, {
       applicationId: params.applicationId,

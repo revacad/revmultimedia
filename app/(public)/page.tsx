@@ -3,6 +3,7 @@ import HomePageClient from '@/components/public/home/HomePageClient'
 import { FaqJsonLd, LocalBusinessJsonLd } from '@/components/seo/JsonLd'
 import { getFeaturedCoursesForHome } from '@/lib/courses/queries'
 import { siteKeywords, siteUrl } from '@/lib/seo'
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -78,11 +79,13 @@ export default async function HomePage() {
       }
     : null
 
+  const applicationFeeGhs = await getApplicationFeeGhs()
+
   return (
     <>
       <FaqJsonLd />
       <LocalBusinessJsonLd />
-      <HomePageClient courses={courses} nextIntake={nextIntake} />
+      <HomePageClient courses={courses} nextIntake={nextIntake} applicationFeeGhs={applicationFeeGhs} />
     </>
   )
 }

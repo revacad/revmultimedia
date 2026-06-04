@@ -58,6 +58,41 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
   }
 
   function renderField(key: string) {
+    if (key === 'paystack_enabled') {
+      const enabled = (draft.paystack_enabled ?? 'true').toLowerCase() !== 'false'
+      return (
+        <div key={key} className="flex items-start justify-between gap-4 rounded-xl border border-[#EFEFF5] bg-[#F7F8FC] p-4">
+          <div>
+            <AdminLabel htmlFor={key}>{SETTINGS_LABELS[key] ?? key}</AdminLabel>
+            {SETTINGS_HELPERS[key] && (
+              <p className="mt-1 font-body text-xs text-[#9898B8]">{SETTINGS_HELPERS[key]}</p>
+            )}
+          </div>
+          <button
+            id={key}
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            onClick={() =>
+              setDraft((prev) => ({
+                ...prev,
+                paystack_enabled: enabled ? 'false' : 'true',
+              }))
+            }
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+              enabled ? 'bg-[#C74A86]' : 'bg-[#D8D8E8]'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                enabled ? 'translate-x-5' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </div>
+      )
+    }
+
     if (key === 'momo_provider') {
       const current = draft.momo_provider ?? MOMO_PROVIDER_OPTIONS[0]
       return (

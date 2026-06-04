@@ -4,6 +4,7 @@ import ErrorState from '@/components/ui/ErrorState'
 import EmptyState from '@/components/ui/EmptyState'
 import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import { fetchPortalInvoicesPageData } from '@/lib/portal/fetch-invoices-page'
+import { isPaystackEnabled } from '@/lib/settings/paystack-enabled'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,7 @@ export default async function PortalInvoicesPage() {
     return (
       <div>
         <header className="mb-6">
-          <h1 className="font-display text-[28px] font-semibold text-[#1A1A2E]">My Invoices</h1>
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A2E] md:text-[28px]">My Invoices</h1>
         </header>
         <ErrorState message="We could not load this data. Please refresh the page." />
       </div>
@@ -31,11 +32,12 @@ export default async function PortalInvoicesPage() {
   }
 
   const showInternational = country !== 'Ghana' && Boolean(settings.bank_swift_code)
+  const paystackEnabled = isPaystackEnabled(settings)
 
   return (
     <div>
       <header className="mb-6">
-        <h1 className="font-display text-[28px] font-semibold text-[#1A1A2E]">My Invoices</h1>
+        <h1 className="font-display text-2xl font-semibold text-[#1A1A2E] md:text-[28px]">My Invoices</h1>
         <p className="mt-1 font-body text-sm text-[#9898B8]">
           Download invoice PDFs and payment receipts for your records.
         </p>
@@ -66,6 +68,7 @@ export default async function PortalInvoicesPage() {
             settings={settings}
             showInternational={showInternational}
             payerEmail={payerEmail}
+            paystackEnabled={paystackEnabled}
           />
         ))
       )}

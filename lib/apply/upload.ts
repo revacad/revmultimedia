@@ -6,9 +6,13 @@ export async function uploadDocument(
   key: string,
   uploadContext: Record<string, unknown>,
   uploadToken: string,
+  onProgress?: (percent: number) => void,
 ): Promise<{ success: boolean; key?: string; error?: string }> {
   try {
-    const result = await uploadFileToR2ViaServer(file, key, uploadContext, { uploadToken })
+    const result = await uploadFileToR2ViaServer(file, key, uploadContext, {
+      uploadToken,
+      onProgress,
+    })
     return { success: true, key: result.key }
   } catch (error) {
     console.error('Upload error:', error)
@@ -24,6 +28,7 @@ export async function uploadApplicationDocument(
   draftId: string,
   documentType: string,
   uploadToken: string,
+  options?: { onProgress?: (percent: number) => void },
 ): Promise<UploadedFileMeta> {
   const uploadContext = {
     type: 'application_document',
@@ -52,7 +57,13 @@ export async function uploadApplicationDocument(
 
   const { key } = (await presignRes.json()) as { key: string }
 
-  const uploadResult = await uploadDocument(file, key, uploadContext, uploadToken)
+  const uploadResult = await uploadDocument(
+    file,
+    key,
+    uploadContext,
+    uploadToken,
+    options?.onProgress,
+  )
   if (!uploadResult.success) {
     throw new Error(uploadResult.error ?? 'Failed to upload file')
   }

@@ -1,5 +1,6 @@
 import PaymentsPageClient from '@/components/admin/payments/PaymentsPageClient'
 import { mapPaymentListRow } from '@/lib/payments/map'
+import { fetchPendingManualPaymentClaims } from '@/lib/payments/manual-claims'
 import { ADMIN_PAGE_SIZE, adminListRange, parseAdminPage } from '@/lib/admin/pagination'
 import { requireFinanceAccess } from '@/lib/auth/requireAdmin'
 import { supabaseErrorMessage } from '@/lib/errors/query'
@@ -30,8 +31,9 @@ export default async function AdminPaymentsPage({
       due_date, status, payment_method, paystack_reference, created_at, updated_at,
       payment_types(slug, label),
       applications(
-        id, reference, full_name, real_email, country,
+        id, reference, full_name, real_email, phone, country,
         courses(title),
+        intakes(name),
         students!students_application_id_fkey(full_name, student_id)
       ),
       installments(amount_ghs, paid_at)
@@ -51,9 +53,12 @@ export default async function AdminPaymentsPage({
     mapPaymentListRow(row as Record<string, unknown>),
   )
 
+  const paymentClaims = await fetchPendingManualPaymentClaims(supabase)
+
   return (
     <PaymentsPageClient
       invoices={invoices}
+      paymentClaims={paymentClaims}
       fetchError={fetchError}
       viewerRole={admin.role}
       currentPage={page}

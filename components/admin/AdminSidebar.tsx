@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
-import { adminLogout } from '@/actions/auth'
 import { cn } from '@/lib/utils'
 import type { AdminRole } from '@/lib/auth/admin'
 import { filterGroupsForRole, type NavIconName } from '@/lib/admin/nav'
@@ -155,7 +154,7 @@ export default function AdminSidebar({
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
       )}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto">
         <div className="mb-4 flex items-center justify-between gap-2">
           <Link href="/admin" className="block min-w-0" onClick={onNavigate}>
             <span className="font-display text-xl font-bold text-primary">Rev</span>
@@ -210,23 +209,33 @@ export default function AdminSidebar({
         </nav>
       </div>
 
-      <div className="mt-4 shrink-0 border-t border-white/10 pt-4">
+      <div className="mt-3 shrink-0 border-t border-white/10 pt-3">
         <Link
           href="/admin/profile"
           onClick={onNavigate}
           className={cn(
-            'flex items-center justify-between gap-3 rounded-lg px-3 py-3 transition-colors',
+            'flex h-12 items-center gap-2.5 rounded-lg px-2.5 transition-colors',
             pathname === '/admin/profile'
               ? 'bg-primary/15 text-white'
               : 'bg-white/5 text-white hover:bg-white/10',
           )}
         >
+          <div
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 font-body text-[11px] font-bold uppercase text-primary"
+            aria-hidden
+          >
+            {adminName.trim().charAt(0) || 'A'}
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-body text-sm font-semibold text-white">{adminName}</p>
-            <p className="font-body text-xs capitalize text-white/70">{adminRole}</p>
+            <p className="truncate font-body text-[13px] font-semibold leading-tight text-white">
+              {adminName}
+            </p>
+            <p className="truncate font-body text-[11px] capitalize leading-tight text-white/55">
+              {adminRole}
+            </p>
           </div>
           <svg
-            className="h-4 w-4 shrink-0 text-white/70"
+            className="h-3.5 w-3.5 shrink-0 text-white/55"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -234,21 +243,6 @@ export default function AdminSidebar({
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-        </Link>
-        <form action={adminLogout} className="mt-3">
-          <button
-            type="submit"
-            className="w-full rounded-lg px-3 py-2 text-left font-body text-sm font-semibold text-primary transition-colors hover:bg-white/5 hover:text-[#E56BA3]"
-          >
-            Sign out
-          </button>
-        </form>
-        <Link
-          href="/"
-          onClick={onNavigate}
-          className="mt-3 block px-3 text-sm text-white/45 transition-colors hover:text-white/70"
-        >
-          Back to public site
         </Link>
       </div>
     </aside>

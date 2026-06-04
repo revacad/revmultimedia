@@ -13,6 +13,7 @@ import {
 import { sendAdminNewApplication } from '@/lib/notifications/email'
 import { runAfterResponse } from '@/lib/background'
 import { sanitizeFileName } from '@/lib/security/files'
+import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
 import { submitReturnStudentApplicationSchema } from '@/lib/validations/return-application'
 
 type RpcResult = {
@@ -20,6 +21,7 @@ type RpcResult = {
   reference?: string
   application_id?: string
   invoice_reference?: string
+  invoice_id?: string
 }
 
 export async function submitReturnStudentApplication(formData: unknown) {
@@ -181,6 +183,26 @@ export async function submitReturnStudentApplication(formData: unknown) {
 
   const courseTitle = courseRow?.title ?? 'your course'
 
+  let applicationFeeGhs = 0
+  if (rpc.invoice_id) {
+    const { data: invoiceById } = await supabase
+      .from('invoices')
+      .select('total_ghs')
+      .eq('id', rpc.invoice_id)
+      .maybeSingle()
+    applicationFeeGhs = Number(invoiceById?.total_ghs ?? 0)
+  } else if (rpc.invoice_reference) {
+    const { data: invoiceByRef } = await supabase
+      .from('invoices')
+      .select('total_ghs')
+      .eq('reference', rpc.invoice_reference)
+      .maybeSingle()
+    applicationFeeGhs = Number(invoiceByRef?.total_ghs ?? 0)
+  }
+  if (!applicationFeeGhs) {
+    applicationFeeGhs = await getApplicationFeeGhs()
+  }
+
   void runAfterResponse(async () => {
     await deliverApplicationReceivedEmail({
       email: student.real_email,
@@ -188,6 +210,7 @@ export async function submitReturnStudentApplication(formData: unknown) {
       reference: rpc.reference!,
       courseName: courseTitle,
       intakeName: intakeRow?.name,
+      applicationFeeGhs,
       applicationId: rpc.application_id!,
       supabase,
     })

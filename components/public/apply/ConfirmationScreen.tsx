@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { useState } from 'react'
 import Button from '@/components/ui/Button'
 import ReferenceCode from '@/components/ui/ReferenceCode'
+import { formatGHS } from '@/lib/utils'
 
 interface ConfirmationScreenProps {
   name: string
   email: string
   reference: string
+  applicationFeeGhs: number
   waitlisted?: boolean
   waitlistPosition?: number
 }
@@ -17,10 +19,12 @@ export default function ConfirmationScreen({
   name,
   email,
   reference,
+  applicationFeeGhs,
   waitlisted = false,
   waitlistPosition,
 }: ConfirmationScreenProps) {
   const [showPayInfo, setShowPayInfo] = useState(false)
+  const feeLabel = formatGHS(applicationFeeGhs)
 
   if (waitlisted) {
     return (
@@ -99,7 +103,7 @@ export default function ConfirmationScreen({
       <p className="font-body text-base font-semibold text-[#1A1A2E]">Next step: Pay your application fee</p>
 
       <div className="mt-4 rounded-[14px] border border-[#EFEFF5] bg-[#F7F8FC] p-5 text-left">
-        <p className="font-display text-[28px] text-primary">GHS 100</p>
+        <p className="font-display text-[28px] text-primary">{feeLabel}</p>
         <p className="mt-1 font-body text-[13px] text-[#9898B8]">
           Non-refundable application processing fee
         </p>
@@ -112,7 +116,7 @@ export default function ConfirmationScreen({
             className="mt-4 w-full"
             onClick={() => setShowPayInfo(true)}
           >
-            Pay Application Fee: GHS 100
+            Pay Application Fee: {feeLabel}
           </Button>
         ) : (
           <div

@@ -5,7 +5,7 @@ export const SETTINGS_TABS = [
     sections: [
       {
         title: 'Application',
-        keys: ['application_fee_ghs'] as const,
+        keys: ['application_fee_ghs', 'paystack_enabled'] as const,
       },
       {
         title: 'MoMo',
@@ -79,6 +79,7 @@ export const SETTINGS_SECTIONS = SETTINGS_TABS.flatMap((tab) =>
 
 export const SETTINGS_LABELS: Record<string, string> = {
   application_fee_ghs: 'Application Fee (GHS)',
+  paystack_enabled: 'Enable Paystack payments',
   application_deadline_message: 'Deadline Banner Message',
   momo_provider: 'MoMo Provider',
   momo_number_1: 'Primary MoMo Number',
@@ -99,6 +100,8 @@ export const SETTINGS_LABELS: Record<string, string> = {
 }
 
 export const SETTINGS_HELPERS: Record<string, string> = {
+  paystack_enabled:
+    'When enabled, students can pay application fees online via Paystack. Disable to accept manual payments only.',
   application_deadline_message:
     'Shown on the home page. Leave blank to hide.',
   enrollment_letter_signatory_name:

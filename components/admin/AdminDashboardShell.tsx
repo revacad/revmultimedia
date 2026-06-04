@@ -43,7 +43,7 @@ export default function AdminDashboardShell({
 
       <div className="flex h-full min-w-0 flex-1 flex-col">
         <AdminTopBar adminName={adminName} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto bg-[#F8F8FC] p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="scrollbar-hidden flex-1 overflow-auto bg-[#F8F8FC] p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   )

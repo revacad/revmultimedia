@@ -11,12 +11,14 @@ export type PortalAccess = {
   isWaitlisted?: boolean
   applicationRef?: string
   invoiceRef?: string
+  appFeeInvoiceId?: string
   appFeeAmount?: number
   userId: string
   payerEmail?: string
 }
 
 type InvoiceRow = {
+  id: string
   reference: string
   amount_ghs: number
   type: string
@@ -47,7 +49,7 @@ export async function getPortalAccess(): Promise<PortalAccess | null> {
     .select(
       `
       id, reference, app_fee_paid, real_email, status,
-      invoices(reference, amount_ghs, type, status)
+      invoices(id, reference, amount_ghs, type, status)
     `,
     )
     .eq('auth_user_id', user.id)
@@ -61,7 +63,7 @@ export async function getPortalAccess(): Promise<PortalAccess | null> {
       .select(
         `
         id, reference, app_fee_paid, real_email, status,
-        invoices(reference, amount_ghs, type, status)
+        invoices(id, reference, amount_ghs, type, status)
       `,
       )
       .eq('auth_user_id', user.id)
@@ -75,7 +77,7 @@ export async function getPortalAccess(): Promise<PortalAccess | null> {
       .select(
         `
         id, reference, app_fee_paid, real_email, status,
-        invoices(reference, amount_ghs, type, status)
+        invoices(id, reference, amount_ghs, type, status)
       `,
       )
       .eq('internal_email', user.email)
@@ -97,6 +99,7 @@ export async function getPortalAccess(): Promise<PortalAccess | null> {
     isWaitlisted,
     applicationRef: application.reference,
     invoiceRef: appFeeInvoice?.reference,
+    appFeeInvoiceId: appFeeInvoice?.id,
     appFeeAmount: appFeeInvoice
       ? Number(appFeeInvoice.amount_ghs)
       : undefined,

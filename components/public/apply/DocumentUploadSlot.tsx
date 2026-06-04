@@ -2,7 +2,9 @@
 
 import { useCallback, useRef, useState } from 'react'
 import FormFieldLabel from '@/components/public/apply/FormFieldLabel'
+import UploadProgressBar from '@/components/public/apply/UploadProgressBar'
 import { uploadApplicationDocument, formatFileSize } from '@/lib/apply/upload'
+import { validateUploadFile } from '@/lib/apply/validate-upload-file'
 import type { UploadedFileMeta } from '@/lib/apply/types'
 
 interface DocumentUploadSlotProps {
@@ -12,6 +14,7 @@ interface DocumentUploadSlotProps {
   subtext?: string
   accept: string
   maxSizeBytes: number
+  sizeKind?: 'image' | 'document'
   draftId: string
   uploadToken: string
   documentType: string
@@ -26,6 +29,7 @@ export default function DocumentUploadSlot({
   subtext,
   accept,
   maxSizeBytes,
+  sizeKind = 'document',
   draftId,
   uploadToken,
   documentType,
@@ -34,25 +38,12 @@ export default function DocumentUploadSlot({
 }: DocumentUploadSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  const acceptList = accept.split(',').map((s) => s.trim())
-
   const validateFile = useCallback(
-    (file: File): string | null => {
-      const ext = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`
-      const mimeOk = acceptList.some((a) => {
-        if (a.startsWith('.')) return ext === a.toLowerCase()
-        if (a === 'image/*') return file.type.startsWith('image/')
-        return file.type === a
-      })
-      if (!mimeOk) return `Accepted formats: ${accept}`
-      if (file.size > maxSizeBytes) {
-        return `Maximum file size: ${formatFileSize(maxSizeBytes)}`
-      }
-      return null
-    },
-    [accept, acceptList, maxSizeBytes],
+    (file: File): string | null => validateUploadFile(file, accept, maxSizeBytes, sizeKind),
+    [accept, maxSizeBytes, sizeKind],
   )
 
   const handleFile = async (file: File) => {
@@ -63,13 +54,17 @@ export default function DocumentUploadSlot({
     }
     setError(null)
     setUploading(true)
+    setUploadProgress(0)
     try {
-      const meta = await uploadApplicationDocument(file, draftId, documentType, uploadToken)
+      const meta = await uploadApplicationDocument(file, draftId, documentType, uploadToken, {
+        onProgress: setUploadProgress,
+      })
       onChange(meta)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
     } finally {
       setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -136,10 +131,12 @@ export default function DocumentUploadSlot({
             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
           />
         </svg>
-        <p className="mt-3 text-sm font-medium text-dark">
-          {uploading ? 'Uploading…' : 'Click to upload or drag and drop'}
-        </p>
-        <p className="mt-1 text-xs text-gray-400">{subtext ?? accept}</p>
+        {uploading ? (
+          <UploadProgressBar percent={uploadProgress} />
+        ) : (
+          <p className="mt-3 text-sm font-medium text-dark">Click to upload or drag and drop</p>
+        )}
+        {!uploading && <p className="mt-1 text-xs text-gray-400">{subtext ?? accept}</p>}
       </button>
       <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={onInputChange} />
       {fieldError && (

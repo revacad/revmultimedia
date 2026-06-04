@@ -31,7 +31,7 @@ export default async function AdminSettingsPage() {
     for (const section of tab.sections) {
       for (const key of section.keys) {
         if (!(key in values)) {
-          values[key] = ''
+          values[key] = key === 'paystack_enabled' ? 'true' : ''
         }
       }
     }

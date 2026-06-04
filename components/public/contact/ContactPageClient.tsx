@@ -6,9 +6,11 @@ import HoneypotField from '@/components/public/HoneypotField'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
 import { publicSectionClass } from '@/lib/public-ui'
-import { cn } from '@/lib/utils'
+import { cn, formatGHS } from '@/lib/utils'
 
-const FAQ = [
+function buildFaq(applicationFeeGhs: number) {
+  const feeLabel = formatGHS(applicationFeeGhs)
+  return [
   {
     q: 'Who can apply to Rev Multimedia?',
     a: 'Anyone who wants to build a professional creative career. You do not need any prior experience, just commitment and a willingness to put in the work. We have students who started with zero design background and went on to work with clients professionally.',
@@ -23,7 +25,7 @@ const FAQ = [
   },
   {
     q: 'How does the application process work?',
-    a: 'You fill out an online application, pay a non-refundable application fee of GHS 100, and our admissions team reviews your application. If accepted, you receive a tuition invoice and payment instructions. Once tuition is paid, your enrollment is confirmed and you receive your student ID.',
+    a: `You fill out an online application, pay a non-refundable application fee of ${feeLabel}, and our admissions team reviews your application. If accepted, you receive a tuition invoice and payment instructions. Once tuition is paid, your enrollment is confirmed and you receive your student ID.`,
   },
   {
     q: 'What is the tuition fee?',
@@ -46,6 +48,7 @@ const FAQ = [
     a: 'Yes. Students who complete a course receive an official Rev Multimedia certificate. Our partnership with Ghana Communication Technology University (GCTU) adds further institutional credibility to your training.',
   },
 ]
+}
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -69,7 +72,8 @@ function WhatsAppIcon() {
   )
 }
 
-export default function ContactPageClient() {
+export default function ContactPageClient({ applicationFeeGhs }: { applicationFeeGhs: number }) {
+  const FAQ = buildFaq(applicationFeeGhs)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/Button'
 import { FeaturedInstructorCard } from './FeaturedInstructorCard'
 import { publicSectionClass } from '@/lib/public-ui'
-import { cn } from '@/lib/utils'
+import { cn, formatGHS } from '@/lib/utils'
 
 const AboutOrbitalAvatars = dynamic(
   () => import('./AboutOrbitalAvatars').then((m) => m.AboutOrbitalAvatars),
@@ -38,7 +38,9 @@ const AboutOrbitalAvatars = dynamic(
   },
 )
 
-export function AboutPageClient() {
+export function AboutPageClient({ applicationFeeGhs }: { applicationFeeGhs: number }) {
+  const feeLabel = formatGHS(applicationFeeGhs)
+
   useEffect(() => {
     let ctx: { revert: () => void } | undefined
 
@@ -395,7 +397,7 @@ export function AboutPageClient() {
             },
             {
               q: 'How much does it cost to apply?',
-              a: 'The application fee is GHS 100. Tuition fees vary by course and intake. Installment payment plans are available for enrolled students.',
+              a: `The application fee is ${feeLabel}. Tuition fees vary by course and intake. Installment payment plans are available for enrolled students.`,
             },
             {
               q: 'Who teaches at Rev Multimedia?',
@@ -403,7 +405,7 @@ export function AboutPageClient() {
             },
             {
               q: 'How do I apply?',
-              a: 'Apply online at revmultimedia.com/apply. Complete the five-step application form, verify your email, upload your documents, and pay the GHS 100 application fee. Our admissions team reviews applications within 5 to 7 working days.',
+              a: `Apply online at revmultimedia.com/apply. Complete the five-step application form, verify your email, upload your documents, and pay the ${feeLabel} application fee. Our admissions team reviews applications within 5 to 7 working days.`,
             },
           ].map((faq, i, arr) => (
             <div

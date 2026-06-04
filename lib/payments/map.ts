@@ -22,9 +22,13 @@ export function mapPaymentListRow(row: Record<string, unknown>): PaymentListRow 
         reference: applicationsRaw.reference as string,
         full_name: applicationsRaw.full_name as string,
         real_email: applicationsRaw.real_email as string,
+        phone: (applicationsRaw.phone as string | null) ?? null,
         country: applicationsRaw.country as string,
         courses: firstRelation(
           applicationsRaw.courses as { title: string } | { title: string }[] | null,
+        ),
+        intakes: firstRelation(
+          applicationsRaw.intakes as { name: string } | { name: string }[] | null,
         ),
         students: firstRelation(
           applicationsRaw.students as
@@ -84,6 +88,12 @@ export function mapInvoiceDetail(row: Record<string, unknown>): InvoiceDetail {
           applicationsRaw.intakes as
             | { name: string; start_date: string }
             | { name: string; start_date: string }[]
+            | null,
+        ),
+        students: firstRelation(
+          applicationsRaw.students as
+            | { full_name: string; student_id: string }
+            | { full_name: string; student_id: string }[]
             | null,
         ),
       }

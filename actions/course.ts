@@ -41,6 +41,7 @@ export async function createCourse(
 
     const supabase = createAdminClient();
     const thumbnailKey = String(formData.get("thumbnail_r2_key") ?? "").trim() || null;
+    const draftCourseId = String(formData.get("course_draft_id") ?? "").trim();
     const instructorFields = parseInstructorFields(formData);
 
     const { data, error } = await supabase
@@ -56,6 +57,24 @@ export async function createCourse(
 
     if (error) {
       return safeActionFailure("course.create", error, "Failed to create course.");
+    }
+
+    if (
+      draftCourseId &&
+      instructorFields.instructor_photo_r2_key?.includes(`courses/${draftCourseId}/`)
+    ) {
+      const { finalizeCourseInstructorPhotoKey } = await import("@/lib/r2/copy-object");
+      const finalizedKey = await finalizeCourseInstructorPhotoKey(
+        instructorFields.instructor_photo_r2_key,
+        draftCourseId,
+        data.id,
+      );
+      if (finalizedKey && finalizedKey !== instructorFields.instructor_photo_r2_key) {
+        await supabase
+          .from("courses")
+          .update({ instructor_photo_r2_key: finalizedKey })
+          .eq("id", data.id);
+      }
     }
 
     invalidateCourse(data.slug);

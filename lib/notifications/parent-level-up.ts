@@ -12,13 +12,15 @@ export async function notifyParentLevelUpApplicationSubmitted(params: {
   courseName: string
   parentWhatsapp: string
   parentEmail?: string | null
+  applicationFeeGhs: number
   supabase?: SupabaseClient
 }): Promise<void> {
   const supabase = params.supabase ?? createAdminClient()
+  const feeLabel = params.applicationFeeGhs.toFixed(2)
 
   const message =
     `Rev Multimedia: ${params.studentName} has submitted a Level Up application (${params.reference}) for ${params.courseName}. ` +
-    `Application fee: GHS 100. Visit ${siteUrl}/portal/application or contact us on +233 27 581 8525.`
+    `Application fee: GHS ${feeLabel}. Visit ${siteUrl}/portal/application or contact us on +233 27 581 8525.`
 
   await deliverWhatsAppThenSms({
     phone: params.parentWhatsapp,
@@ -35,6 +37,7 @@ export async function notifyParentLevelUpApplicationSubmitted(params: {
         studentName: params.studentName,
         reference: params.reference,
         courseName: params.courseName,
+        applicationFeeGhs: params.applicationFeeGhs,
       })
       await logNotification(supabase, {
         applicationId: params.applicationId,
