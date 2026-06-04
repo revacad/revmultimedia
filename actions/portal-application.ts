@@ -13,6 +13,7 @@ import {
 import { sendAdminNewApplication } from '@/lib/notifications/email'
 import { runAfterResponse } from '@/lib/background'
 import { sanitizeFileName } from '@/lib/security/files'
+import { fetchReturnStudentEducation } from '@/lib/portal/return-student-education'
 import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
 import { submitReturnStudentApplicationSchema } from '@/lib/validations/return-application'
 
@@ -60,6 +61,18 @@ export async function submitReturnStudentApplication(formData: unknown) {
     return { error: 'Only enrolled students can apply for another course here.' }
   }
 
+  const priorEducation = await fetchReturnStudentEducation(supabase, {
+    application_id: student.application_id,
+    auth_user_id: student.auth_user_id,
+  })
+
+  if (!priorEducation) {
+    return {
+      error:
+        'We could not find education details from your previous application. Please contact info@revmultimediagh.com for help.',
+    }
+  }
+
   const { isDuplicate, result: cachedResult } = await checkIdempotency(parsed.data.idempotencyKey)
   if (isDuplicate && cachedResult && typeof cachedResult === 'object') {
     return cachedResult as {
@@ -86,10 +99,10 @@ export async function submitReturnStudentApplication(formData: unknown) {
     p_address: student.address,
     p_state_region: student.state_region,
     p_city: student.city,
-    p_qualification: parsed.data.qualification,
-    p_institution: parsed.data.institution,
-    p_year_completed: parsed.data.yearCompleted,
-    p_prior_experience: parsed.data.priorExperience ?? null,
+    p_qualification: priorEducation.qualification,
+    p_institution: priorEducation.institution,
+    p_year_completed: priorEducation.yearCompleted,
+    p_prior_experience: priorEducation.priorExperience ?? null,
     p_course_id: parsed.data.courseId,
     p_intake_id: parsed.data.intakeId,
     p_hybrid_attendance_confirmed: parsed.data.hybridAttendanceConfirmed,
@@ -126,10 +139,10 @@ export async function submitReturnStudentApplication(formData: unknown) {
     address: student.address,
     stateRegion: student.state_region,
     city: student.city,
-    qualification: parsed.data.qualification,
-    institution: parsed.data.institution,
-    yearCompleted: parsed.data.yearCompleted,
-    priorExperience: parsed.data.priorExperience ?? null,
+    qualification: priorEducation.qualification,
+    institution: priorEducation.institution,
+    yearCompleted: priorEducation.yearCompleted,
+    priorExperience: priorEducation.priorExperience ?? null,
   })
 
   const idDocType = student.country === 'Ghana' ? 'national_id' : 'passport'

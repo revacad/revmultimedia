@@ -6,6 +6,7 @@ import { requireFinanceAccess } from '@/lib/auth/admin'
 import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import { getInvoiceIfOwnedByUser } from '@/lib/portal/verify-invoice-access'
 import { confirmPayment } from '@/actions/payment'
+import { sendManualPaymentClaimEmail } from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
 import { getSystemSettings } from '@/lib/settings/cache'
 import { roundGhs } from '@/lib/payments/balance'
@@ -67,6 +68,21 @@ export async function submitManualPaymentClaim(
         insertError,
         'Could not submit your payment claim. Please try again.',
       )
+    }
+
+    const { data: application } = await supabase
+      .from('applications')
+      .select('real_email, full_name')
+      .eq('id', invoice.application_id)
+      .maybeSingle()
+
+    if (application?.real_email) {
+      void sendManualPaymentClaimEmail(application.real_email, {
+        name: application.full_name ?? 'Student',
+        invoiceReference: invoice.reference,
+        transactionRef: parsed.data.transactionRef,
+        amountGhs: roundGhs(invoice.total_ghs),
+      })
     }
 
     const settings = await getSystemSettings()

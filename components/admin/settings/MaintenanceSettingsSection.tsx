@@ -1,6 +1,10 @@
 'use client'
 
-import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
+import {
+  AdminLabel,
+  AdminSettingsToggle,
+  adminFieldClassName,
+} from '@/components/admin/AdminFormPrimitives'
 
 interface MaintenanceSettingsSectionProps {
   draft: Record<string, string>
@@ -13,42 +17,6 @@ interface MaintenanceSettingsSectionProps {
 
 function parseBool(value: string | undefined): boolean {
   return value === 'true' || value === '1' || value === 'on'
-}
-
-function MaintenanceToggle({
-  id,
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  id: string
-  label: string
-  description: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <label htmlFor={id} className="flex cursor-pointer items-start justify-between gap-4">
-      <div>
-        <span className="mb-1 block font-body text-[13px] font-semibold text-[#5A5A7A]">
-          {label}
-        </span>
-        <p className="font-body text-xs text-[#9898B8]">{description}</p>
-      </div>
-      <span className="relative inline-flex h-7 w-12 shrink-0 items-center">
-        <input
-          id={id}
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="peer sr-only"
-        />
-        <span className="absolute inset-0 rounded-full bg-[#D8D8E8] transition-colors peer-checked:bg-[#C74A86] peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30" />
-        <span className="absolute left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
-      </span>
-    </label>
-  )
 }
 
 export default function MaintenanceSettingsSection({
@@ -70,7 +38,7 @@ export default function MaintenanceSettingsSection({
       </p>
 
       <div className="space-y-5">
-        <MaintenanceToggle
+        <AdminSettingsToggle
           id="maintenance_full"
           label="Full site maintenance"
           description="When on, all pages redirect to the maintenance screen (except admin and login)."
@@ -80,7 +48,7 @@ export default function MaintenanceSettingsSection({
           }
         />
 
-        <MaintenanceToggle
+        <AdminSettingsToggle
           id="maintenance_portal"
           label="Portal and applications maintenance"
           description="When on, only /portal and /apply routes redirect. Public marketing pages stay up."

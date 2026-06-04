@@ -1,6 +1,7 @@
 const PORTAL_SECTIONS = [
   { href: '/portal/dashboard', label: 'Dashboard' },
   { href: '/portal/invoices', label: 'Invoices' },
+  { href: '/portal/resources', label: 'Resources' },
   { href: '/portal/profile', label: 'Profile' },
 ] as const
 

@@ -119,6 +119,44 @@ export function AdminFieldGrid({ children }: { children: ReactNode }) {
   )
 }
 
+export function AdminSettingsToggle({
+  id,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  id: string
+  label: string
+  description?: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-4">
+      <div>
+        <span className="mb-1 block font-body text-[13px] font-semibold text-[#5A5A7A]">
+          {label}
+        </span>
+        {description && (
+          <p className="font-body text-xs text-[#9898B8]">{description}</p>
+        )}
+      </div>
+      <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer sr-only"
+        />
+        <span className="absolute inset-0 rounded-full bg-[#D8D8E8] transition-colors peer-checked:bg-[#C74A86] peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30" />
+        <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+      </span>
+    </label>
+  )
+}
+
 export function AdminToggle({
   name,
   defaultChecked,

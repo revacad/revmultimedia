@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button'
 import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
 import { deleteResource, getAdminResourceUrl, uploadResource } from '@/actions/resources'
 import { formatFileSize } from '@/lib/apply/upload'
+import { uploadErrorMessage } from '@/lib/security/upload-error-message'
 import { formatDate } from '@/lib/utils'
 
 export type ResourceListRow = {
@@ -137,7 +138,11 @@ export default function ResourcesPageClient({
         })
         if (!presignRes.ok) {
           const data = (await presignRes.json().catch(() => ({}))) as { error?: string }
-          setError(data.error ?? 'Failed to prepare upload')
+          setError(
+            uploadErrorMessage(new Error(data.error ?? 'Failed to prepare upload'), {
+              declaredMime: selectedFile.type,
+            }),
+          )
           return
         }
         const { key } = (await presignRes.json()) as { key: string }
@@ -167,8 +172,12 @@ export default function ResourcesPageClient({
         setSelectedFile(null)
         setShowForm(false)
         router.refresh()
-      } catch {
-        setError('Upload failed')
+      } catch (err) {
+        setError(
+          uploadErrorMessage(err, {
+            declaredMime: selectedFile?.type,
+          }),
+        )
       }
     })
   }

@@ -1,18 +1,21 @@
 import { Resend } from 'resend'
 import { withRetry } from '@/lib/retry'
-import { emailTemplate } from '@/lib/notifications/email-template'
+import { getSystemSettings } from '@/lib/settings/cache'
+import { escapeHtml } from '@/lib/security/escape-html'
 import {
-  emailAlert,
-  emailButton,
-  emailDivider,
-  emailGreeting,
-  emailHeading,
-  emailInfoCard,
-  emailParagraph,
-  emailReferenceCard,
-  emailSubheading,
-  escapeHtml,
-} from '@/lib/notifications/email-components'
+  amountDueBlock,
+  bodyParagraph,
+  bodyParagraphHtml,
+  buildEmailHtml,
+  detailsCard,
+  emailSubject,
+  messageQuoteBlock,
+  otpCodeBlock,
+  resolveEmailContactFooter,
+  successCard,
+  warningCard,
+  type EmailTemplateOptions,
+} from '@/lib/notifications/email-base'
 
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY
@@ -26,6 +29,8 @@ const fromEmail =
   process.env.RESEND_FROM_EMAIL ?? 'noreply@revmultimedia.com'
 const adminEmail =
   process.env.RESEND_ADMIN_EMAIL ?? 'admin@revmultimedia.com'
+const contactAdminEmail =
+  process.env.CONTACT_ADMIN_EMAIL?.trim() || 'godfredkojoappiah@gmail.com'
 
 function appUrl(): string {
   return (
@@ -33,6 +38,23 @@ function appUrl(): string {
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ??
     'http://localhost:3000'
   )
+}
+
+function formatInvoiceDate(d: string): string {
+  if (!d) return '-'
+  return new Date(d).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function formatToday(): string {
+  return new Date().toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 async function sendHtmlEmail(
@@ -65,75 +87,101 @@ async function sendHtmlEmail(
   }
 }
 
-function formatInvoiceDate(d: string): string {
-  if (!d) return '-'
-  return new Date(d).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+async function sendTemplateEmail(
+  to: string | string[],
+  opts: Omit<EmailTemplateOptions, 'contact'>,
+): Promise<void> {
+  const settings = await getSystemSettings()
+  const html = buildEmailHtml({
+    ...opts,
+    contact: resolveEmailContactFooter(settings),
   })
+  await sendHtmlEmail(to, emailSubject(opts.badgeLabel, opts.title), html)
 }
 
-export async function sendOTP(
+function paymentInstructionsHtml(data: {
+  reference: string
+  momoProvider?: string
+  momoNumber?: string
+  momoName?: string
+  bankName?: string
+  bankAccount?: string
+  bankAccountName?: string
+  swiftCode?: string
+  isInternational?: boolean
+}): string {
+  const parts: string[] = [
+    bodyParagraph(
+      'Pay using one of the methods below. Include your invoice reference in the payment description so we can match your payment.',
+    ),
+  ]
+
+  if (data.momoNumber) {
+    parts.push(
+      bodyParagraphHtml(
+        `<strong style="color:#1a1a2e;">Mobile money (${escapeHtml(data.momoProvider ?? 'MoMo')})</strong>`,
+      ),
+      detailsCard([
+        { label: 'Number', value: data.momoNumber },
+        { label: 'Account name', value: data.momoName || '—' },
+      ]),
+    )
+  }
+
+  if (data.bankName) {
+    parts.push(
+      bodyParagraphHtml('<strong style="color:#1a1a2e;">Bank transfer</strong>'),
+      detailsCard([
+        { label: 'Bank', value: data.bankName },
+        { label: 'Account number', value: data.bankAccount || '—' },
+        { label: 'Account name', value: data.bankAccountName || '—' },
+      ]),
+    )
+  }
+
+  if (data.isInternational && data.swiftCode) {
+    parts.push(
+      bodyParagraphHtml('<strong style="color:#1a1a2e;">International wire</strong>'),
+      detailsCard([{ label: 'SWIFT / BIC', value: data.swiftCode }]),
+    )
+  }
+
+  parts.push(
+    warningCard(`Quote reference ${data.reference} in your payment description.`),
+  )
+
+  return parts.join('')
+}
+
+// ——— 1. OTP ———
+
+export async function sendOtpEmail(
   to: string,
   code: string,
   name?: string,
 ): Promise<void> {
-  const safeCode = escapeHtml(code)
-  await sendHtmlEmail(
-    to,
-    `${code} is your Rev Multimedia verification code`,
-    emailTemplate({
-      previewText: `Your verification code is ${code}. Valid for 10 minutes.`,
-      body: `
-          ${emailGreeting(name?.trim() || 'there')}
-          ${emailHeading('Verify your email')}
-          ${emailSubheading('Enter this code to continue your application.')}
-
-          <table cellpadding="0" cellspacing="0" role="presentation"
-            width="100%" style="margin:24px 0;">
-            <tr>
-              <td style="background:linear-gradient(135deg,#FDF0F6,#F7F8FC);
-                border:2px solid rgba(199,74,134,0.20);
-                border-radius:16px;padding:32px;text-align:center;">
-                <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:#9898B8;text-transform:uppercase;
-                  letter-spacing:0.1em;">
-                  Verification Code
-                </p>
-                <p style="margin:0;font-family:'Courier New',Courier,monospace;
-                  font-size:48px;font-weight:bold;color:#C74A86;
-                  letter-spacing:12px;line-height:1.2;">
-                  ${safeCode}
-                </p>
-                <p style="margin:16px 0 0;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:#9898B8;">
-                  Valid for 10 minutes
-                </p>
-              </td>
-            </tr>
-          </table>
-
-          ${emailParagraph('Enter this code in the verification box to continue your application. Do not share this code with anyone.')}
-
-          ${emailAlert('warning', 'If you did not request this code, you can safely ignore this email.')}
-
-          ${emailDivider()}
-
-          <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
-            font-size:13px;color:#9898B8;line-height:1.6;">
-            Rev Multimedia sends this code to verify your email address
-            before processing applications.
-          </p>
-        `,
-    }),
-  )
+  const badgeLabel = 'Verify Email'
+  const title = 'Your verification code'
+  await sendTemplateEmail(to, {
+    recipientName: name?.trim() || 'there',
+    badgeLabel,
+    title,
+    bodyHtml: [
+      bodyParagraph(
+        'Enter this code in the verification box to continue your application. Do not share this code with anyone.',
+      ),
+      otpCodeBlock(code),
+      warningCard('If you did not request this code, you can safely ignore this email.'),
+    ].join(''),
+  })
 }
 
-/** @deprecated Use sendOTP */
-export const sendOtpEmail = sendOTP
+/** @deprecated Use sendOtpEmail */
+export const sendOTP = sendOtpEmail
 
-export async function sendApplicationReceived(
+// ——— 2. Application received ———
+
+export async function sendApplicationReceivedEmail(
   to: string,
   data: {
     name: string
@@ -141,152 +189,125 @@ export async function sendApplicationReceived(
     courseName?: string
     intakeName?: string
     applicationFeeGhs: number
+    submittedAt?: string
   },
 ): Promise<void> {
+  const badgeLabel = 'Application Received'
+  const title = 'Your application has been received.'
   const feeLabel = data.applicationFeeGhs.toFixed(2)
-  const infoRows = data.courseName
-    ? [
-        { label: 'Course applied', value: data.courseName },
-        ...(data.intakeName ? [{ label: 'Intake', value: data.intakeName }] : []),
-      ]
-    : []
+  const rows = [
+    { label: 'Reference', value: data.reference },
+    ...(data.courseName ? [{ label: 'Course', value: data.courseName }] : []),
+    ...(data.intakeName ? [{ label: 'Intake', value: data.intakeName }] : []),
+    { label: 'Submitted', value: data.submittedAt ?? formatToday() },
+  ]
 
-  await sendHtmlEmail(
-    to,
-    `Application received - ${data.reference}`,
-    emailTemplate({
-      previewText: `Your application to Rev Multimedia has been received. Reference: ${data.reference}`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('Application received.')}
-          ${emailSubheading('Thank you for applying to Rev Multimedia.')}
-
-          ${emailParagraph('We have received your application and our admissions team will review it shortly. You will be notified of any updates by email.')}
-
-          ${emailReferenceCard('Your Application Reference', data.reference)}
-
-          ${infoRows.length > 0 ? emailInfoCard(infoRows) : ''}
-
-          ${emailHeading('Next steps')}
-          ${emailParagraph(`1. Pay your application fee (GHS ${feeLabel}) to complete your application.`)}
-          ${emailParagraph('2. Log in to your portal using your application reference and password.')}
-          ${emailParagraph('3. Our team will review your application and update you within 5–7 working days.')}
-
-          ${emailButton('Go to your portal', `${appUrl()}/portal/application`)}
-
-          ${emailAlert('info', `Save your application reference: <strong>${escapeHtml(data.reference)}</strong>. You will need it to log in to your portal.`)}
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel,
+    title,
+    bodyHtml: [
+      bodyParagraph(
+        'Thank you for applying to Rev Multimedia. We have received your application and our admissions team will review it shortly.',
+      ),
+      detailsCard(rows),
+      bodyParagraph(
+        'Log in to your portal to pay your application fee and track updates.',
+      ),
+    ].join(''),
+    ctaButton: {
+      label: `Pay Application Fee: GHS ${feeLabel}`,
+      url: `${appUrl()}/portal/application`,
+    },
+    ctaNote: `Save your reference ${data.reference} — you will need it to log in.`,
+  })
 }
 
-export async function sendWaitlistConfirmation(
-  to: string,
-  data: {
-    name: string
-    reference: string
-    courseName: string
-    intakeName: string
-    waitlistPosition: number
+export const sendApplicationReceived = sendApplicationReceivedEmail
+
+// ——— 3. Status changed ———
+
+const STATUS_EMAIL: Record<
+  string,
+  {
+    badgeLabel: string
+    title: string
+    body: string
+    badgeColor?: string
+    extraHtml?: string
+    cta?: boolean
+  }
+> = {
+  under_review: {
+    badgeLabel: 'Under Review',
+    title: 'Your application is being reviewed.',
+    body: 'Our admissions team is currently reviewing your application. We will email you when there is an update.',
   },
-): Promise<void> {
-  await sendHtmlEmail(
-    to,
-    `You are on the waitlist - ${data.courseName}`,
-    emailTemplate({
-      previewText: `You are #${data.waitlistPosition} on the waitlist for ${data.courseName}. Reference: ${data.reference}`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('You are on the waitlist')}
-          ${emailSubheading(`Thank you for your interest in ${escapeHtml(data.courseName)}.`)}
-
-          ${emailParagraph('The intake you selected is currently full. We have added you to the waitlist and will contact you if a spot becomes available.')}
-
-          ${emailReferenceCard('Your Application Reference', data.reference)}
-
-          ${emailInfoCard([
-            { label: 'Course', value: data.courseName },
-            { label: 'Intake', value: data.intakeName },
-            { label: 'Waitlist position', value: `#${data.waitlistPosition}` },
-          ])}
-
-          ${emailParagraph('No payment is required at this time. When a spot opens, we will notify you by email and SMS. You can then log in to your portal to confirm your interest and pay the application fee.')}
-
-          ${emailButton('Go to your portal', `${appUrl()}/portal/application`)}
-
-          ${emailAlert('info', `Save your application reference: <strong>${escapeHtml(data.reference)}</strong>. You will need it to log in to your portal.`)}
-        `,
-    }),
-  )
-}
-
-export async function sendWaitlistSpotAvailable(
-  to: string,
-  data: {
-    name: string
-    reference: string
-    courseName: string
-    intakeName: string
+  shortlisted: {
+    badgeLabel: 'Application Shortlisted',
+    title: 'You have been shortlisted.',
+    body: 'Congratulations! Your application has been shortlisted. Our team will be in touch with next steps.',
+    badgeColor: '#2ecc71',
+    extraHtml: successCard('You are one step closer to joining Rev Multimedia.'),
   },
-): Promise<void> {
-  await sendHtmlEmail(
-    to,
-    `A spot may be available - ${data.courseName}`,
-    emailTemplate({
-      previewText: `A spot may have opened for ${data.courseName}. Log in to your portal to confirm interest.`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('A spot may be available')}
-          ${emailSubheading(`Good news about your waitlist application for ${escapeHtml(data.courseName)}.`)}
-
-          ${emailParagraph('A place may have opened in your selected intake. Please log in to your student portal as soon as possible to confirm your interest and pay the application fee if you still wish to proceed.')}
-
-          ${emailReferenceCard('Your Application Reference', data.reference)}
-
-          ${emailInfoCard([
-            { label: 'Course', value: data.courseName },
-            { label: 'Intake', value: data.intakeName },
-          ])}
-
-          ${emailButton('Log in to your portal', `${appUrl()}/portal/application`)}
-
-          ${emailAlert('warning', 'Spots are offered in waitlist order. Prompt action helps secure your place.')}
-        `,
-    }),
-  )
-}
-
-export async function sendParentLevelUpApplicationSubmitted(
-  to: string,
-  data: {
-    studentName: string
-    reference: string
-    courseName: string
-    applicationFeeGhs: number
+  accepted: {
+    badgeLabel: 'Application Accepted',
+    title: 'Welcome to Rev Multimedia.',
+    body: 'Your application has been accepted. Log in to your portal to view your tuition invoice and complete payment to secure your place.',
+    badgeColor: '#2ecc71',
+    extraHtml: successCard(
+      'Pay your tuition fee to confirm enrollment and receive your Student ID.',
+    ),
   },
-): Promise<void> {
-  const feeLabel = data.applicationFeeGhs.toFixed(2)
-  await sendHtmlEmail(
-    to,
-    `Application submitted - ${data.reference}`,
-    emailTemplate({
-      previewText: `${data.studentName} submitted a Level Up application at Rev Multimedia.`,
-      body: `
-          ${emailParagraph('Dear Parent/Guardian,')}
-          ${emailParagraph(
-            `<strong>${escapeHtml(data.studentName)}</strong> has submitted an application to Rev Multimedia Level Up for <strong>${escapeHtml(data.courseName)}</strong>.`,
-          )}
-          ${emailReferenceCard('Application reference', data.reference)}
-          ${emailParagraph(
-            `The application fee is GHS ${feeLabel}. Your ward will use their student portal to track progress and pay fees.`,
-          )}
-          ${emailParagraph('If you have questions, contact us at info@revmultimediagh.com or +233 27 581 8525.')}
-        `,
-    }),
-  )
+  rejected: {
+    badgeLabel: 'Application Update',
+    title: 'Update on your application.',
+    body: 'After careful review, we are unable to offer you a place in this cohort. We appreciate your interest and encourage you to apply again in a future intake.',
+    extraHtml: warningCard(
+      'You are welcome to apply for a future cohort when new intakes open.',
+    ),
+  },
+  deferred: {
+    badgeLabel: 'Application Deferred',
+    title: 'Your application has been deferred.',
+    body: 'Your application has been deferred to a future intake. We will contact you with details about the next available cohort.',
+  },
 }
 
-export async function sendAppFeeInvoice(
+export async function sendStatusChangedEmail(
+  to: string,
+  data: { name: string; status: string; reference?: string },
+): Promise<void> {
+  const content = STATUS_EMAIL[data.status] ?? {
+    badgeLabel: 'Application Update',
+    title: 'There is an update on your application.',
+    body: 'Please log in to your portal for the latest details.',
+  }
+
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: content.badgeLabel,
+    badgeColor: content.badgeColor,
+    title: content.title,
+    bodyHtml: [
+      bodyParagraph(content.body),
+      content.extraHtml ?? '',
+      data.reference
+        ? detailsCard([{ label: 'Application reference', value: data.reference }])
+        : '',
+    ].join(''),
+    ctaButton: {
+      label: 'View your portal',
+      url: `${appUrl()}/portal/application`,
+    },
+  })
+}
+
+export const sendStatusChanged = sendStatusChangedEmail
+
+// ——— 4. Application fee invoice ———
+
+export async function sendAppFeeInvoiceEmail(
   to: string,
   data: {
     name: string
@@ -295,126 +316,38 @@ export async function sendAppFeeInvoice(
     paystackLink?: string
   },
 ): Promise<void> {
+  const badgeLabel = 'Invoice'
+  const title = 'Your application fee invoice'
   const portalUrl = `${appUrl()}/portal/application`
-  const paySection = data.paystackLink
-    ? emailButton('Pay application fee', data.paystackLink)
-    : emailButton('View in portal', portalUrl)
 
-  await sendHtmlEmail(
-    to,
-    `Application fee invoice - ${data.reference}`,
-    emailTemplate({
-      previewText: `Pay your application fee of GHS ${data.amountGhs.toFixed(2)} for reference ${data.reference}.`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('Your application fee invoice')}
-          ${emailParagraph('Complete your application by paying the application fee below.')}
-
-          <table cellpadding="0" cellspacing="0" role="presentation"
-            width="100%" style="margin:24px 0;">
-            <tr>
-              <td style="background:linear-gradient(135deg,#1A1A2E,#2F2F52);
-                border-radius:16px;padding:28px;text-align:center;">
-                <p style="margin:0 0 4px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:rgba(255,255,255,0.6);text-transform:uppercase;
-                  letter-spacing:0.1em;">
-                  Amount Due
-                </p>
-                <p style="margin:0;font-family:Georgia,serif;
-                  font-size:42px;font-weight:bold;color:#C74A86;">
-                  GHS ${escapeHtml(data.amountGhs.toFixed(2))}
-                </p>
-              </td>
-            </tr>
-          </table>
-
-          ${emailInfoCard([
-            { label: 'Invoice Reference', value: data.reference },
-            { label: 'Type', value: 'Application Fee' },
-          ])}
-
-          ${paySection}
-
-          ${emailAlert('warning', `Quote reference <strong>${escapeHtml(data.reference)}</strong> when paying so we can match your payment.`)}
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel,
+    title,
+    bodyHtml: [
+      bodyParagraph('Complete your application by paying the application fee below.'),
+      amountDueBlock(data.amountGhs),
+      detailsCard([
+        { label: 'Invoice reference', value: data.reference },
+        { label: 'Type', value: 'Application fee' },
+      ]),
+      bodyParagraph(
+        'You can pay online via Paystack or follow manual payment instructions in your portal if online payments are disabled.',
+      ),
+    ].join(''),
+    ctaButton: data.paystackLink
+      ? { label: 'Pay Now via Paystack', url: data.paystackLink }
+      : { label: 'View invoice in portal', url: portalUrl },
+    ctaNote: data.paystackLink
+      ? `Quote reference ${data.reference} if paying manually.`
+      : undefined,
+    footerNote: `Invoice reference: ${data.reference}`,
+  })
 }
 
-export async function sendStatusChanged(
-  to: string,
-  data: { name: string; status: string; reference?: string },
-): Promise<void> {
-  const statusMessages: Record<
-    string,
-    {
-      subject: string
-      heading: string
-      body: string
-      alert?: { type: 'info' | 'success' | 'warning'; text: string }
-    }
-  > = {
-    under_review: {
-      subject: 'Your application is under review',
-      heading: 'Your application is being reviewed.',
-      body: 'Our admissions team is currently reviewing your application. We will be in touch soon with an update.',
-    },
-    shortlisted: {
-      subject: 'Great news - you have been shortlisted',
-      heading: 'You have been shortlisted!',
-      body: 'Congratulations! Your application has been shortlisted. Our team will be in touch shortly with further information.',
-      alert: {
-        type: 'success',
-        text: 'You are one step closer to joining Rev Multimedia.',
-      },
-    },
-    accepted: {
-      subject: 'Congratulations - your application has been accepted',
-      heading: 'Welcome to Rev Multimedia!',
-      body: 'We are thrilled to inform you that your application has been accepted. Please log in to your portal to view your tuition invoice and complete payment to secure your place.',
-      alert: {
-        type: 'success',
-        text: 'Pay your tuition fee to confirm your enrollment and receive your Student ID.',
-      },
-    },
-    rejected: {
-      subject: 'Update on your application',
-      heading: 'Application update.',
-      body: 'After careful review, we are unable to offer you a place in this cohort. We appreciate your interest in Rev Multimedia and encourage you to apply again in a future intake.',
-      alert: {
-        type: 'warning',
-        text: 'You are welcome to apply for a future cohort. New intakes open regularly.',
-      },
-    },
-    deferred: {
-      subject: 'Your application has been deferred',
-      heading: 'Application deferred.',
-      body: 'Your application has been deferred to a future intake. We will be in touch with more details about the next available cohort.',
-    },
-  }
+export const sendAppFeeInvoice = sendAppFeeInvoiceEmail
 
-  const content = statusMessages[data.status] ?? {
-    subject: 'Update on your application',
-    heading: 'Application update.',
-    body: 'There has been an update to your application. Please log in to your portal for details.',
-  }
-
-  await sendHtmlEmail(
-    to,
-    content.subject,
-    emailTemplate({
-      previewText: content.subject,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading(content.heading)}
-          ${emailParagraph(content.body)}
-          ${content.alert ? emailAlert(content.alert.type, content.alert.text) : ''}
-          ${data.reference ? emailReferenceCard('Application Reference', data.reference) : ''}
-          ${emailButton('View your portal', `${appUrl()}/portal/application`)}
-        `,
-    }),
-  )
-}
+// ——— 5. Tuition invoice ———
 
 export type InvoiceReadyEmailData = {
   name: string
@@ -433,148 +366,7 @@ export type InvoiceReadyEmailData = {
   pdfUrl?: string
 }
 
-export async function sendInvoiceReadyEmail(
-  to: string,
-  data: InvoiceReadyEmailData,
-): Promise<void> {
-  const dueFormatted = formatInvoiceDate(data.dueDate)
-  const label = data.invoiceLabel.trim() || 'Invoice'
-  const labelLower = label.toLowerCase()
-
-  await sendHtmlEmail(
-    to,
-    `${label} ${data.reference} - GHS ${data.amountGhs.toFixed(2)}`,
-    emailTemplate({
-      previewText: `Your ${labelLower} for GHS ${data.amountGhs.toFixed(2)} is ready. Due ${dueFormatted}.`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading(`Your ${labelLower} is ready.`)}
-          ${emailParagraph(`Please find your ${labelLower} details below. Pay before the due date.`)}
-
-          <table cellpadding="0" cellspacing="0" role="presentation"
-            width="100%" style="margin:24px 0;">
-            <tr>
-              <td style="background:linear-gradient(135deg,#1A1A2E,#2F2F52);
-                border-radius:16px;padding:28px;text-align:center;">
-                <p style="margin:0 0 4px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:rgba(255,255,255,0.6);text-transform:uppercase;
-                  letter-spacing:0.1em;">
-                  Amount Due
-                </p>
-                <p style="margin:0 0 8px;font-family:Georgia,serif;
-                  font-size:42px;font-weight:bold;color:#C74A86;">
-                  GHS ${escapeHtml(data.amountGhs.toFixed(2))}
-                </p>
-                <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
-                  font-size:13px;color:rgba(255,255,255,0.5);">
-                  Due ${escapeHtml(dueFormatted)}
-                </p>
-              </td>
-            </tr>
-          </table>
-
-          ${emailInfoCard([
-            { label: 'Invoice Reference', value: data.reference },
-            { label: 'Due Date', value: dueFormatted },
-          ])}
-
-          <table cellpadding="0" cellspacing="0" role="presentation"
-            width="100%" style="margin:24px 0;">
-            <tr>
-              <td style="background-color:#F7F8FC;border-radius:16px;padding:24px;">
-                <p style="margin:0 0 16px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:15px;font-weight:bold;color:#1A1A2E;">
-                  How to pay
-                </p>
-
-                ${
-                  data.momoNumber
-                    ? `
-                <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:#C74A86;font-weight:bold;
-                  text-transform:uppercase;letter-spacing:0.06em;">
-                  Pay via ${escapeHtml(data.momoProvider ?? 'MTN MoMo')}
-                </p>
-                ${emailInfoCard([
-                  { label: 'MoMo Number', value: data.momoNumber },
-                  { label: 'Account Name', value: data.momoName || '-' },
-                ])}
-                `
-                    : ''
-                }
-
-                ${
-                  data.bankName
-                    ? `
-                <p style="margin:16px 0 8px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:#C74A86;font-weight:bold;
-                  text-transform:uppercase;letter-spacing:0.06em;">
-                  Bank Transfer
-                </p>
-                ${emailInfoCard([
-                  { label: 'Bank', value: data.bankName },
-                  { label: 'Account Number', value: data.bankAccount || '-' },
-                  { label: 'Account Name', value: data.bankAccountName || '-' },
-                ])}
-                `
-                    : ''
-                }
-
-                ${
-                  data.isInternational && data.swiftCode
-                    ? `
-                <p style="margin:16px 0 8px;font-family:Helvetica,Arial,sans-serif;
-                  font-size:12px;color:#C74A86;font-weight:bold;
-                  text-transform:uppercase;letter-spacing:0.06em;">
-                  International Wire Transfer
-                </p>
-                ${emailInfoCard([{ label: 'SWIFT / BIC', value: data.swiftCode }])}
-                `
-                    : ''
-                }
-
-                <table cellpadding="0" cellspacing="0" role="presentation"
-                  width="100%" style="margin-top:16px;">
-                  <tr>
-                    <td style="background-color:#EBF9F8;border:1.5px solid rgba(45,191,184,0.30);
-                      border-radius:10px;padding:14px 16px;text-align:center;">
-                      <p style="margin:0 0 4px;font-family:Helvetica,Arial,sans-serif;
-                        font-size:11px;color:#9898B8;text-transform:uppercase;
-                        letter-spacing:0.08em;">
-                        Quote this reference in your payment description
-                      </p>
-                      <p style="margin:0;font-family:'Courier New',Courier,monospace;
-                        font-size:20px;font-weight:bold;color:#2DBFB8;">
-                        ${escapeHtml(data.reference)}
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-
-          ${
-            data.pdfUrl
-              ? `
-          ${emailButton('Download Invoice PDF', data.pdfUrl)}
-          <p style="margin:-16px 0 16px;font-family:Helvetica,Arial,sans-serif;
-            font-size:12px;color:#9898B8;text-align:center;">
-            PDF link expires in 24 hours
-          </p>
-          `
-              : ''
-          }
-
-          ${emailButton('View in portal', `${appUrl()}/portal/invoices`)}
-
-          ${emailAlert('warning', `Payments must include the reference number <strong>${escapeHtml(data.reference)}</strong> to be processed correctly.`)}
-        `,
-    }),
-  )
-}
-
-export async function sendTuitionInvoice(
+export async function sendTuitionInvoiceEmail(
   to: string,
   data: Omit<InvoiceReadyEmailData, 'invoiceLabel'>,
 ): Promise<void> {
@@ -584,44 +376,159 @@ export async function sendTuitionInvoice(
   })
 }
 
-export async function sendPasswordReset(
+export const sendTuitionInvoice = sendTuitionInvoiceEmail
+
+export async function sendInvoiceReadyEmail(
   to: string,
-  data: { name?: string; resetUrl: string; isAdmin?: boolean },
+  data: InvoiceReadyEmailData,
 ): Promise<void> {
-  const accountType = data.isAdmin ? 'admin' : 'portal'
-  const subject = data.isAdmin
-    ? 'Reset your Rev Multimedia admin password'
-    : 'Reset your Rev Multimedia password'
-  await sendHtmlEmail(
-    to,
-    subject,
-    emailTemplate({
-      previewText:
-        'Click the link to reset your password. This link expires in 1 hour.',
-      body: `
-          ${emailGreeting(data.name?.trim() || 'there')}
-          ${emailHeading('Reset your password.')}
-          ${emailParagraph(`We received a request to reset the password for your Rev Multimedia ${accountType} account. Click the button below to set a new password.`)}
+  const dueFormatted = formatInvoiceDate(data.dueDate)
+  const label = data.invoiceLabel.trim() || 'Invoice'
+  const isTuition = label.toLowerCase().includes('tuition')
+  const badgeLabel = isTuition ? 'Tuition Invoice' : label
+  const title = isTuition
+    ? 'Your tuition invoice is ready.'
+    : `Your ${label.toLowerCase()} is ready.`
 
-          ${emailButton('Reset my password', data.resetUrl)}
-
-          ${emailAlert('warning', 'This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email - your password will not change.')}
-
-          ${emailDivider()}
-
-          <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
-            font-size:12px;color:#9898B8;line-height:1.6;">
-            If the button does not work, copy and paste this link into your browser:<br>
-            <a href="${escapeHtml(data.resetUrl)}" style="color:#C74A86;word-break:break-all;">
-              ${escapeHtml(data.resetUrl)}
-            </a>
-          </p>
-        `,
+  const bodyParts = [
+    bodyParagraph(`Please find your ${label.toLowerCase()} details below. Pay before the due date.`),
+    amountDueBlock(data.amountGhs, dueFormatted),
+    detailsCard([
+      { label: 'Invoice reference', value: data.reference },
+      { label: 'Due date', value: dueFormatted },
+    ]),
+    paymentInstructionsHtml({
+      reference: data.reference,
+      momoProvider: data.momoProvider,
+      momoNumber: data.momoNumber,
+      momoName: data.momoName,
+      bankName: data.bankName,
+      bankAccount: data.bankAccount,
+      bankAccountName: data.bankAccountName,
+      swiftCode: data.swiftCode,
+      isInternational: data.isInternational,
     }),
-  )
+  ]
+
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel,
+    title,
+    bodyHtml: bodyParts.join(''),
+    ctaButton: data.pdfUrl
+      ? { label: 'Download invoice PDF', url: data.pdfUrl }
+      : { label: 'View invoices in portal', url: `${appUrl()}/portal/invoices` },
+    ctaNote: data.pdfUrl ? 'PDF link expires in 24 hours.' : undefined,
+  })
 }
 
-export async function sendAdminInvite(
+// ——— 6. Payment confirmed ———
+
+export async function sendPaymentConfirmedEmail(
+  to: string,
+  data: {
+    name: string
+    studentId?: string
+    courseName?: string
+    amountPaidGhs?: number
+    paymentReference?: string
+    paidAt?: string
+  },
+): Promise<void> {
+  const enrolled = Boolean(data.studentId)
+  const badgeLabel = 'Payment Confirmed'
+  const title = enrolled
+    ? 'Payment received. Welcome to Rev Multimedia.'
+    : 'Payment received. Thank you.'
+
+  const detailRows = [
+    ...(data.amountPaidGhs != null
+      ? [{ label: 'Amount', value: `GHS ${data.amountPaidGhs.toFixed(2)}` }]
+      : []),
+    ...(data.paymentReference
+      ? [{ label: 'Reference', value: data.paymentReference }]
+      : []),
+    ...(data.paidAt
+      ? [{ label: 'Date', value: formatInvoiceDate(data.paidAt) }]
+      : []),
+    ...(data.studentId ? [{ label: 'Student ID', value: data.studentId }] : []),
+    ...(data.courseName ? [{ label: 'Programme', value: data.courseName }] : []),
+  ]
+
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel,
+    badgeColor: '#2ecc71',
+    title,
+    bodyHtml: [
+      successCard(
+        enrolled
+          ? 'Your tuition payment has been confirmed and your enrollment is complete.'
+          : 'Your payment has been received and your account has been updated.',
+      ),
+      ...(detailRows.length > 0 ? [detailsCard(detailRows)] : []),
+      enrolled
+        ? bodyParagraph('Save your Student ID — you will use it to log in to your student portal.')
+        : '',
+    ].join(''),
+    ctaButton: {
+      label: enrolled ? 'Go to student portal' : 'View my portal',
+      url: enrolled ? `${appUrl()}/portal/dashboard` : `${appUrl()}/portal/application`,
+    },
+  })
+}
+
+export const sendPaymentConfirmed = sendPaymentConfirmedEmail
+
+// ——— 7. Enrollment letter ———
+
+export async function sendEnrollmentLetterEmail(
+  to: string,
+  data: {
+    name: string
+    courseName: string
+    applicationReference: string
+    studentId?: string
+    intakeName?: string
+    pdfUrl?: string
+  },
+): Promise<void> {
+  const badgeLabel = 'Enrollment Letter'
+  const title = 'You are enrolled. Welcome to Rev Multimedia.'
+  const rows = [
+    ...(data.studentId
+      ? [{ label: 'Student ID', value: data.studentId }]
+      : [{ label: 'Application reference', value: data.applicationReference }]),
+    { label: 'Course', value: data.courseName },
+    ...(data.intakeName ? [{ label: 'Intake', value: data.intakeName }] : []),
+  ]
+
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel,
+    title,
+    bodyHtml: [
+      bodyParagraph(
+        'Congratulations! Your official enrollment letter is ready. Please download and keep it for your records.',
+      ),
+      detailsCard(rows),
+      bodyParagraph('We look forward to seeing you in class.'),
+    ].join(''),
+    ctaButton: data.pdfUrl
+      ? { label: 'Download Enrollment Letter', url: data.pdfUrl }
+      : undefined,
+    ctaNote: data.pdfUrl ? 'Download link expires in 24 hours.' : undefined,
+    footerNote: data.pdfUrl
+      ? undefined
+      : 'Contact the academy if you need the PDF link resent.',
+  })
+}
+
+export const sendAdmissionLetterEmail = sendEnrollmentLetterEmail
+
+// ——— 8. Admin invite ———
+
+export async function sendAdminInviteEmail(
   to: string,
   data: {
     fullName: string
@@ -631,98 +538,373 @@ export async function sendAdminInvite(
     resent?: boolean
   },
 ): Promise<void> {
+  const badgeLabel = 'Admin Invitation'
+  const title = 'You have been invited to join Rev Multimedia.'
   const intro = data.resent
-    ? emailParagraph(
-        `Your invitation to join as <strong>${escapeHtml(data.role)}</strong> has been resent.`,
-      )
-    : emailParagraph(
-        `<strong>${escapeHtml(data.invitedBy)}</strong> has invited you to join the Rev Multimedia admin dashboard as <strong>${escapeHtml(data.role)}</strong>.`,
-      )
+    ? `Your invitation to join as ${data.role} has been resent.`
+    : `${data.invitedBy} has invited you to join the Rev Multimedia admin dashboard as ${data.role}.`
 
-  await sendHtmlEmail(
-    to,
-    'You have been invited to Rev Multimedia Admin',
-    emailTemplate({
-      previewText: `${data.invitedBy} has invited you to join Rev Multimedia as ${data.role}.`,
-      body: `
-          ${emailGreeting(data.fullName)}
-          ${emailHeading('You have been invited.')}
-          ${intro}
-          ${emailParagraph('Click the button below to accept the invitation and set your password. This invitation expires in 48 hours.')}
-          ${emailButton('Accept invitation', data.inviteUrl)}
-          ${emailAlert('info', 'If you were not expecting this invitation, you can safely ignore this email.')}
-          ${emailDivider()}
-          <p style="margin:0;font-family:Helvetica,Arial,sans-serif;
-            font-size:12px;color:#9898B8;">
-            This invitation was sent by ${escapeHtml(data.invitedBy)} at Rev Multimedia.
-          </p>
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.fullName,
+    badgeLabel,
+    title,
+    bodyHtml: [
+      bodyParagraph(intro),
+      detailsCard([
+        { label: 'Role', value: data.role },
+        { label: 'Invited by', value: data.invitedBy },
+      ]),
+      bodyParagraph('Click below to accept the invitation and set your password.'),
+    ].join(''),
+    ctaButton: { label: 'Accept Invitation', url: data.inviteUrl },
+    footerNote: 'This invitation expires in 48 hours.',
+  })
 }
 
-export async function sendCertificateUploaded(
+export const sendAdminInvite = sendAdminInviteEmail
+
+// ——— 9–10. Password reset ———
+
+export async function sendAdminPasswordResetEmail(
   to: string,
-  data: { name: string; courseName: string },
+  data: { name?: string; resetUrl: string },
 ): Promise<void> {
-  await sendHtmlEmail(
-    to,
-    `Your ${data.courseName} certificate is ready`,
-    emailTemplate({
-      previewText: `Your ${data.courseName} certificate from Rev Multimedia is ready to download.`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('Your certificate is ready!')}
-          ${emailParagraph(`Congratulations on completing <strong>${escapeHtml(data.courseName)}</strong>. Your certificate is now available to download from your student portal.`)}
-          ${emailButton('Download my certificate', `${appUrl()}/portal/resources`)}
-          ${emailAlert('success', 'Add this certificate to your LinkedIn profile and portfolio to showcase your skills.')}
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.name?.trim() || 'there',
+    badgeLabel: 'Password Reset',
+    title: 'Reset your admin password.',
+    bodyHtml: bodyParagraph(
+      'We received a request to reset the password for your Rev Multimedia admin account. Click the button below to set a new password.',
+    ),
+    ctaButton: { label: 'Reset Password', url: data.resetUrl },
+    footerNote: 'This link expires in 1 hour. If you did not request a reset, ignore this email.',
+  })
 }
 
-export async function sendPaymentConfirmed(
+export async function sendPortalPasswordResetEmail(
+  to: string,
+  data: { name?: string; resetUrl: string },
+): Promise<void> {
+  await sendTemplateEmail(to, {
+    recipientName: data.name?.trim() || 'there',
+    badgeLabel: 'Password Reset',
+    title: 'Reset your portal password.',
+    bodyHtml: bodyParagraph(
+      'We received a request to reset the password for your Rev Multimedia student portal account. Click the button below to set a new password.',
+    ),
+    ctaButton: { label: 'Reset Password', url: data.resetUrl },
+    footerNote: 'This link expires in 1 hour. If you did not request a reset, ignore this email.',
+  })
+}
+
+export async function sendPasswordReset(
+  to: string,
+  data: { name?: string; resetUrl: string; isAdmin?: boolean },
+): Promise<void> {
+  if (data.isAdmin) {
+    await sendAdminPasswordResetEmail(to, data)
+  } else {
+    await sendPortalPasswordResetEmail(to, data)
+  }
+}
+
+// ——— 11–12. Waitlist ———
+
+export async function sendWaitlistConfirmationEmail(
   to: string,
   data: {
     name: string
-    studentId?: string
-    courseName?: string
-    amountPaid?: number
+    reference: string
+    courseName: string
+    intakeName: string
+    waitlistPosition: number
   },
 ): Promise<void> {
-  const hasEnrollment = Boolean(data.studentId)
-
-  await sendHtmlEmail(
-    to,
-    hasEnrollment
-      ? `Welcome to Rev Multimedia - Student ID: ${data.studentId}`
-      : 'Payment confirmed',
-    emailTemplate({
-      previewText: hasEnrollment
-        ? `Your Student ID is ${data.studentId}. Welcome to Rev Multimedia!`
-        : 'Your payment has been confirmed.',
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading(hasEnrollment ? 'Welcome to Rev Multimedia!' : 'Payment confirmed!')}
-
-          ${
-            hasEnrollment
-              ? `
-          ${emailParagraph('Your tuition payment has been confirmed and your enrollment is complete. Welcome to Rev Multimedia!')}
-          ${emailReferenceCard('Your Student ID', data.studentId!)}
-          ${data.courseName ? emailInfoCard([{ label: 'Programme', value: data.courseName }]) : ''}
-          ${emailAlert('success', 'Save your Student ID. You will use it to log in to your student portal.')}
-          ${emailButton('Go to my student portal', `${appUrl()}/portal/dashboard`)}
-          `
-              : `
-          ${emailParagraph('Your payment has been received and confirmed. Your account has been updated.')}
-          ${emailButton('View my portal', `${appUrl()}/portal/application`)}
-          `
-          }
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Waitlisted',
+    title: 'You are on the waitlist.',
+    bodyHtml: [
+      bodyParagraph(
+        `The intake you selected for ${data.courseName} is currently full. We have added you to the waitlist and will contact you if a spot becomes available.`,
+      ),
+      detailsCard([
+        { label: 'Reference', value: data.reference },
+        { label: 'Course', value: data.courseName },
+        { label: 'Intake', value: data.intakeName },
+        { label: 'Waitlist position', value: `#${data.waitlistPosition}` },
+      ]),
+      bodyParagraph(
+        'No payment is required at this time. When a spot opens, we will notify you by email and SMS.',
+      ),
+    ].join(''),
+    footerNote: `Save your reference ${data.reference} to log in to your portal later.`,
+  })
 }
+
+export const sendWaitlistConfirmation = sendWaitlistConfirmationEmail
+
+export async function sendWaitlistNotificationEmail(
+  to: string,
+  data: {
+    name: string
+    reference: string
+    courseName: string
+    intakeName: string
+  },
+): Promise<void> {
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Spot Available',
+    title: 'A spot may be available for you.',
+    bodyHtml: [
+      bodyParagraph(
+        `A place may have opened for ${data.courseName} (${data.intakeName}). Log in to your portal as soon as possible to confirm your interest and pay the application fee if you still wish to proceed.`,
+      ),
+      detailsCard([
+        { label: 'Reference', value: data.reference },
+        { label: 'Course', value: data.courseName },
+        { label: 'Intake', value: data.intakeName },
+      ]),
+      warningCard('Spots are offered in waitlist order. Prompt action helps secure your place.'),
+    ].join(''),
+    ctaButton: {
+      label: 'Log in to Portal',
+      url: `${appUrl()}/portal/application`,
+    },
+  })
+}
+
+export const sendWaitlistSpotAvailable = sendWaitlistNotificationEmail
+
+// ——— 13–14. Contact form ———
+
+export async function sendContactFormConfirmationEmail(
+  to: string,
+  data: { name: string; message: string },
+): Promise<void> {
+  const settings = await getSystemSettings()
+  const contact = resolveEmailContactFooter(settings)
+
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Message Received',
+    title: 'We received your message.',
+    bodyHtml: [
+      bodyParagraph(
+        'Thank you for reaching out to Rev Multimedia. We have received your message and will get back to you within 1–2 business days.',
+      ),
+      bodyParagraph(
+        `If your enquiry is urgent, call us at ${contact.phone} or email ${contact.email}.`,
+      ),
+      bodyParagraph('Here is a copy of your message:'),
+      messageQuoteBlock(data.message),
+    ].join(''),
+  })
+}
+
+export async function sendContactFormAdminEmail(
+  to: string,
+  data: {
+    name: string
+    email: string
+    phone?: string
+    message: string
+  },
+): Promise<void> {
+  await sendTemplateEmail(to, {
+    recipientName: 'Team',
+    badgeLabel: 'New Contact',
+    title: 'New contact form submission.',
+    bodyHtml: [
+      bodyParagraph('You received a new message from the Rev Multimedia website contact form.'),
+      detailsCard([
+        { label: 'Name', value: data.name },
+        { label: 'Email', value: data.email },
+        { label: 'Phone', value: data.phone || 'Not provided' },
+      ]),
+      bodyParagraph('Message:'),
+      messageQuoteBlock(data.message),
+    ].join(''),
+    ctaButton: {
+      label: `Reply to ${data.name}`,
+      url: `mailto:${encodeURIComponent(data.email)}`,
+    },
+  })
+}
+
+export async function sendContactForm(data: {
+  name: string
+  email: string
+  phone?: string
+  message: string
+}): Promise<void> {
+  const resend = getResend()
+  if (!resend) {
+    console.error('[email] RESEND_API_KEY is not configured - contact form')
+    return
+  }
+
+  const settings = await getSystemSettings()
+  const contact = resolveEmailContactFooter(settings)
+
+  await withRetry(async () => {
+    const adminHtml = buildEmailHtml({
+      recipientName: 'Team',
+      badgeLabel: 'New Contact',
+      title: 'New contact form submission.',
+      contact,
+      bodyHtml: [
+        bodyParagraph('You received a new message from the Rev Multimedia website contact form.'),
+        detailsCard([
+          { label: 'Name', value: data.name },
+          { label: 'Email', value: data.email },
+          { label: 'Phone', value: data.phone || 'Not provided' },
+        ]),
+        bodyParagraph('Message:'),
+        messageQuoteBlock(data.message),
+      ].join(''),
+      ctaButton: {
+        label: `Reply to ${data.name}`,
+        url: `mailto:${encodeURIComponent(data.email)}`,
+      },
+    })
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: contactAdminEmail,
+      replyTo: data.email,
+      subject: emailSubject('New Contact', 'New contact form submission.'),
+      html: adminHtml,
+    })
+
+    const confirmHtml = buildEmailHtml({
+      recipientName: data.name,
+      badgeLabel: 'Message Received',
+      title: 'We received your message.',
+      contact,
+      bodyHtml: [
+        bodyParagraph(
+          'Thank you for reaching out to Rev Multimedia. We have received your message and will get back to you within 1–2 business days.',
+        ),
+        bodyParagraph(
+          `If your enquiry is urgent, call us at ${contact.phone} or email ${contact.email}.`,
+        ),
+        bodyParagraph('Here is a copy of your message:'),
+        messageQuoteBlock(data.message),
+      ].join(''),
+    })
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: data.email,
+      subject: emailSubject('Message Received', 'We received your message.'),
+      html: confirmHtml,
+    })
+  }, { maxRetries: 3, baseDelayMs: 1000 })
+}
+
+// ——— 15. Manual payment claim ———
+
+export async function sendManualPaymentClaimEmail(
+  to: string,
+  data: {
+    name: string
+    invoiceReference: string
+    transactionRef: string
+    amountGhs: number
+  },
+): Promise<void> {
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Payment Claim',
+    title: 'Your payment claim has been submitted.',
+    bodyHtml: [
+      successCard(
+        'We have received your manual payment claim. Our finance team will verify it against our records.',
+      ),
+      detailsCard([
+        { label: 'Transaction ref', value: data.transactionRef },
+        { label: 'Invoice', value: data.invoiceReference },
+        { label: 'Amount', value: `GHS ${data.amountGhs.toFixed(2)}` },
+      ]),
+    ].join(''),
+    footerNote: 'Our team will verify and confirm within 24 hours.',
+  })
+}
+
+// ——— 16–17. Account deletion ———
+
+export async function sendAccountDeletionRequestEmail(
+  to: string,
+  name: string,
+): Promise<void> {
+  const settings = await getSystemSettings()
+  const contact = resolveEmailContactFooter(settings)
+
+  await sendTemplateEmail(to, {
+    recipientName: name,
+    badgeLabel: 'Deletion Request',
+    title: 'We received your account deletion request.',
+    bodyHtml: [
+      bodyParagraph(
+        'We have received your request to permanently delete your Rev Multimedia student account and all associated personal data, including applications, documents, invoices, and enrollment records.',
+      ),
+      warningCard(
+        'Under Ghana\'s Data Protection Act, we will process your request within 30 days. You will receive a confirmation email once deletion is complete.',
+      ),
+      bodyParagraph(
+        `If you submitted this request by mistake, contact us immediately at ${contact.email}.`,
+      ),
+    ].join(''),
+  })
+}
+
+export const sendDeletionRequestReceived = sendAccountDeletionRequestEmail
+
+export async function sendAccountDeletionCompleteEmail(to: string): Promise<void> {
+  const settings = await getSystemSettings()
+  const contact = resolveEmailContactFooter(settings)
+
+  await sendTemplateEmail(to, {
+    recipientName: 'there',
+    badgeLabel: 'Account Deleted',
+    title: 'Your account has been permanently deleted.',
+    bodyHtml: [
+      bodyParagraph(
+        'Your Rev Multimedia account and all associated personal data have been permanently deleted from our systems.',
+      ),
+      bodyParagraph(
+        'This includes your applications, documents, invoices, and enrollment records. This action cannot be undone.',
+      ),
+      bodyParagraph(
+        `If you believe this was done in error, contact us at ${contact.email}.`,
+      ),
+    ].join(''),
+  })
+}
+
+export const sendAccountDeletionCompleted = sendAccountDeletionCompleteEmail
+
+// ——— 18. Data export ———
+
+export async function sendDataExportEmail(
+  to: string,
+  data: { name: string; downloadUrl: string },
+): Promise<void> {
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Data Export',
+    title: 'Your data export is ready.',
+    bodyHtml: bodyParagraph(
+      'Your personal data export has been prepared. Use the secure link below to download your file.',
+    ),
+    ctaButton: { label: 'Download My Data', url: data.downloadUrl },
+    footerNote: 'This download link expires in 24 hours.',
+  })
+}
+
+// ——— Additional emails (same template system) ———
 
 export async function sendPaymentReceiptEmail(
   to: string,
@@ -737,90 +919,64 @@ export async function sendPaymentReceiptEmail(
     fullyPaid: boolean
     paymentMethod: string
     receiptPdfUrl?: string
+    paidAt?: string
   },
 ): Promise<void> {
   const methodLabel = data.paymentMethod.replace(/_/g, ' ')
+  const rows = [
+    { label: 'Invoice', value: data.invoiceReference },
+    { label: 'Payment for', value: data.paymentForLabel },
+    { label: 'Amount received', value: `GHS ${data.amountPaidGhs.toFixed(2)}` },
+    { label: 'Invoice total', value: `GHS ${data.totalInvoiceGhs.toFixed(2)}` },
+    { label: 'Paid to date', value: `GHS ${data.totalPaidGhs.toFixed(2)}` },
+    ...(data.fullyPaid
+      ? []
+      : [{ label: 'Balance remaining', value: `GHS ${data.remainingGhs.toFixed(2)}` }]),
+    ...(data.paidAt
+      ? [{ label: 'Date', value: formatInvoiceDate(data.paidAt) }]
+      : []),
+    { label: 'Method', value: methodLabel },
+  ]
 
-  await sendHtmlEmail(
-    to,
-    data.fullyPaid
-      ? `Receipt - ${data.invoiceReference} paid in full`
-      : `Receipt - GHS ${data.amountPaidGhs.toFixed(2)} received`,
-    emailTemplate({
-      previewText: `Payment receipt for ${data.paymentForLabel} (${data.invoiceReference}).`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('Payment receipt')}
-          ${emailParagraph(`We have recorded your ${methodLabel} payment. Please keep this email for your records.`)}
-
-          ${emailInfoCard([
-            { label: 'Invoice', value: data.invoiceReference },
-            { label: 'Payment for', value: data.paymentForLabel },
-            { label: 'Amount received', value: `GHS ${data.amountPaidGhs.toFixed(2)}` },
-            { label: 'Invoice total', value: `GHS ${data.totalInvoiceGhs.toFixed(2)}` },
-            { label: 'Paid to date', value: `GHS ${data.totalPaidGhs.toFixed(2)}` },
-            ...(data.fullyPaid
-              ? []
-              : [{ label: 'Balance remaining', value: `GHS ${data.remainingGhs.toFixed(2)}` }]),
-          ])}
-
-          ${
-            data.fullyPaid
-              ? emailAlert('success', 'This invoice is now fully paid. Thank you!')
-              : ''
-          }
-
-          ${
-            data.receiptPdfUrl
-              ? `
-          ${emailButton('Download receipt PDF', data.receiptPdfUrl)}
-          <p style="margin:-16px 0 16px;font-family:Helvetica,Arial,sans-serif;
-            font-size:12px;color:#9898B8;text-align:center;">
-            Receipt link expires in 7 days
-          </p>
-          `
-              : ''
-          }
-
-          ${emailButton('View my invoices', `${appUrl()}/portal/invoices`)}
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Payment Receipt',
+    badgeColor: '#2ecc71',
+    title: data.fullyPaid
+      ? 'Your invoice is paid in full.'
+      : 'We received your payment.',
+    bodyHtml: [
+      bodyParagraph('Please keep this email for your records.'),
+      detailsCard(rows),
+      ...(data.fullyPaid ? [successCard('This invoice is now fully paid. Thank you!')] : []),
+    ].join(''),
+    ctaButton: data.receiptPdfUrl
+      ? { label: 'Download receipt PDF', url: data.receiptPdfUrl }
+      : { label: 'View my invoices', url: `${appUrl()}/portal/invoices` },
+    ctaNote: data.receiptPdfUrl ? 'Receipt link expires in 7 days.' : undefined,
+  })
 }
 
-export async function sendAdmissionLetterEmail(
+export async function sendCertificateUploaded(
   to: string,
-  data: {
-    name: string
-    courseName: string
-    applicationReference: string
-    pdfUrl?: string
-  },
+  data: { name: string; courseName: string },
 ): Promise<void> {
-  await sendHtmlEmail(
-    to,
-    `Your enrollment letter - ${data.applicationReference}`,
-    emailTemplate({
-      previewText: `You have been admitted to ${data.courseName} at Rev Multimedia.`,
-      body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('Congratulations - you are admitted!')}
-          ${emailParagraph(
-            `Please find your official enrollment letter for <strong>${escapeHtml(data.courseName)}</strong>. This confirms your enrolment in the programme after your tuition payment.`,
-          )}
-          ${
-            data.pdfUrl
-              ? emailButton('Download enrollment letter (PDF)', data.pdfUrl)
-              : emailAlert(
-                  'warning',
-                  'Your letter was generated. Contact the academy if you need the PDF link resent.',
-                )
-          }
-          ${emailParagraph('Keep this letter for your records. We look forward to seeing you in class.')}
-          ${emailButton('Go to student portal', `${appUrl()}/portal/dashboard`)}
-        `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Certificate Ready',
+    badgeColor: '#2ecc71',
+    title: 'Your certificate is ready to download.',
+    bodyHtml: [
+      bodyParagraph(
+        `Congratulations on completing ${data.courseName}. Your certificate is available in your student portal.`,
+      ),
+      successCard('Add this certificate to your LinkedIn profile and portfolio.'),
+    ].join(''),
+    ctaButton: {
+      label: 'Download certificate',
+      url: `${appUrl()}/portal/resources`,
+    },
+  })
 }
 
 export async function sendAdminNewApplication(params: {
@@ -828,149 +984,51 @@ export async function sendAdminNewApplication(params: {
   reference: string
   course: string
 }): Promise<void> {
-  await sendHtmlEmail(
-    adminEmail,
-    `New application - ${params.reference}`,
-    emailTemplate({
-      previewText: `New application from ${params.applicantName} (${params.reference}).`,
-      body: `
-          ${emailGreeting('Team')}
-          ${emailHeading('New application received')}
-          ${emailParagraph('A new application has been submitted on the public apply form.')}
-
-          ${emailInfoCard([
-            { label: 'Applicant', value: params.applicantName },
-            { label: 'Reference', value: params.reference },
-            { label: 'Course', value: params.course },
-          ])}
-
-          ${emailButton('Review in admin', `${appUrl()}/admin/applications`)}
-        `,
-    }),
-  )
+  await sendTemplateEmail(adminEmail, {
+    recipientName: 'Team',
+    badgeLabel: 'New Application',
+    title: 'A new application has been submitted.',
+    bodyHtml: [
+      bodyParagraph('A new application was submitted on the public apply form.'),
+      detailsCard([
+        { label: 'Applicant', value: params.applicantName },
+        { label: 'Reference', value: params.reference },
+        { label: 'Course', value: params.course },
+      ]),
+    ].join(''),
+    ctaButton: {
+      label: 'Review in admin',
+      url: `${appUrl()}/admin/applications`,
+    },
+  })
 }
 
-const contactAdminEmail = 'godfredkojoappiah@gmail.com'
-
-export async function sendContactForm(data: {
-  name: string
-  email: string
-  phone?: string
-  message: string
-}): Promise<void> {
-  const resend = getResend()
-  if (!resend) {
-    console.error('[email] RESEND_API_KEY is not configured - contact form')
-    return
-  }
-
-  const safeMessage = escapeHtml(data.message)
-  const safeName = escapeHtml(data.name)
-
-  await withRetry(async () => {
-    await resend.emails.send({
-      from: fromEmail,
-      to: contactAdminEmail,
-      replyTo: data.email,
-      subject: `New message from ${data.name} - Rev Multimedia Website`,
-      html: emailTemplate({
-        previewText: `${data.name} sent a message via the Rev Multimedia website.`,
-        body: `
-          ${emailHeading('New contact message')}
-          ${emailParagraph('You received a new message from the Rev Multimedia website contact form.')}
-
-          ${emailInfoCard([
-            { label: 'Name', value: data.name },
-            { label: 'Email', value: data.email },
-            { label: 'Phone', value: data.phone || 'Not provided' },
-          ])}
-
-          <div style="
-            background-color: #F7F8FC;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin: 16px 0;
-            border-left: 3px solid #C74A86;
-          ">
-            <p style="
-              font-family: DM Sans, sans-serif;
-              font-size: 12px;
-              color: #9898B8;
-              text-transform: uppercase;
-              letter-spacing: 0.06em;
-              margin: 0 0 8px;
-            ">Message</p>
-            <p style="
-              font-family: DM Sans, sans-serif;
-              font-size: 15px;
-              color: #1A1A2E;
-              line-height: 1.7;
-              margin: 0;
-              white-space: pre-wrap;
-            ">${safeMessage}</p>
-          </div>
-
-          ${emailButton('Reply to ' + safeName, `mailto:${encodeURIComponent(data.email)}`)}
-        `,
-      }),
-    })
-
-    await resend.emails.send({
-      from: fromEmail,
-      to: data.email,
-      subject: 'We received your message - Rev Multimedia',
-      html: emailTemplate({
-        previewText: 'Thank you for reaching out. We will be in touch shortly.',
-        body: `
-          ${emailGreeting(data.name)}
-          ${emailHeading('Message received.')}
-          ${emailParagraph('Thank you for reaching out to Rev Multimedia. We have received your message and will get back to you within 1–2 business days.')}
-          ${emailAlert('info', 'If your enquiry is urgent, you can also reach us at <strong>+233 27 581 8525</strong>.')}
-          ${emailDivider()}
-          ${emailParagraph('Here is a copy of your message:')}
-          <div style="
-            background-color: #F7F8FC;
-            border-radius: 12px;
-            padding: 20px 24px;
-            border-left: 3px solid #C74A86;
-          ">
-            <p style="
-              font-family: DM Sans, sans-serif;
-              font-size: 15px;
-              color: #5A5A7A;
-              line-height: 1.7;
-              margin: 0;
-              white-space: pre-wrap;
-            ">${safeMessage}</p>
-          </div>
-        `,
-      }),
-    })
-  }, { maxRetries: 3, baseDelayMs: 1000 })
-}
-
-export async function sendDeletionRequestReceived(
+export async function sendParentLevelUpApplicationSubmitted(
   to: string,
-  name: string,
+  data: {
+    studentName: string
+    reference: string
+    courseName: string
+    applicationFeeGhs: number
+  },
 ): Promise<void> {
-  await sendHtmlEmail(
-    to,
-    'Account deletion request received — Rev Multimedia',
-    emailTemplate({
-      previewText:
-        'We received your request to delete your account and personal data.',
-      body: `
-        ${emailGreeting(name)}
-        ${emailHeading('Deletion request received')}
-        ${emailParagraph('We have received your request to permanently delete your Rev Multimedia student account and all associated personal data, including applications, documents, invoices, and enrollment records.')}
-        ${emailAlert(
-          'info',
-          'Under Ghana\'s Data Protection Act, we will process your request within <strong>30 days</strong>. You will receive a confirmation email once deletion is complete.',
-        )}
-        ${emailParagraph('If you submitted this request by mistake, contact us immediately at <a href="mailto:info@revmultimediagh.com" style="color:#C74A86;">info@revmultimediagh.com</a>.')}
-      `,
-    }),
-  )
+  await sendTemplateEmail(to, {
+    recipientName: 'Parent/Guardian',
+    badgeLabel: 'Level Up Application',
+    title: 'An application has been submitted.',
+    bodyHtml: [
+      bodyParagraph(
+        `${data.studentName} has submitted an application to Rev Multimedia Level Up for ${data.courseName}.`,
+      ),
+      detailsCard([
+        { label: 'Reference', value: data.reference },
+        { label: 'Application fee', value: `GHS ${data.applicationFeeGhs.toFixed(2)}` },
+      ]),
+      bodyParagraph(
+        'Your ward can track progress and pay fees in the student portal.',
+      ),
+    ].join(''),
+  })
 }
 
 export async function sendDeletionRequestAdminAlert(data: {
@@ -978,37 +1036,22 @@ export async function sendDeletionRequestAdminAlert(data: {
   studentName: string
   studentEmail: string
 }): Promise<void> {
-  const portalUrl = `${appUrl()}/admin/compliance`
-  await sendHtmlEmail(
-    data.adminEmail,
-    'Pending account deletion request — Rev Multimedia',
-    emailTemplate({
-      previewText: `${data.studentName} requested account deletion.`,
-      body: `
-        ${emailHeading('Account deletion request')}
-        ${emailParagraph('A student has requested permanent deletion of their account and associated data.')}
-        ${emailInfoCard([
-          { label: 'Student', value: escapeHtml(data.studentName) },
-          { label: 'Email', value: escapeHtml(data.studentEmail) },
-        ])}
-        ${emailButton('Review in admin', portalUrl)}
-      `,
-    }),
-  )
-}
-
-export async function sendAccountDeletionCompleted(to: string): Promise<void> {
-  await sendHtmlEmail(
-    to,
-    'Your account has been deleted — Rev Multimedia',
-    emailTemplate({
-      previewText: 'Your account and associated data have been permanently deleted.',
-      body: `
-        ${emailHeading('Deletion complete')}
-        ${emailParagraph('Your Rev Multimedia account and all associated personal data have been permanently deleted from our systems.')}
-        ${emailParagraph('This includes your applications, documents, invoices, and enrollment records. This action cannot be undone.')}
-        ${emailParagraph('If you believe this was done in error, contact us at <a href="mailto:info@revmultimediagh.com" style="color:#C74A86;">info@revmultimediagh.com</a>.')}
-      `,
-    }),
-  )
+  await sendTemplateEmail(data.adminEmail, {
+    recipientName: 'Team',
+    badgeLabel: 'Deletion Request',
+    title: 'A student requested account deletion.',
+    bodyHtml: [
+      bodyParagraph(
+        'A student has requested permanent deletion of their account and associated data.',
+      ),
+      detailsCard([
+        { label: 'Student', value: data.studentName },
+        { label: 'Email', value: data.studentEmail },
+      ]),
+    ].join(''),
+    ctaButton: {
+      label: 'Review in admin',
+      url: `${appUrl()}/admin/compliance`,
+    },
+  })
 }

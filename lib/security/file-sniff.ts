@@ -67,17 +67,9 @@ export function mimeTypeForSniffedType(type: SniffedFileType): string | null {
   }
 }
 
-/** Reject PDFs with common embedded script / action markers. */
+/** Reject PDFs with embedded scripts or launch/executable actions only. */
 export function pdfContainsSuspiciousMarkers(buffer: Buffer): boolean {
   const sample = buffer.subarray(0, Math.min(buffer.length, 512_000)).toString('latin1')
-  const patterns = [
-    /\/JavaScript\b/i,
-    /\/JS\b/i,
-    /\/OpenAction\b/i,
-    /\/AA\b/,
-    /\/Launch\b/i,
-    /\/EmbeddedFile\b/i,
-    /<script\b/i,
-  ]
+  const patterns = [/\/JavaScript\b/i, /\/JS\s/i, /\/Launch\b/i, /\/EmbeddedFile\b/i]
   return patterns.some((pattern) => pattern.test(sample))
 }

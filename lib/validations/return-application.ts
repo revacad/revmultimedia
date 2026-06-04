@@ -16,10 +16,6 @@ export const submitReturnStudentApplicationSchema = z.object({
   courseId: z.uuid('Invalid course'),
   intakeId: z.uuid('Invalid intake'),
   hybridAttendanceConfirmed: z.boolean().default(false),
-  qualification: z.enum(['wassce', 'hnd', 'degree', 'masters', 'other']),
-  institution: z.string().trim().min(1).max(200),
-  yearCompleted: z.coerce.number().int().min(1990).max(new Date().getFullYear()),
-  priorExperience: z.string().max(5000).optional(),
   documents: z.object({
     idDocument: uploadedFileSchema,
     passportPhoto: uploadedFileSchema,

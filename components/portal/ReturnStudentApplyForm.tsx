@@ -6,7 +6,6 @@ import { LogoLoader } from '@/components/ui/LogoLoader'
 import Button from '@/components/ui/Button'
 import StepIndicator from '@/components/public/apply/StepIndicator'
 import Step2Course from '@/components/public/apply/steps/Step2Course'
-import Step3Education from '@/components/public/apply/steps/Step3Education'
 import Step4Documents from '@/components/public/apply/steps/Step4Documents'
 import { submitReturnStudentApplication } from '@/actions/portal-application'
 import { createApplicationDraft } from '@/actions/application-draft'
@@ -15,7 +14,22 @@ import type { ApplicationFormData } from '@/lib/apply/types'
 import { formatGHS } from '@/lib/utils'
 import { getStepValidation, type ApplyFieldErrors } from '@/lib/apply/validation'
 
-const TOTAL_STEPS = 5
+const RETURN_STUDENT_STEP_LABELS = [
+  'Personal Info',
+  'Course',
+  'Documents',
+  'Review',
+] as const
+
+const TOTAL_STEPS = RETURN_STUDENT_STEP_LABELS.length
+
+function validationStepForUiStep(uiStep: number): number | null {
+  if (uiStep === 1) return null
+  if (uiStep === 2) return 2
+  if (uiStep === 3) return 4
+  if (uiStep === 4) return 5
+  return null
+}
 
 interface ReturnStudentApplyFormProps {
   courses: ApplyCourse[]
@@ -69,25 +83,20 @@ export default function ReturnStudentApplyForm({
       })
   }, [])
 
-  const stepForValidation = useMemo(() => {
-    if (currentStep === 1) return 1
-    if (currentStep === 2) return 2
-    if (currentStep === 3) return 3
-    if (currentStep === 4) return 4
-    return 5
-  }, [currentStep])
-
   const goNext = () => {
-    const result = getStepValidation(stepForValidation, formData, {
-      emailVerified: true,
-      courses,
-      hybridWarningAccepted,
-      skipPassword: true,
-    })
-    if (!result.valid) {
-      setFieldErrors(result.errors)
-      setShowValidation(true)
-      return
+    const validationStep = validationStepForUiStep(currentStep)
+    if (validationStep !== null) {
+      const result = getStepValidation(validationStep, formData, {
+        emailVerified: true,
+        courses,
+        hybridWarningAccepted,
+        skipPassword: true,
+      })
+      if (!result.valid) {
+        setFieldErrors(result.errors)
+        setShowValidation(true)
+        return
+      }
     }
     setFieldErrors({})
     setShowValidation(false)
@@ -118,10 +127,6 @@ export default function ReturnStudentApplyForm({
         courseId: formData.courseId!,
         intakeId: formData.intakeId!,
         hybridAttendanceConfirmed: formData.hybridAttendanceConfirmed ?? hybridWarningAccepted,
-        qualification: formData.qualification!,
-        institution: formData.institution!,
-        yearCompleted: formData.yearCompleted!,
-        priorExperience: formData.priorExperience,
         documents: {
           idDocument: formData.idDocument!,
           passportPhoto: formData.passportPhoto!,
@@ -142,6 +147,15 @@ export default function ReturnStudentApplyForm({
       setIsSubmitting(false)
     }
   }
+
+  const reviewCourse = useMemo(
+    () => courses.find((c) => c.id === formData.courseId),
+    [courses, formData.courseId],
+  )
+  const reviewIntake = useMemo(
+    () => reviewCourse?.intakes.find((i) => i.id === formData.intakeId),
+    [reviewCourse, formData.intakeId],
+  )
 
   if (successRef) {
     return (
@@ -179,7 +193,11 @@ export default function ReturnStudentApplyForm({
         {student.studentId}) · {student.realEmail} · {student.phone}
       </p>
 
-      <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+      <StepIndicator
+        currentStep={currentStep}
+        totalSteps={TOTAL_STEPS}
+        stepLabels={RETURN_STUDENT_STEP_LABELS}
+      />
 
       <div className="mt-8">
         {currentStep === 1 && (
@@ -221,16 +239,8 @@ export default function ReturnStudentApplyForm({
             onChange={patchForm}
           />
         )}
-        {currentStep === 3 && (
-          <Step3Education
-            formData={formData}
-            fieldErrors={fieldErrors}
-            showValidation={showValidation}
-            onChange={patchForm}
-          />
-        )}
-        {currentStep === 4 && (
-          draftError ? (
+        {currentStep === 3 &&
+          (draftError ? (
             <p className="text-sm text-[#E84A4A]" role="alert">
               {draftError}
             </p>
@@ -247,29 +257,25 @@ export default function ReturnStudentApplyForm({
             <div className="flex justify-center py-12">
               <LogoLoader />
             </div>
-          )
-        )}
-        {currentStep === 5 && (
+          ))}
+        {currentStep === 4 && (
           <div>
             <h2 className="font-display text-2xl text-[#1A1A2E]">Review and submit</h2>
             <p className="mb-6 mt-2 font-body text-[15px] text-[#9898B8]">
-              Confirm your course choice and uploaded documents, then submit.
+              Confirm your course choice and uploaded documents. Your education details from your
+              previous application will be reused.
             </p>
-            {(() => {
-              const course = courses.find((c) => c.id === formData.courseId)
-              const intake = course?.intakes.find((i) => i.id === formData.intakeId)
-              return course ? (
-                <div className="mb-6 rounded-[14px] border border-[#EFEFF5] bg-[#F7F8FC] p-4">
-                  <p className="font-body text-sm font-semibold text-[#1A1A2E]">{course.title}</p>
-                  {intake && (
-                    <p className="mt-1 font-body text-sm text-[#5A5A7A]">Intake: {intake.name}</p>
-                  )}
-                  <p className="mt-2 font-body text-sm font-semibold text-[#C74A86]">
-                    Tuition: {formatGHS(course.tuition_fee_ghs)}
-                  </p>
-                </div>
-              ) : null
-            })()}
+            {reviewCourse ? (
+              <div className="mb-6 rounded-[14px] border border-[#EFEFF5] bg-[#F7F8FC] p-4">
+                <p className="font-body text-sm font-semibold text-[#1A1A2E]">{reviewCourse.title}</p>
+                {reviewIntake && (
+                  <p className="mt-1 font-body text-sm text-[#5A5A7A]">Intake: {reviewIntake.name}</p>
+                )}
+                <p className="mt-2 font-body text-sm font-semibold text-[#C74A86]">
+                  Tuition: {formatGHS(reviewCourse.tuition_fee_ghs)}
+                </p>
+              </div>
+            ) : null}
             <label className="flex cursor-pointer items-start gap-2 text-sm text-[#1A1A2E]">
               <input
                 type="checkbox"

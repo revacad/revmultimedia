@@ -59,14 +59,6 @@ function studentId(inv: PaymentListRow): string {
   return inv.applications?.students?.student_id ?? '—'
 }
 
-function studentPhone(inv: PaymentListRow): string {
-  return inv.applications?.phone?.trim() || '—'
-}
-
-function studentEmail(inv: PaymentListRow): string {
-  return inv.applications?.real_email ?? '—'
-}
-
 function latestPaymentDate(inv: PaymentListRow): string | null {
   const paidDates = inv.installments
     .map((installment) => installment.paid_at)
@@ -209,41 +201,45 @@ export default function PaymentsPageClient({
           className="mb-4"
         />
         <div className="overflow-hidden rounded-xl border border-[#EFEFF5] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] text-left">
+          <div className={isAccountsRole ? undefined : 'overflow-x-auto'}>
+            <table
+              className={cn(
+                'w-full text-left',
+                isAccountsRole ? 'table-fixed' : 'min-w-[1000px]',
+              )}
+            >
               <thead>
                 <tr className="border-b border-[#EFEFF5] bg-[#F7F8FC]">
                   {(isAccountsRole
                     ? [
-                        'Invoice Ref',
-                        'Student',
-                        'Student ID',
-                        'Email',
-                        'Phone',
-                        'Application Ref',
-                        'Course',
-                        'Intake',
-                        'Amount',
-                        'Status',
-                        'Payment Date',
-                        'Actions',
+                        { label: 'Invoice Ref', className: 'w-[11%]' },
+                        { label: 'Student', className: 'w-[14%]' },
+                        { label: 'Student ID', className: 'w-[10%]' },
+                        { label: 'Application Ref', className: 'w-[11%]' },
+                        { label: 'Course', className: 'w-[18%]' },
+                        { label: 'Intake', className: 'w-[14%]' },
+                        { label: 'Amount', className: 'w-[10%]' },
+                        { label: 'Status', className: 'w-[12%]' },
                       ]
                     : [
-                        'Invoice Ref',
-                        'Applicant',
-                        'Type',
-                        'Amount',
-                        'Due Date',
-                        'Status',
-                        'Paid',
-                        'Actions',
+                        { label: 'Invoice Ref', className: '' },
+                        { label: 'Applicant', className: '' },
+                        { label: 'Type', className: '' },
+                        { label: 'Amount', className: '' },
+                        { label: 'Due Date', className: '' },
+                        { label: 'Status', className: '' },
+                        { label: 'Paid', className: '' },
+                        { label: 'Actions', className: '' },
                       ]
                   ).map((col) => (
                     <th
-                      key={col}
-                      className="px-4 py-3 font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#9898B8]"
+                      key={col.label}
+                      className={cn(
+                        'px-3 py-3 font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#9898B8]',
+                        col.className,
+                      )}
                     >
-                      {col}
+                      {col.label}
                     </th>
                   ))}
                 </tr>
@@ -266,53 +262,72 @@ export default function PaymentsPageClient({
                   const paymentDate = latestPaymentDate(inv)
 
                   if (isAccountsRole) {
+                    const studentName = studentDisplayName(inv)
+                    const courseTitle = inv.applications?.courses?.title ?? '—'
+                    const intakeName = inv.applications?.intakes?.name ?? '—'
+                    const appRef = inv.applications?.reference ?? '—'
+
                     return (
                       <tr
                         key={inv.id}
                         className="border-b border-[#EFEFF5] hover:bg-[#FAFAFA]"
                       >
-                        <td className="px-4 py-4 font-mono text-[13px] text-[#C74A86]">
-                          {inv.reference}
+                        <td className="px-3 py-3">
+                          <Link
+                            href={`/admin/payments/${inv.id}`}
+                            className="block truncate font-mono text-[12px] font-semibold text-[#C74A86] hover:underline"
+                            title={inv.reference}
+                          >
+                            {inv.reference}
+                          </Link>
                         </td>
-                        <td className="px-4 py-4 font-body text-sm font-semibold text-[#1A1A2E]">
-                          {studentDisplayName(inv)}
+                        <td className="px-3 py-3">
+                          <p
+                            className="truncate font-body text-sm font-semibold text-[#1A1A2E]"
+                            title={studentName}
+                          >
+                            {studentName}
+                          </p>
                         </td>
-                        <td className="px-4 py-4 font-mono text-[13px] text-[#5A5A7A]">
-                          {studentId(inv)}
+                        <td className="px-3 py-3">
+                          <p
+                            className="truncate font-mono text-[12px] text-[#5A5A7A]"
+                            title={studentId(inv)}
+                          >
+                            {studentId(inv)}
+                          </p>
                         </td>
-                        <td className="px-4 py-4 font-body text-[13px] text-[#5A5A7A]">
-                          {studentEmail(inv)}
+                        <td className="px-3 py-3">
+                          <p
+                            className="truncate font-mono text-[12px] text-[#5A5A7A]"
+                            title={appRef}
+                          >
+                            {appRef}
+                          </p>
                         </td>
-                        <td className="px-4 py-4 font-body text-[13px] text-[#5A5A7A]">
-                          {studentPhone(inv)}
+                        <td className="px-3 py-3">
+                          <p
+                            className="truncate font-body text-sm text-[#1A1A2E]"
+                            title={courseTitle}
+                          >
+                            {courseTitle}
+                          </p>
                         </td>
-                        <td className="px-4 py-4 font-mono text-[13px] text-[#5A5A7A]">
-                          {inv.applications?.reference ?? '—'}
+                        <td className="px-3 py-3">
+                          <p
+                            className="truncate font-body text-sm text-[#5A5A7A]"
+                            title={intakeName}
+                          >
+                            {intakeName}
+                          </p>
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-[#1A1A2E]">
-                          {inv.applications?.courses?.title ?? '—'}
-                        </td>
-                        <td className="px-4 py-4 font-body text-sm text-[#5A5A7A]">
-                          {inv.applications?.intakes?.name ?? '—'}
-                        </td>
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           <p className="font-body text-sm font-semibold text-[#1A1A2E]">
                             {formatAmountGhs(inv.total_ghs)}
                           </p>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           <InvoiceStatusBadge status={inv.status} dueDate={inv.due_date} />
-                        </td>
-                        <td className="px-4 py-4 font-body text-[13px] text-[#9898B8]">
-                          {paymentDate ? formatPaymentDate(paymentDate) : '—'}
-                        </td>
-                        <td className="px-4 py-4">
-                          <Link
-                            href={`/admin/payments/${inv.id}`}
-                            className="font-body text-sm font-semibold text-[#5A5A7A] hover:text-[#1A1A2E]"
-                          >
-                            Manage
-                          </Link>
                         </td>
                       </tr>
                     )

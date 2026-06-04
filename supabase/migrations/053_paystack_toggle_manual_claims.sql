@@ -23,3 +23,6 @@ CREATE POLICY manual_payment_claims_student_insert ON manual_payment_claims
 CREATE POLICY manual_payment_claims_admin_all ON manual_payment_claims
   FOR ALL TO authenticated
   USING (public.is_admin() OR public.has_finance_access());
+
+  GRANT ALL ON public.manual_payment_claims TO service_role;
+GRANT SELECT, INSERT ON public.manual_payment_claims TO authenticated;

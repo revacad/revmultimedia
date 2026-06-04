@@ -11,15 +11,19 @@ const STEPS = [
 interface StepIndicatorProps {
   currentStep: number
   totalSteps?: number
+  stepLabels?: readonly string[]
 }
 
 export default function StepIndicator({
   currentStep,
   totalSteps = STEPS.length,
+  stepLabels,
 }: StepIndicatorProps) {
+  const labels = stepLabels ?? STEPS.slice(0, totalSteps)
+
   return (
     <div className="mb-8 flex w-full items-start justify-center gap-0">
-      {STEPS.slice(0, totalSteps).map((label, index) => {
+      {labels.map((label, index) => {
         const stepNumber = index + 1
         const isCompleted = stepNumber < currentStep
         const isActive = stepNumber === currentStep

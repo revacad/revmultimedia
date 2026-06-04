@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import ReturnStudentApplyForm from '@/components/portal/ReturnStudentApplyForm'
 import { mapApplyCourses } from '@/lib/apply/map-courses'
+import { fetchReturnStudentEducation } from '@/lib/portal/return-student-education'
 import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import { withCache } from '@/lib/redis/cache'
 import { createServerClient } from '@/lib/supabase/server'
@@ -32,11 +33,20 @@ export default async function PortalApplyPage({
 
   const { data: student } = await supabase
     .from('students')
-    .select('id, student_id, full_name, real_email, phone, is_active')
+    .select('id, student_id, full_name, real_email, phone, is_active, application_id, auth_user_id')
     .eq('auth_user_id', user.id)
     .maybeSingle()
 
   if (!student?.is_active) {
+    redirect('/portal/dashboard')
+  }
+
+  const priorEducation = await fetchReturnStudentEducation(supabase, {
+    application_id: student.application_id,
+    auth_user_id: student.auth_user_id,
+  })
+
+  if (!priorEducation) {
     redirect('/portal/dashboard')
   }
 

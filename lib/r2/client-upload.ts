@@ -1,3 +1,5 @@
+import { uploadErrorMessage } from '@/lib/security/upload-error-message'
+
 /**
  * Upload file bytes through the server after presign returns an object key.
  * Ensures magic-byte validation, sanitization, and auth run on every upload.
@@ -33,7 +35,11 @@ export async function uploadFileToR2ViaServer(
 
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as { error?: string }
-    throw new Error(error.error ?? 'Upload failed')
+    throw new Error(
+      uploadErrorMessage(new Error(error.error ?? 'Upload failed'), {
+        declaredMime: file.type,
+      }),
+    )
   }
 
   const result = (await response.json()) as { key?: string }
@@ -74,13 +80,28 @@ function uploadFileToR2ViaServerWithProgress(
 
       try {
         const error = JSON.parse(xhr.responseText) as { error?: string }
-        reject(new Error(error.error ?? 'Upload failed'))
+        reject(
+          new Error(
+            uploadErrorMessage(new Error(error.error ?? 'Upload failed'), {
+              declaredMime: file.type,
+            }),
+          ),
+        )
       } catch {
-        reject(new Error('Upload failed'))
+        reject(
+          new Error(
+            uploadErrorMessage(new Error('Upload failed'), { declaredMime: file.type }),
+          ),
+        )
       }
     }
 
-    xhr.onerror = () => reject(new Error('Upload failed'))
+    xhr.onerror = () =>
+      reject(
+        new Error(
+          uploadErrorMessage(new Error('Upload failed'), { declaredMime: file.type }),
+        ),
+      )
     xhr.open('POST', '/api/r2/upload')
     if (options.uploadToken) {
       xhr.setRequestHeader('X-Upload-Token', options.uploadToken)

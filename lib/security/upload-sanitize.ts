@@ -62,7 +62,7 @@ async function reencodeImage(
 
 function sanitizePdf(buffer: Buffer): SanitizedUpload {
   if (pdfContainsSuspiciousMarkers(buffer)) {
-    throw new UploadSanitizeError('PDF contains disallowed content')
+    throw new UploadSanitizeError('PDF contains restricted embedded content')
   }
 
   return {

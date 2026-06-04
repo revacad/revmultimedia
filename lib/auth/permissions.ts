@@ -30,6 +30,7 @@ export function canAccessAdminPath(role: AdminRole, pathname: string): boolean {
     if (path.startsWith('/admin/payments')) return true
     if (path.startsWith('/admin/payment-types')) return true
     if (path.startsWith('/admin/reports')) return true
+    if (path.startsWith('/admin/students')) return true
     if (path === '/admin/communications/logs' || path.startsWith('/admin/communications/logs/')) {
       return true
     }
