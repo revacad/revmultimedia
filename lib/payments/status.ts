@@ -20,5 +20,34 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   international_wire: 'International Wire',
   cash: 'Cash',
   paystack: 'Paystack',
-  other: 'Other',
+  other: 'Manual',
+}
+
+/** Badge label + Tailwind classes for invoice payment method display */
+export const PAYMENT_METHOD_BADGE_LABELS: Record<string, string> = {
+  paystack: 'Paystack',
+  momo: 'MoMo',
+  bank_transfer: 'Bank Transfer',
+  cash: 'Cash',
+  other: 'Manual',
+  international_wire: 'International Wire',
+}
+
+export const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
+  paystack: 'bg-[#EBF9F8] text-[#1E9990]',
+  momo: 'bg-[#EBF0FD] text-[#4A7BE8]',
+  bank_transfer: 'bg-[#EBF0FD] text-[#4A7BE8]',
+  international_wire: 'bg-[#EBF0FD] text-[#4A7BE8]',
+  cash: 'bg-[#F0F0F8] text-[#5A5A7A]',
+  other: 'bg-[#F0F0F8] text-[#5A5A7A]',
+}
+
+const PAYMENT_METHOD_BADGE_FALLBACK_CLASS = 'bg-[#F0F0F8] text-[#5A5A7A]'
+
+export function paymentMethodBadgeClass(method: string): string {
+  return PAYMENT_METHOD_BADGE_CLASS[method] ?? PAYMENT_METHOD_BADGE_FALLBACK_CLASS
+}
+
+export function paymentMethodBadgeLabel(method: string): string {
+  return PAYMENT_METHOD_BADGE_LABELS[method] ?? PAYMENT_METHOD_LABELS[method] ?? method
 }

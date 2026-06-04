@@ -11,11 +11,21 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
+/** Active enrollment in the same intake for any student row tied to this auth user. */
 export async function findSameIntakeActiveEnrollment(
   supabase: SupabaseClient,
-  studentDbId: string,
+  authUserId: string,
   intakeId: string,
 ): Promise<SameIntakeActiveEnrollment | null> {
+  const { data: studentRows, error: studentsError } = await supabase
+    .from('students')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+
+  if (studentsError || !studentRows?.length) return null
+
+  const studentIds = studentRows.map((row) => row.id)
+
   const { data, error } = await supabase
     .from('enrollments')
     .select(
@@ -25,7 +35,7 @@ export async function findSameIntakeActiveEnrollment(
       intakes(name)
     `,
     )
-    .eq('student_id', studentDbId)
+    .in('student_id', studentIds)
     .eq('intake_id', intakeId)
     .eq('status', 'active')
     .limit(1)

@@ -3,9 +3,7 @@ import ApplicationDetailView from '@/components/admin/applications/ApplicationDe
 import { requireStaffAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapApplicationDetail } from '@/lib/applications/map'
-import { findSameIntakeActiveEnrollment } from '@/lib/portal/same-intake-active-enrollment'
 import { getPrivateR2PresignedUrl } from '@/lib/r2/private-object-url'
-import type { AdminReviewBanner } from '@/components/admin/applications/ApplicationDetailView'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,56 +45,41 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
 
   const mapped = mapApplicationDetail(application as Record<string, unknown>)
 
+  const returningStudentId = (application as { returning_student_id?: string | null })
+    .returning_student_id
+
+  let profilePhotoR2Key: string | null = null
+
   const { data: studentByApplication } = await supabase
     .from('students')
-    .select('id, student_id, profile_photo_r2_key')
+    .select('profile_photo_r2_key')
     .eq('application_id', id)
     .maybeSingle()
 
-  let returningStudent: { id: string; student_id: string } | null = null
-  const returningStudentId = (application as { returning_student_id?: string | null })
-    .returning_student_id
-  if (returningStudentId) {
-    const { data } = await supabase
+  profilePhotoR2Key = studentByApplication?.profile_photo_r2_key ?? null
+
+  if (!profilePhotoR2Key && returningStudentId) {
+    const { data: returningStudent } = await supabase
       .from('students')
-      .select('id, student_id')
+      .select('profile_photo_r2_key')
       .eq('id', returningStudentId)
       .maybeSingle()
-    returningStudent = data
+    profilePhotoR2Key = returningStudent?.profile_photo_r2_key ?? null
   }
 
-  const profilePhotoUrl = await getPrivateR2PresignedUrl(
-    studentByApplication?.profile_photo_r2_key as string | null,
-  )
+  const profilePhotoUrl = await getPrivateR2PresignedUrl(profilePhotoR2Key)
 
-  let adminReviewBanner: AdminReviewBanner | null = null
-  if (mapped.requires_admin_review && mapped.intakes?.id) {
-    const studentDbId = returningStudent?.id ?? studentByApplication?.id
-    const studentId =
-      returningStudent?.student_id ?? studentByApplication?.student_id ?? null
-
-    if (studentDbId) {
-      const conflict = await findSameIntakeActiveEnrollment(
-        supabase,
-        studentDbId,
-        mapped.intakes.id,
-      )
-      if (conflict && studentId) {
-        adminReviewBanner = {
-          studentId,
-          existingCourseTitle: conflict.existingCourseTitle,
-          intakeName: conflict.intakeName,
-        }
-      }
-    }
-  }
+  const { data: studentForApplication } = await supabase
+    .from('students')
+    .select('id')
+    .eq('application_id', id)
+    .maybeSingle()
 
   return (
     <ApplicationDetailView
       application={mapped}
-      hasStudentRecord={Boolean(studentByApplication)}
+      hasStudentRecord={Boolean(studentForApplication ?? returningStudentId)}
       profilePhotoUrl={profilePhotoUrl}
-      adminReviewBanner={adminReviewBanner}
     />
   )
 }

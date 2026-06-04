@@ -39,7 +39,7 @@ export default function AllMessageLogsClient({ logs }: AllMessageLogsClientProps
         href="/admin/communications"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        {'<'} Communications
+        Communications
       </Link>
 
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">

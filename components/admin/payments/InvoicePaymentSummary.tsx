@@ -1,6 +1,7 @@
 import { formatAmountGhs } from '@/lib/payments/format'
 import { getInvoicePaidAndRemaining } from '@/lib/payments/invoice-stats'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
+import PaymentMethodBadge from '@/components/admin/payments/PaymentMethodBadge'
 import type { InvoiceStatus } from '@/lib/payments/types'
 import { cn } from '@/lib/utils'
 
@@ -41,14 +42,16 @@ export default function InvoicePaymentSummary({
       <p className="font-body text-sm text-[#1A1A2E]">
         {formatAmountGhs(totalGhs)}
         {!showBreakdown && (
-          <span className="ml-2">
+          <span className="ml-2 inline-flex flex-wrap items-center gap-2">
             <InvoiceStatusBadge status={invoiceStatus} />
+            {paymentMethod ? <PaymentMethodBadge method={paymentMethod} /> : null}
           </span>
         )}
       </p>
       {showBreakdown && (
         <div className="flex flex-wrap items-center gap-2">
           <InvoiceStatusBadge status={invoiceStatus} />
+          {paymentMethod ? <PaymentMethodBadge method={paymentMethod} /> : null}
           {paid > 0 && (
             <span className="inline-flex rounded-full bg-[#EBF9F8] px-2.5 py-0.5 font-body text-xs font-semibold text-[#1E9990]">
               Paid {formatAmountGhs(paid)}

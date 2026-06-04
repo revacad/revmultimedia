@@ -59,7 +59,7 @@ export default function CoursesSection({ courses }: CoursesSectionProps) {
       </div>
       <p className="mt-8 text-center">
         <Link href="/courses" className="text-[15px] font-medium text-primary hover:text-primary-hover">
-          View All Courses &rarr;
+          View All Courses
         </Link>
       </p>
     </section>

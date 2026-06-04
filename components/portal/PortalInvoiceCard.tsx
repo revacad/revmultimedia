@@ -4,6 +4,7 @@ import { useState } from 'react'
 import CopyableReference from '@/components/ui/CopyableReference'
 import OverdueInvoiceBanner from '@/components/admin/OverdueInvoiceBanner'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
+import PaymentMethodBadge from '@/components/admin/payments/PaymentMethodBadge'
 import { isOverdue } from '@/lib/payments/format'
 import { PaystackButton } from '@/components/portal/PaystackButton'
 import PortalInvoicePaymentCard from '@/components/portal/PortalInvoicePaymentCard'
@@ -11,7 +12,6 @@ import { formatApplicationDate } from '@/lib/applications/format'
 import PortalInvoiceDocuments from '@/components/portal/PortalInvoiceDocuments'
 import PaymentInstructions from '@/components/portal/PaymentInstructions'
 import ManualPaymentClaimForm from '@/components/portal/ManualPaymentClaimForm'
-import ManualPaymentOffPortalHelp from '@/components/portal/ManualPaymentOffPortalHelp'
 import type { PortalReceiptLink } from '@/lib/portal/invoice-receipts'
 import type { PortalInvoiceRow } from '@/lib/portal/invoices'
 import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
@@ -87,6 +87,9 @@ export default function PortalInvoiceCard({
               {typeLabel}
             </span>
             <InvoiceStatusBadge status={status} dueDate={invoice.due_date} />
+            {invoice.payment_method ? (
+              <PaymentMethodBadge method={invoice.payment_method} />
+            ) : null}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -147,31 +150,21 @@ export default function PortalInvoiceCard({
             )}
 
             {showPaymentSection && isAppFee && appFeePaystackActive && (
-              <div className="mt-4 space-y-4">
-                <div className="rounded-lg border border-[#2DBFB8]/30 bg-[#EBF9F8] p-4">
-                  <p className="font-body text-sm font-semibold text-[#1A1A2E]">Pay with Paystack</p>
-                  <p className="mt-1 font-body text-xs text-[#5A5A7A]">
-                    Pay your {formatGHS(remainingGhs)} application fee securely online. Your portal
-                    unlocks as soon as payment is confirmed.
+              <div className="mt-4">
+                {canPaystack ? (
+                  <PaystackButton
+                    applicationRef={applicationRef}
+                    invoiceRef={invoice.reference}
+                    amount={paystackAmountPesewas}
+                    email={payerEmail}
+                    buttonLabel={`Pay Now · ${formatGHS(remainingGhs)}`}
+                  />
+                ) : (
+                  <p className="font-body text-sm text-[#E84A4A]">
+                    Online payment is temporarily unavailable. Please refresh the page or contact
+                    support.
                   </p>
-                  {canPaystack ? (
-                    <div className="mt-3">
-                      <PaystackButton
-                        applicationRef={applicationRef}
-                        invoiceRef={invoice.reference}
-                        amount={paystackAmountPesewas}
-                        email={payerEmail}
-                        buttonLabel={`Pay with Paystack · ${formatGHS(remainingGhs)}`}
-                      />
-                    </div>
-                  ) : (
-                    <p className="mt-3 font-body text-sm text-[#E84A4A]">
-                      Online payment is temporarily unavailable. Please refresh the page or contact
-                      accounts below.
-                    </p>
-                  )}
-                </div>
-                <ManualPaymentOffPortalHelp settings={settings} />
+                )}
               </div>
             )}
 
@@ -223,9 +216,7 @@ export default function PortalInvoiceCard({
             {status === 'paid' && (
               <p className="mt-4 flex flex-wrap items-center gap-2 font-body text-sm font-semibold text-[#1E9990]">
                 <span aria-hidden>✓</span>
-                <span>
-                  {typeLabel} paid in full
-                </span>
+                <span>{typeLabel} paid in full</span>
                 {lastPaid && (
                   <span className="font-normal text-[#9898B8]">
                     · {formatApplicationDate(lastPaid)}

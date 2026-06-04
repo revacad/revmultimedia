@@ -5,24 +5,26 @@ import { useMemo, useState } from 'react'
 import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
 import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import { formatApplicationDate } from '@/lib/applications/format'
-import type { ProgramLifecycleStatus } from '@/lib/enrollment/program-status'
 import { StateWrapper } from '@/components/ui/StateWrapper'
+
+export type StudentListEnrollment = {
+  id: string
+  status: string
+  courseTitle: string
+  intakeName: string
+  enrolledAt: string | null
+}
 
 export type StudentListRow = {
   id: string
-  applicationId: string
-  studentDbId?: string
-  student_id: string | null
-  reference: string
+  studentDbId: string
+  student_id: string
   full_name: string
   real_email: string
   phone: string
   country: string
-  registered_at: string
-  enrolled_at: string | null
-  is_active: boolean
-  lifecycleStatus: ProgramLifecycleStatus
-  lifecycleLabel: string
+  latestEnrolledAt: string | null
+  enrollments: StudentListEnrollment[]
   profilePhotoUrl?: string | null
 }
 
@@ -48,27 +50,30 @@ export default function StudentsPageClient({
     if (!q) return students
     return students.filter(
       (s) =>
-        (s.student_id ?? '').toLowerCase().includes(q) ||
+        s.student_id.toLowerCase().includes(q) ||
         s.full_name.toLowerCase().includes(q) ||
         s.real_email.toLowerCase().includes(q) ||
-        s.reference.toLowerCase().includes(q),
+        s.enrollments.some(
+          (e) =>
+            e.courseTitle.toLowerCase().includes(q) ||
+            e.intakeName.toLowerCase().includes(q),
+        ),
     )
   }, [students, query])
 
-  const enrolledCount = students.filter((s) => Boolean(s.enrolled_at)).length
-  const registeredCount = students.filter((s) => s.lifecycleStatus === 'registered').length
+  const activeCount = students.filter((s) =>
+    s.enrollments.some((e) => e.status === 'active'),
+  ).length
 
   return (
     <div>
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-[#1A1A2E]">Students</h1>
         <p className="mt-2 font-body text-sm text-[#9898B8]">
-          {totalCount} programme registrations · {enrolledCount} enrolled ·{' '}
-          {registeredCount} registered only
+          {totalCount} enrolled students · {activeCount} with active programmes on this page
         </p>
         <p className="mt-1 font-body text-xs text-[#9898B8]">
-          Enrolled = at least one tuition payment recorded and enrollment letter PDF sent from
-          the application page.
+          One row per student. Students with at least one active or completed enrollment only.
         </p>
       </header>
 
@@ -76,7 +81,7 @@ export default function StudentsPageClient({
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search by student ID, reference, name, or email"
+        placeholder="Search by student ID, name, email, or course"
         className="mb-6 w-full max-w-md rounded-[10px] border border-[#D8D8E8] px-4 py-3 font-body text-sm text-[#1A1A2E]"
       />
 
@@ -84,62 +89,50 @@ export default function StudentsPageClient({
         loading={false}
         error={fetchError}
         empty={!fetchError && filtered.length === 0}
-        emptyTitle={
-          totalCount === 0 ? 'No students enrolled yet' : 'No matching students'
-        }
+        emptyTitle={totalCount === 0 ? 'No enrolled students yet' : 'No matching students'}
         emptyMessage={
           totalCount === 0
-            ? 'Student registrations will appear here once applications are accepted.'
+            ? 'Students appear here after tuition is paid and enrollment is confirmed.'
             : 'Try a different search term.'
         }
       >
-      <PaginationSummary
-        currentPage={currentPage}
-        totalCount={totalCount}
-        pageSize={pageSize}
-        className="mb-4"
-      />
-      <div className="overflow-hidden rounded-xl bg-white shadow-card">
-        <table className="w-full min-w-[800px] text-left">
-          <thead className="border-b border-[#EFEFF5] bg-[#F8F8FC]">
-            <tr>
-              <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
-                Student ID
-              </th>
-              <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
-                Name
-              </th>
-              <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
-                Country
-              </th>
-              <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
-                Date
-              </th>
-              <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
-                Status
-              </th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
+        <PaginationSummary
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          className="mb-4"
+        />
+        <div className="overflow-hidden rounded-xl bg-white shadow-card">
+          <table className="w-full min-w-[960px] text-left">
+            <thead className="border-b border-[#EFEFF5] bg-[#F8F8FC]">
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center font-body text-sm text-[#9898B8]">
-                  No registrations found
-                </td>
+                <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
+                  Student ID
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
+                  Name
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
+                  Enrollments
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
+                  Country
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-semibold uppercase text-[#9898B8]">
+                  Last enrolled
+                </th>
+                <th className="px-4 py-3" />
               </tr>
-            ) : (
-              filtered.map((student) => {
-                const isEnrolled = Boolean(student.enrolled_at)
-                const dateLabel = isEnrolled ? 'Enrolled' : 'Registered'
-                const dateValue = isEnrolled
-                  ? (student.enrolled_at ?? student.registered_at)
-                  : student.registered_at
-                const href = student.studentDbId
-                  ? `/admin/students/${student.studentDbId}`
-                  : `/admin/applications/${student.applicationId}`
-
-                return (
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center font-body text-sm text-[#9898B8]">
+                    No students found
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((student) => (
                   <tr key={student.id} className="border-b border-[#EFEFF5] last:border-0">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -148,12 +141,9 @@ export default function StudentsPageClient({
                           photoUrl={student.profilePhotoUrl}
                           size="sm"
                         />
-                        <div className="min-w-0 font-mono text-sm font-medium text-primary">
-                          {student.student_id ?? '—'}
-                          <span className="mt-0.5 block font-body text-xs font-semibold text-[#9898B8]">
-                            {student.reference}
-                          </span>
-                        </div>
+                        <span className="font-mono text-sm font-medium text-primary">
+                          {student.student_id}
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -162,57 +152,61 @@ export default function StudentsPageClient({
                       </p>
                       <p className="font-body text-xs text-[#9898B8]">{student.real_email}</p>
                     </td>
-                    <td className="px-4 py-3 font-body text-sm text-[#5A5A7A]">{student.country}</td>
-                    <td className="px-4 py-3 font-body text-sm text-[#9898B8]">
-                      {dateLabel}:{' '}
-                      <span className="text-[#5A5A7A]">
-                        {formatApplicationDate(dateValue)}
-                      </span>
+                    <td className="px-4 py-3">
+                      <p className="font-body text-xs font-semibold text-[#5A5A7A]">
+                        {student.enrollments.length}{' '}
+                        {student.enrollments.length === 1 ? 'course' : 'courses'}
+                      </p>
+                      <ul className="mt-1 space-y-0.5">
+                        {student.enrollments.slice(0, 3).map((enrollment) => (
+                          <li
+                            key={enrollment.id}
+                            className="font-body text-xs text-[#9898B8]"
+                          >
+                            {enrollment.courseTitle}
+                            <span className="text-[#D8D8E8]"> · </span>
+                            {enrollment.intakeName}
+                            <span className="ml-1 capitalize text-[#5A5A7A]">
+                              ({enrollment.status})
+                            </span>
+                          </li>
+                        ))}
+                        {student.enrollments.length > 3 ? (
+                          <li className="font-body text-xs text-[#9898B8]">
+                            +{student.enrollments.length - 3} more
+                          </li>
+                        ) : null}
+                      </ul>
                     </td>
                     <td className="px-4 py-3 font-body text-sm text-[#5A5A7A]">
-                      {student.lifecycleLabel}
+                      {student.country}
+                    </td>
+                    <td className="px-4 py-3 font-body text-sm text-[#9898B8]">
+                      {student.latestEnrolledAt
+                        ? formatApplicationDate(student.latestEnrolledAt)
+                        : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={href}
+                        href={`/admin/students/${student.studentDbId}`}
                         className="font-body text-sm font-semibold text-primary hover:underline"
                         aria-label={`View ${student.full_name}`}
                       >
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                          />
-                        </svg>
+                        View
                       </Link>
                     </td>
                   </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-      <Pagination
-        currentPage={currentPage}
-        totalCount={totalCount}
-        pageSize={pageSize}
-        className="mt-6"
-      />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          className="mt-6"
+        />
       </StateWrapper>
     </div>
   )

@@ -2,7 +2,6 @@
 
 import PaymentInstructions from '@/components/portal/PaymentInstructions'
 import ManualPaymentClaimForm from '@/components/portal/ManualPaymentClaimForm'
-import ManualPaymentOffPortalHelp from '@/components/portal/ManualPaymentOffPortalHelp'
 import { PaystackButton } from '@/components/portal/PaystackButton'
 import { formatGHS } from '@/lib/utils'
 
@@ -72,30 +71,22 @@ export function AppFeeGate({
 
       {paystackEnabled ? (
         <div className="mt-6 w-full max-w-[420px]">
-          <div className="rounded-xl border-[1.5px] border-[#2DBFB8]/30 bg-[#EBF9F8] p-5 text-left">
-            <p className="font-body text-[15px] font-semibold text-[#1A1A2E]">Pay with Paystack</p>
-            <p className="mt-2 font-body text-sm leading-relaxed text-[#5A5A7A]">
-              Pay your {feeLabel} application fee securely online. We will confirm your payment and
-              unlock your portal right away.
+          {canPaystack ? (
+            <div className="flex justify-center">
+              <PaystackButton
+                applicationRef={applicationRef!}
+                invoiceRef={invoiceRef!}
+                amount={Math.round(amountGhs * 100)}
+                email={payerEmail!}
+                buttonLabel={`Pay Now · ${feeLabel}`}
+              />
+            </div>
+          ) : (
+            <p className="font-body text-sm text-[#E84A4A]">
+              Online payment is temporarily unavailable. Please refresh the page or contact
+              support.
             </p>
-            {canPaystack ? (
-              <div className="mt-4 flex justify-center">
-                <PaystackButton
-                  applicationRef={applicationRef!}
-                  invoiceRef={invoiceRef!}
-                  amount={Math.round(amountGhs * 100)}
-                  email={payerEmail!}
-                  buttonLabel={`Pay with Paystack · ${feeLabel}`}
-                />
-              </div>
-            ) : (
-              <p className="mt-3 font-body text-sm text-[#E84A4A]">
-                Online payment is temporarily unavailable. Please refresh the page or contact
-                accounts below.
-              </p>
-            )}
-          </div>
-          <ManualPaymentOffPortalHelp settings={settings} />
+          )}
         </div>
       ) : (
         <div className="mt-6 w-full max-w-[420px] text-left">

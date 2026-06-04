@@ -260,7 +260,7 @@ export default function ContactPageClient({ applicationFeeGhs }: { applicationFe
           <p className="mt-8 text-sm text-gray-600">
             Ready to apply?{' '}
             <Link href="/apply" className="font-semibold text-primary hover:text-primary-hover">
-              Start your application &rarr;
+              Start your application
             </Link>
           </p>
         </div>

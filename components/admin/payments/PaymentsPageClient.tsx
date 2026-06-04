@@ -5,6 +5,7 @@ import Link from 'next/link'
 import * as Tabs from '@radix-ui/react-tabs'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
+import PaymentMethodBadge from '@/components/admin/payments/PaymentMethodBadge'
 import PaymentClaimsSection, {
   type ManualPaymentClaimRow,
 } from '@/components/admin/payments/PaymentClaimsSection'
@@ -221,7 +222,8 @@ export default function PaymentsPageClient({
                         { label: 'Course', className: 'w-[18%]' },
                         { label: 'Intake', className: 'w-[14%]' },
                         { label: 'Amount', className: 'w-[10%]' },
-                        { label: 'Status', className: 'w-[12%]' },
+                        { label: 'Status', className: 'w-[10%]' },
+                        { label: 'Payment', className: 'w-[10%]' },
                       ]
                     : [
                         { label: 'Invoice Ref', className: '' },
@@ -230,6 +232,7 @@ export default function PaymentsPageClient({
                         { label: 'Amount', className: '' },
                         { label: 'Due Date', className: '' },
                         { label: 'Status', className: '' },
+                        { label: 'Payment', className: '' },
                         { label: 'Paid', className: '' },
                         { label: 'Actions', className: '' },
                       ]
@@ -331,6 +334,13 @@ export default function PaymentsPageClient({
                         <td className="px-3 py-3">
                           <InvoiceStatusBadge status={inv.status} dueDate={inv.due_date} />
                         </td>
+                        <td className="px-3 py-3">
+                          {inv.payment_method ? (
+                            <PaymentMethodBadge method={inv.payment_method} />
+                          ) : (
+                            <span className="font-body text-sm text-[#9898B8]">—</span>
+                          )}
+                        </td>
                       </tr>
                     )
                   }
@@ -387,6 +397,13 @@ export default function PaymentsPageClient({
                       </td>
                       <td className="px-4 py-4">
                         <InvoiceStatusBadge status={inv.status} dueDate={inv.due_date} />
+                      </td>
+                      <td className="px-4 py-4">
+                        {inv.payment_method ? (
+                          <PaymentMethodBadge method={inv.payment_method} />
+                        ) : (
+                          <span className="font-body text-sm text-[#9898B8]">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4 min-w-[160px]">
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEFF5]">

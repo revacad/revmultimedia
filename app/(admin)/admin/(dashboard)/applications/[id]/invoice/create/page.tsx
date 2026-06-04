@@ -113,7 +113,7 @@ export default async function CreateApplicationInvoicePage({
         href={`/admin/applications/${id}`}
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        {'<'} Application Detail
+        Application Detail
       </Link>
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-[#1A1A2E]">Create Invoice</h1>

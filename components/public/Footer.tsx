@@ -98,7 +98,7 @@ export default function Footer() {
           href="/login"
           className="font-body text-sm text-gray-400 transition-colors hover:text-primary"
         >
-          Student Portal &rarr;
+          Student Portal
         </Link>
       </div>
     </footer>

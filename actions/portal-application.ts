@@ -39,7 +39,7 @@ export async function submitReturnStudentApplication(formData: unknown) {
   const user = await requirePortalUser()
   const supabase = createAdminClient()
 
-  const { data: student } = await supabase
+  const { data: studentRows } = await supabase
     .from('students')
     .select(
       `
@@ -56,11 +56,14 @@ export async function submitReturnStudentApplication(formData: unknown) {
       state_region,
       city,
       application_id,
-      is_active
+      is_active,
+      created_at
     `,
     )
     .eq('auth_user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+
+  const student = studentRows?.[0] ?? null
 
   if (!student?.is_active) {
     return { error: 'Only enrolled students can apply for another course here.' }
@@ -175,16 +178,17 @@ export async function submitReturnStudentApplication(formData: unknown) {
 
   const sameIntakeEnrollment = await findSameIntakeActiveEnrollment(
     supabase,
-    student.id,
+    student.auth_user_id,
     parsed.data.intakeId,
   )
 
   if (sameIntakeEnrollment) {
+    const adminReviewReason = `Student already enrolled in ${sameIntakeEnrollment.existingCourseTitle} for this intake`
     const { error: reviewFlagError } = await supabase
       .from('applications')
       .update({
         requires_admin_review: true,
-        admin_review_reason: 'Student already has an active enrollment in this intake',
+        admin_review_reason: adminReviewReason,
         status: 'under_review',
       })
       .eq('id', rpc.application_id)
@@ -194,6 +198,10 @@ export async function submitReturnStudentApplication(formData: unknown) {
         '[submitReturnStudentApplication] admin review flag update',
         reviewFlagError,
       )
+      return {
+        error:
+          'Application was created but admin review could not be recorded. Please contact support.',
+      }
     }
   }
 

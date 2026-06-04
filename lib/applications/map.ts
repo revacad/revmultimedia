@@ -74,6 +74,8 @@ export function mapApplicationDetail(row: Record<string, unknown>): ApplicationD
 
   return {
     ...(row as unknown as ApplicationDetail),
+    requires_admin_review: Boolean(row.requires_admin_review),
+    admin_review_reason: (row.admin_review_reason as string | null) ?? null,
     courses: courses
       ? {
           ...courses,

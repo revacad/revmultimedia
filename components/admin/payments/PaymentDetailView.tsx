@@ -49,7 +49,7 @@ export default function PaymentDetailView({ invoice, viewerRole }: PaymentDetail
         href="/admin/payments"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        {'<'} Payment Tracker
+        Payment Tracker
       </Link>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">

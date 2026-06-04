@@ -32,7 +32,7 @@ export default function PaymentClaimsDashboardCard({
         </span>
       </div>
       <p className="mt-4 font-body text-sm font-semibold text-primary">
-        Review payment claims →
+        Review payment claims
       </p>
     </Link>
   )

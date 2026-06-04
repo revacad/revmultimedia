@@ -24,17 +24,10 @@ import InvoicePaymentSummary from '@/components/admin/payments/InvoicePaymentSum
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
 import { formatGHS } from '@/lib/utils'
 
-export type AdminReviewBanner = {
-  studentId: string
-  existingCourseTitle: string
-  intakeName: string
-}
-
 interface ApplicationDetailViewProps {
   application: ApplicationDetail
   hasStudentRecord?: boolean
   profilePhotoUrl?: string | null
-  adminReviewBanner?: AdminReviewBanner | null
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -72,7 +65,6 @@ export default function ApplicationDetailView({
   application,
   hasStudentRecord = false,
   profilePhotoUrl = null,
-  adminReviewBanner = null,
 }: ApplicationDetailViewProps) {
   const course = application.courses
   const intake = application.intakes
@@ -91,18 +83,27 @@ export default function ApplicationDetailView({
 
   return (
     <div className="mx-auto max-w-[1200px]">
-      {application.requires_admin_review && adminReviewBanner && (
+      {application.requires_admin_review && (
         <div
-          className="mb-6 w-full rounded-xl border border-amber-300 bg-amber-100 px-5 py-4 text-amber-950"
+          className="mb-6 w-full rounded-r-lg border-l-4 border-amber-400 bg-amber-50 p-4"
           role="alert"
         >
-          <p className="font-body text-base font-bold">⚠️ Admin Review Required</p>
-          <p className="mt-2 font-body text-sm leading-relaxed">
-            This student ({adminReviewBanner.studentId}) already has an active enrollment in{' '}
-            <span className="font-semibold">{adminReviewBanner.existingCourseTitle}</span> for the{' '}
-            <span className="font-semibold">{adminReviewBanner.intakeName}</span> intake. Some
-            courses cannot be taken simultaneously. Please verify before accepting.
-          </p>
+          <div className="flex items-start gap-3">
+            <span className="text-xl text-amber-500" aria-hidden>
+              ⚠️
+            </span>
+            <div>
+              <p className="font-body font-semibold text-amber-800">Admin Review Required</p>
+              {application.admin_review_reason ? (
+                <p className="mt-1 font-body text-sm text-amber-700">
+                  {application.admin_review_reason}
+                </p>
+              ) : null}
+              <p className="mt-1 font-body text-sm text-amber-600">
+                Some courses cannot be taken simultaneously. Please verify before accepting.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -110,7 +111,7 @@ export default function ApplicationDetailView({
         href="/admin/applications"
         className="mb-6 inline-block font-body text-sm text-[#9898B8] hover:text-[#1A1A2E]"
       >
-        {'<'} All Applications
+        All Applications
       </Link>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)]">

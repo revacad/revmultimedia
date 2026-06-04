@@ -14,7 +14,7 @@ export default function AccountsWhatsAppNotifyLink({
 
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className={className}>
-      Chat with Accounts on WhatsApp →
+      Chat with Accounts on WhatsApp
     </a>
   )
 }

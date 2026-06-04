@@ -18,7 +18,7 @@ export default function PromotionalTermsPage() {
         href="/"
         className="font-body text-sm font-semibold text-[#C74A86] hover:text-[#A83A72]"
       >
-        ← Back to home
+        Back to home
       </Link>
       <h1 className="mt-6 font-display text-3xl font-semibold text-[#1A1A2E]">
         Promotional terms
