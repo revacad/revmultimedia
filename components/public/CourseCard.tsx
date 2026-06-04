@@ -10,7 +10,6 @@ import { getSlotIndicator } from '@/lib/courses/slots'
 import { hasPublicOpenIntakes } from '@/lib/intakes/lifecycle'
 import type { Course } from '@/lib/courses/types'
 import { formatCourseDuration } from '@/lib/courses/duration'
-import CourseAlumniAvatars from '@/components/public/courses/CourseAlumniAvatars'
 import { cn, formatGHS } from '@/lib/utils'
 
 interface CourseCardProps {
@@ -69,8 +68,6 @@ export default function CourseCard({
             {formatMode(course.mode)}
           </span>
         </div>
-
-        <CourseAlumniAvatars slug={course.slug} size="sm" />
 
         <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-dark/70 px-3 py-1 text-xs text-white">
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
