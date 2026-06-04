@@ -25,6 +25,10 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
+function enrolledAtMs(value: string | null): number {
+  return value ? new Date(value).getTime() : 0
+}
+
 type StudentEmbed = {
   id: string
   student_id: string
@@ -44,6 +48,13 @@ type EnrollmentRow = {
   students: StudentEmbed | StudentEmbed[] | null
   courses: { title: string } | { title: string }[] | null
   intakes: { name: string } | { name: string }[] | null
+}
+
+type StudentGroup = {
+  canonical: StudentEmbed
+  enrollments: EnrolledStudentListItem['enrollments']
+  latestEnrolledAt: string | null
+  latestEnrolledMs: number
 }
 
 export async function fetchEnrolledStudentsGrouped(
@@ -73,20 +84,14 @@ export async function fetchEnrolledStudentsGrouped(
     `,
     )
     .in('status', ['active', 'completed'])
+    .order('enrolled_at', { ascending: false, nullsFirst: false })
 
   if (error) {
     console.error('[fetchEnrolledStudentsGrouped]', error)
     return { students: [], totalCount: 0 }
   }
 
-  const groups = new Map<
-    string,
-    {
-      canonical: StudentEmbed
-      enrollments: EnrolledStudentListItem['enrollments']
-      latestEnrolledAt: string | null
-    }
-  >()
+  const groups = new Map<string, StudentGroup>()
 
   for (const row of (enrollmentRows ?? []) as EnrollmentRow[]) {
     const student = firstRelation(row.students)
@@ -104,48 +109,52 @@ export async function fetchEnrolledStudentsGrouped(
       enrolledAt: row.enrolled_at,
     }
 
+    const enrolledMs = enrolledAtMs(row.enrolled_at)
     const existing = groups.get(authUserId)
+
     if (!existing) {
       groups.set(authUserId, {
         canonical: student,
         enrollments: [enrollment],
         latestEnrolledAt: row.enrolled_at,
+        latestEnrolledMs: enrolledMs,
       })
       continue
     }
 
     existing.enrollments.push(enrollment)
-    if (
-      row.enrolled_at &&
-      (!existing.latestEnrolledAt ||
-        new Date(row.enrolled_at) > new Date(existing.latestEnrolledAt))
-    ) {
+    if (enrolledMs > existing.latestEnrolledMs) {
       existing.latestEnrolledAt = row.enrolled_at
+      existing.latestEnrolledMs = enrolledMs
     }
 
-    if (new Date(student.created_at) < new Date(existing.canonical.created_at)) {
+    if (student.created_at < existing.canonical.created_at) {
       existing.canonical = student
     }
   }
 
-  const sorted = [...groups.entries()].sort((a, b) => {
-    const aTime = a[1].latestEnrolledAt ? new Date(a[1].latestEnrolledAt).getTime() : 0
-    const bTime = b[1].latestEnrolledAt ? new Date(b[1].latestEnrolledAt).getTime() : 0
-    return bTime - aTime
-  })
+  const sorted = [...groups.values()].sort(
+    (a, b) => b.latestEnrolledMs - a.latestEnrolledMs,
+  )
 
   const totalCount = sorted.length
-  const pageSlice = sorted.slice(range.from, range.to + 1)
+  const pageGroups = sorted.slice(range.from, range.to + 1)
+
+  for (const group of pageGroups) {
+    group.enrollments.sort(
+      (a, b) => enrolledAtMs(b.enrolledAt) - enrolledAtMs(a.enrolledAt),
+    )
+  }
 
   const students: EnrolledStudentListItem[] = await Promise.all(
-    pageSlice.map(async ([authUserId, group]) => {
+    pageGroups.map(async (group) => {
       const canonical = group.canonical
       const profilePhotoUrl = await getPrivateR2PresignedUrl(
         canonical.profile_photo_r2_key,
       )
 
       return {
-        authUserId,
+        authUserId: canonical.auth_user_id,
         studentDbId: canonical.id,
         student_id: canonical.student_id,
         full_name: canonical.full_name,
@@ -154,11 +163,7 @@ export async function fetchEnrolledStudentsGrouped(
         country: canonical.country,
         profilePhotoUrl,
         latestEnrolledAt: group.latestEnrolledAt,
-        enrollments: group.enrollments.sort((a, b) => {
-          const aTime = a.enrolledAt ? new Date(a.enrolledAt).getTime() : 0
-          const bTime = b.enrolledAt ? new Date(b.enrolledAt).getTime() : 0
-          return bTime - aTime
-        }),
+        enrollments: group.enrollments,
       }
     }),
   )

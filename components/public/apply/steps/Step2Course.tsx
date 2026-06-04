@@ -27,6 +27,7 @@ interface Step2CourseProps {
   onChange: (patch: Partial<ApplicationFormData>) => void
   fieldErrors?: ApplyFieldErrors
   showValidation?: boolean
+  sameIntakeError?: string | null
 }
 
 function formatTuition(amount: number): string {
@@ -55,6 +56,7 @@ export default function Step2Course({
   onChange,
   fieldErrors = {},
   showValidation = false,
+  sameIntakeError = null,
 }: Step2CourseProps) {
   const selectedCourse = useMemo(
     () => courses.find((c) => c.id === formData.courseId),
@@ -89,7 +91,7 @@ export default function Step2Course({
     selectedCourse?.mode === 'in_person' && isInternational(formData.country)
 
   const courseError = showValidation ? fieldErrors.courseId : undefined
-  const intakeError = showValidation ? fieldErrors.intakeId : undefined
+  const intakeError = sameIntakeError ?? (showValidation ? fieldErrors.intakeId : undefined)
   const hybridError = showValidation ? fieldErrors.hybridAttendanceConfirmed : undefined
 
   const selectedIntakeFull = selectedIntake ? isIntakeFull(selectedIntake) : false

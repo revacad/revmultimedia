@@ -18,8 +18,10 @@ import {
 } from '@/lib/portal/copy-return-student-documents'
 import { fetchReturnStudentEducation } from '@/lib/portal/return-student-education'
 import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
+import {
+  findSameIntakeEnrollmentConflictByAuthUser,
+} from '@/lib/portal/check-same-intake-enrollment'
 import { submitReturnStudentApplicationSchema } from '@/lib/validations/return-application'
-import { sendSameIntakeAdminReviewRequiredEmail } from '@/lib/notifications/email'
 
 type RpcResult = {
   error?: string
@@ -27,6 +29,28 @@ type RpcResult = {
   application_id?: string
   invoice_reference?: string
   invoice_id?: string
+}
+
+/** Check if the logged-in student already has an active enrollment in this intake. */
+export async function checkSameIntakeEnrollment(intakeId: string) {
+  const user = await requirePortalUser()
+  const supabase = createAdminClient()
+
+  const conflict = await findSameIntakeEnrollmentConflictByAuthUser(
+    supabase,
+    user.id,
+    intakeId,
+  )
+
+  if (!conflict) {
+    return { conflict: false as const }
+  }
+
+  return {
+    conflict: true as const,
+    courseTitle: conflict.courseTitle,
+    message: conflict.message,
+  }
 }
 
 export async function submitReturnStudentApplication(formData: unknown) {
@@ -66,6 +90,15 @@ export async function submitReturnStudentApplication(formData: unknown) {
 
   if (!student?.is_active) {
     return { error: 'Only enrolled students can apply for another course here.' }
+  }
+
+  const sameIntakeConflict = await findSameIntakeEnrollmentConflictByAuthUser(
+    supabase,
+    student.auth_user_id,
+    parsed.data.intakeId,
+  )
+  if (sameIntakeConflict) {
+    return { error: sameIntakeConflict.message }
   }
 
   const priorEducation = await fetchReturnStudentEducation(supabase, {
@@ -175,91 +208,6 @@ export async function submitReturnStudentApplication(formData: unknown) {
     console.error('[submitReturnStudentApplication] no previous application for documents')
   }
 
-  const studentPrimaryKeys = (studentRows ?? []).map((row) => row.id)
-  const selectedIntakeId = parsed.data.intakeId
-
-  console.log('[portal-apply] checking same intake enrollment:', {
-    studentId: student.student_id,
-    studentPrimaryKeys,
-    intakeId: selectedIntakeId,
-  })
-
-  type ExistingEnrollmentRow = {
-    id: string
-    course_id: string
-    intake_id: string
-    courses: { title: string } | { title: string }[] | null
-    intakes: { name: string } | { name: string }[] | null
-  }
-
-  let existingEnrollment: ExistingEnrollmentRow | null = null
-
-  for (const existingStudentPrimaryKey of studentPrimaryKeys) {
-    const { data, error: enrollmentError } = await supabase
-      .from('enrollments')
-      .select('id, course_id, intake_id, courses(title), intakes(name)')
-      .eq('student_id', existingStudentPrimaryKey)
-      .eq('intake_id', selectedIntakeId)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    console.log('[portal-apply] existing enrollment check result:', {
-      existingStudentPrimaryKey,
-      data,
-      error: enrollmentError?.message ?? null,
-    })
-
-    if (enrollmentError) {
-      console.error('[portal-apply] enrollment query failed', enrollmentError)
-      continue
-    }
-
-    if (data) {
-      existingEnrollment = data as ExistingEnrollmentRow
-      break
-    }
-  }
-
-  let sameIntakeEnrollment: {
-    existingCourseTitle: string
-    intakeName: string
-  } | null = null
-
-  if (existingEnrollment) {
-    const courseRel = existingEnrollment.courses
-    const intakeRel = existingEnrollment.intakes
-    const courseTitle = Array.isArray(courseRel)
-      ? courseRel[0]?.title
-      : courseRel?.title
-    const intakeName = Array.isArray(intakeRel) ? intakeRel[0]?.name : intakeRel?.name
-
-    if (courseTitle && intakeName) {
-      sameIntakeEnrollment = { existingCourseTitle: courseTitle, intakeName }
-    }
-
-    const { error: reviewFlagError } = await supabase
-      .from('applications')
-      .update({
-        requires_admin_review: true,
-        admin_review_reason: `Student already enrolled in ${courseTitle ?? 'another course'} for this intake. Review before accepting.`,
-        status: 'under_review',
-      })
-      .eq('id', rpc.application_id)
-
-    if (reviewFlagError) {
-      console.error(
-        '[submitReturnStudentApplication] admin review flag update',
-        reviewFlagError,
-      )
-      return {
-        error:
-          'Application was created but admin review could not be recorded. Please contact support.',
-      }
-    }
-
-    console.log('[portal-apply] flagged application for admin review')
-  }
-
   const successResult = {
     success: true as const,
     reference: rpc.reference,
@@ -323,22 +271,6 @@ export async function submitReturnStudentApplication(formData: unknown) {
       })
     } catch (err) {
       console.error('Admin new application email failed:', err)
-    }
-
-    if (sameIntakeEnrollment) {
-      try {
-        await sendSameIntakeAdminReviewRequiredEmail({
-          studentId: student.student_id,
-          studentName: student.full_name,
-          reference: rpc.reference!,
-          applicationId: rpc.application_id!,
-          existingCourseTitle: sameIntakeEnrollment.existingCourseTitle,
-          intakeName: sameIntakeEnrollment.intakeName,
-          newCourseTitle: courseTitle,
-        })
-      } catch (err) {
-        console.error('Same-intake admin review email failed:', err)
-      }
     }
   })
 

@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { LogoLoader } from '@/components/ui/LogoLoader'
 import Button from '@/components/ui/Button'
 import StepIndicator from '@/components/public/apply/StepIndicator'
 import Step2Course from '@/components/public/apply/steps/Step2Course'
-import { submitReturnStudentApplication } from '@/actions/portal-application'
+import {
+  checkSameIntakeEnrollment,
+  submitReturnStudentApplication,
+} from '@/actions/portal-application'
 import type { ApplyCourse } from '@/lib/apply/types'
 import type { ApplicationFormData } from '@/lib/apply/types'
 import { formatGHS } from '@/lib/utils'
@@ -56,12 +59,50 @@ export default function ReturnStudentApplyForm({
   const [successRef, setSuccessRef] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<ApplyFieldErrors>({})
   const [showValidation, setShowValidation] = useState(false)
+  const [sameIntakeError, setSameIntakeError] = useState<string | null>(null)
+  const [checkingSameIntake, setCheckingSameIntake] = useState(false)
 
   const patchForm = useCallback((patch: Partial<ApplicationFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }))
+    if ('intakeId' in patch) {
+      setSameIntakeError(null)
+    }
   }, [])
 
+  useEffect(() => {
+    if (currentStep !== 2 || !formData.intakeId) {
+      setSameIntakeError(null)
+      setCheckingSameIntake(false)
+      return
+    }
+
+    const intakeId = formData.intakeId
+    let cancelled = false
+
+    const timer = window.setTimeout(() => {
+      setCheckingSameIntake(true)
+      void checkSameIntakeEnrollment(intakeId)
+        .then((result) => {
+          if (cancelled) return
+          setCheckingSameIntake(false)
+          setSameIntakeError(result.conflict ? result.message : null)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setCheckingSameIntake(false)
+        })
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [currentStep, formData.intakeId])
+
   const goNext = () => {
+    if (currentStep === 2 && sameIntakeError) {
+      return
+    }
     const validationStep = validationStepForUiStep(currentStep)
     if (validationStep !== null) {
       const result = getStepValidation(validationStep, formData, {
@@ -207,6 +248,7 @@ export default function ReturnStudentApplyForm({
             courses={courses}
             fieldErrors={fieldErrors}
             showValidation={showValidation}
+            sameIntakeError={sameIntakeError}
             hybridWarningAccepted={hybridWarningAccepted}
             onHybridWarningAccepted={setHybridWarningAccepted}
             onChange={patchForm}
@@ -271,7 +313,13 @@ export default function ReturnStudentApplyForm({
           </Link>
         )}
         {currentStep < TOTAL_STEPS ? (
-          <Button type="button" onClick={goNext}>
+          <Button
+            type="button"
+            onClick={goNext}
+            disabled={
+              (currentStep === 2 && Boolean(sameIntakeError)) || checkingSameIntake
+            }
+          >
             Continue
           </Button>
         ) : (

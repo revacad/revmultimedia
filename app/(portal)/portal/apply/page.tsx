@@ -31,11 +31,14 @@ export default async function PortalApplyPage({
   const supabase = await createServerClient()
   const rawParams = (await searchParams) ?? {}
 
-  const { data: student } = await supabase
+  const { data: studentRows } = await supabase
     .from('students')
     .select('id, student_id, full_name, real_email, phone, is_active, application_id, auth_user_id')
     .eq('auth_user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  const student = studentRows?.[0] ?? null
 
   if (!student?.is_active) {
     redirect('/portal/dashboard')
