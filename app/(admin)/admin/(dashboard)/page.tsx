@@ -7,7 +7,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getAdminSession, type AdminRole } from '@/lib/auth/admin'
 import { isStaffAdmin } from '@/lib/auth/permissions'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import PaymentClaimsDashboardCard from '@/components/admin/PaymentClaimsDashboardCard'
 import { aggregatePaymentStats } from '@/lib/payments/invoice-stats'
+import { fetchPendingManualPaymentClaims } from '@/lib/payments/manual-claims'
 import { formatGHS } from '@/lib/utils'
 
 export const metadata = {
@@ -47,6 +49,8 @@ export default async function AdminDashboardPage() {
     : { data: null }
 
   const adminFirstName = admin?.full_name?.split(/\s+/)[0] ?? 'Admin'
+
+  const paymentClaims = await fetchPendingManualPaymentClaims(supabase)
 
   if (!isStaffAdmin(role)) {
     const { data: paymentInvoices } = await supabase.from('invoices').select(
@@ -103,29 +107,39 @@ export default async function AdminDashboardPage() {
             }
           />
         </div>
-        <article className="rounded-xl bg-white p-6 shadow-card">
-          <h2 className="font-body text-base font-semibold text-[#1A1A2E]">Quick links</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/admin/payments"
-              className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
-            >
-              Payments
-            </Link>
-            <Link
-              href="/admin/reports"
-              className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
-            >
-              Reports
-            </Link>
-            <Link
-              href="/admin/communications/logs"
-              className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
-            >
-              Message log
-            </Link>
-          </div>
-        </article>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <PaymentClaimsDashboardCard pendingCount={paymentClaims.length} />
+          <article className="rounded-xl bg-white p-6 shadow-card">
+            <h2 className="font-body text-base font-semibold text-[#1A1A2E]">Quick links</h2>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/admin/payments"
+                className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
+              >
+                Payments
+              </Link>
+              <Link
+                href="/admin/payments?tab=claims"
+                className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
+              >
+                Payment claims
+                {paymentClaims.length > 0 ? ` (${paymentClaims.length})` : ''}
+              </Link>
+              <Link
+                href="/admin/reports"
+                className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
+              >
+                Reports
+              </Link>
+              <Link
+                href="/admin/communications/logs"
+                className="rounded-full border border-[#D8D8E8] px-4 py-2 font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
+              >
+                Message log
+              </Link>
+            </div>
+          </article>
+        </div>
       </div>
     )
   }
@@ -229,6 +243,10 @@ export default async function AdminDashboardPage() {
         />
       </div>
 
+      <div className="mb-8">
+        <PaymentClaimsDashboardCard pendingCount={paymentClaims.length} />
+      </div>
+
       <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <article className="rounded-xl bg-white p-6 shadow-card">
           <h2 className="font-body text-base font-semibold text-[#1A1A2E]">Outstanding Payments</h2>
@@ -267,6 +285,13 @@ export default async function AdminDashboardPage() {
               className="block w-full rounded-full border border-[#D8D8E8] px-4 py-2.5 text-center font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
             >
               View Payments
+            </Link>
+            <Link
+              href="/admin/payments?tab=claims"
+              className="block w-full rounded-full border border-[#D8D8E8] px-4 py-2.5 text-center font-body text-sm font-semibold text-[#5A5A7A] hover:border-primary hover:text-primary"
+            >
+              Payment claims
+              {paymentClaims.length > 0 ? ` (${paymentClaims.length} pending)` : ''}
             </Link>
             <Link
               href="/admin/settings"

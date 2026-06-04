@@ -5,7 +5,7 @@ export const submitManualPaymentClaimSchema = z.object({
   transactionRef: z
     .string()
     .trim()
-    .min(1, 'Transaction reference is required')
+    .min(1, 'MoMo reference or transaction description is required')
     .max(200, 'Reference is too long'),
 })
 

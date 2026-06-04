@@ -6,9 +6,14 @@ import { requireFinanceAccess } from '@/lib/auth/admin'
 import { requirePortalUser } from '@/lib/auth/requirePortalUser'
 import { getInvoiceIfOwnedByUser } from '@/lib/portal/verify-invoice-access'
 import { confirmPayment } from '@/actions/payment'
-import { sendManualPaymentClaimEmail } from '@/lib/notifications/email'
+import {
+  sendManualPaymentClaimEmail,
+  sendManualPaymentClaimRejectedEmail,
+} from '@/lib/notifications/email'
 import { sendMessage } from '@/lib/notifications/sms'
 import { getSystemSettings } from '@/lib/settings/cache'
+import { accountsWhatsAppWaMePath } from '@/lib/settings/accounts-whatsapp'
+import { isPaystackEnabled } from '@/lib/settings/paystack-enabled'
 import { roundGhs } from '@/lib/payments/balance'
 import { sumInstallments } from '@/lib/payments/format'
 import { safeActionError } from '@/lib/errors/action'
@@ -36,6 +41,15 @@ export async function submitManualPaymentClaim(
     if (invoice.type !== 'application_fee') {
       return { error: 'Manual payment claims are only available for application fees' }
     }
+
+    const settings = await getSystemSettings()
+    if (isPaystackEnabled(settings)) {
+      return {
+        error:
+          'Application fees must be paid online via Paystack. If you cannot pay online, contact our accounts team on WhatsApp.',
+      }
+    }
+
     if (invoice.status === 'paid' || invoice.status === 'waived') {
       return { error: 'This invoice is already settled' }
     }
@@ -85,7 +99,6 @@ export async function submitManualPaymentClaim(
       })
     }
 
-    const settings = await getSystemSettings()
     const academyPhone = settings.academy_phone?.trim()
     if (academyPhone) {
       void sendMessage(
@@ -101,6 +114,8 @@ export async function submitManualPaymentClaim(
       )
     }
 
+    revalidatePath('/admin/payments')
+    revalidatePath('/admin')
     revalidatePath('/portal/invoices')
     return {
       success: true,
@@ -192,6 +207,7 @@ export async function confirmManualPaymentClaim(
       .eq('id', claim.id)
 
     revalidatePath('/admin/payments')
+    revalidatePath('/admin')
     revalidatePath('/portal/invoices')
     return { success: true }
   } catch (error) {
@@ -220,6 +236,7 @@ export async function rejectManualPaymentClaim(
         `
         id,
         status,
+        transaction_ref,
         student_auth_user_id,
         invoices(reference, applications(full_name, phone, real_email))
       `,
@@ -233,6 +250,8 @@ export async function rejectManualPaymentClaim(
     if (claim.status !== 'pending') {
       return { error: 'This claim has already been processed' }
     }
+
+    const transactionRef = claim.transaction_ref as string
 
     const invoiceRaw = claim.invoices
     const invoice = Array.isArray(invoiceRaw) ? invoiceRaw[0] : invoiceRaw
@@ -253,16 +272,28 @@ export async function rejectManualPaymentClaim(
     }
 
     const phone = application?.phone?.trim()
+    const email = application?.real_email?.trim()
     const invoiceRef = invoice?.reference ?? 'your invoice'
-    const notifyMessage = `Rev Multimedia: We could not verify your manual payment for ${invoiceRef}. Please contact us at info@revmultimediagh.com if you believe this is an error.`
+    const studentName = application?.full_name ?? 'Student'
+    const rejectSettings = await getSystemSettings()
+    const waPath = accountsWhatsAppWaMePath(rejectSettings.accounts_whatsapp_number)
+    const waSuffix = waPath ? ` Please contact us on WhatsApp: ${waPath}` : ''
+    const notifyMessage = `Rev Multimedia: Your payment claim for invoice ${invoiceRef} could not be verified.${waSuffix}`
+
+    if (email) {
+      void sendManualPaymentClaimRejectedEmail(email, {
+        name: studentName,
+        invoiceReference: invoiceRef,
+        transactionRef,
+      })
+    }
 
     if (phone) {
-      void sendMessage(phone, notifyMessage, 'whatsapp').catch(() =>
-        sendMessage(phone, notifyMessage, 'sms'),
-      )
+      void sendMessage(phone, notifyMessage, 'sms')
     }
 
     revalidatePath('/admin/payments')
+    revalidatePath('/admin')
     revalidatePath('/portal/invoices')
     return { success: true }
   } catch (error) {

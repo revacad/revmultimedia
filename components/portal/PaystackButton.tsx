@@ -9,6 +9,8 @@ interface PaystackButtonProps {
   invoiceRef: string
   amount: number
   email: string
+  /** Override button label (default shows amount). */
+  buttonLabel?: string
 }
 
 type PaystackCallbackResponse = {
@@ -31,6 +33,7 @@ export function PaystackButton({
   invoiceRef,
   amount,
   email,
+  buttonLabel,
 }: PaystackButtonProps) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
@@ -183,7 +186,7 @@ export function PaystackButton({
               ? 'Loading payment…'
               : amount <= 0
                 ? 'Nothing left to pay'
-                : `Pay GHS ${(amount / 100).toFixed(2)}`}
+                : (buttonLabel ?? `Pay GHS ${(amount / 100).toFixed(2)}`)}
       </button>
       {error && (
         <PortalErrorState

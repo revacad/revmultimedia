@@ -54,14 +54,14 @@ export default function ManualPaymentClaimForm({ invoiceId }: ManualPaymentClaim
       }}
     >
       <label htmlFor="transaction-ref" className="font-body text-sm font-semibold text-[#1A1A2E]">
-        Transaction reference or description
+        MoMo reference or transaction description
       </label>
       <input
         id="transaction-ref"
         value={transactionRef}
         onChange={(e) => setTransactionRef(e.target.value)}
         required
-        placeholder="e.g. MoMo transaction ID"
+        placeholder="e.g. 0241234567 or bank transfer ref"
         className="mt-2 w-full rounded-[10px] border border-[#D8D8E8] px-3 py-2.5 font-body text-sm text-[#1A1A2E] outline-none focus:border-[#C74A86]"
       />
       <div className="mt-4 flex flex-wrap gap-3">

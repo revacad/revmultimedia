@@ -113,7 +113,7 @@ export const SETTINGS_HELPERS: Record<string, string> = {
   application_deadline_message:
     'Shown on the home page. Leave blank to hide.',
   accounts_whatsapp_number:
-    'Students will be directed to this number when making manual payments.',
+    'Enter number with country code, no spaces or + (e.g. 233204543372)',
   enrollment_letter_signatory_name:
     'Shown under the signature on enrollment letters.',
   enrollment_letter_signatory_title:

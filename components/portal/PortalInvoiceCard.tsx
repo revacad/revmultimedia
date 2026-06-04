@@ -11,9 +11,14 @@ import { formatApplicationDate } from '@/lib/applications/format'
 import PortalInvoiceDocuments from '@/components/portal/PortalInvoiceDocuments'
 import PaymentInstructions from '@/components/portal/PaymentInstructions'
 import ManualPaymentClaimForm from '@/components/portal/ManualPaymentClaimForm'
+import ManualPaymentOffPortalHelp from '@/components/portal/ManualPaymentOffPortalHelp'
 import type { PortalReceiptLink } from '@/lib/portal/invoice-receipts'
 import type { PortalInvoiceRow } from '@/lib/portal/invoices'
 import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
+import {
+  isApplicationFeePaystackActive,
+  isInvoicePaystackActive,
+} from '@/lib/payments/portal-paystack'
 import type { InvoiceStatus } from '@/lib/payments/types'
 import { formatGHS } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -51,14 +56,26 @@ export default function PortalInvoiceCard({
     .pop()
 
   const isAppFee = invoice.type === 'application_fee'
-  const [expanded, setExpanded] = useState(isAppFee && status === 'paid')
+  const [expanded, setExpanded] = useState(
+    status === 'unpaid' || status === 'partially_paid',
+  )
 
-  const allowPaystack = Boolean(invoice.payment_types?.allow_paystack)
-  const appFeePaystackEnabled = paystackEnabled && allowPaystack
-  const showBankInstructions = status === 'unpaid' || status === 'partially_paid'
-  const isTuition = invoice.type === 'tuition'
+  const allowPaystackOnType = Boolean(invoice.payment_types?.allow_paystack)
+  const appFeePaystackActive = isApplicationFeePaystackActive(paystackEnabled, invoice.type)
+  const invoicePaystackActive = isInvoicePaystackActive(
+    paystackEnabled,
+    invoice.type,
+    allowPaystackOnType,
+  )
+  const showPaymentSection = status === 'unpaid' || status === 'partially_paid'
   const remainingGhs = Math.max(0, total - paidAmount)
   const paystackAmountPesewas = Math.round(remainingGhs * 100)
+  const applicationRef = invoice.applications?.reference ?? invoice.reference
+  const canPaystack =
+    invoicePaystackActive &&
+    remainingGhs > 0 &&
+    Boolean(payerEmail) &&
+    Boolean(invoice.reference)
 
   return (
     <article className="mb-4 rounded-xl bg-white p-6 shadow-card">
@@ -129,14 +146,43 @@ export default function PortalInvoiceCard({
               </div>
             )}
 
-            {showBankInstructions && isAppFee && !appFeePaystackEnabled && remainingGhs > 0 && (
+            {showPaymentSection && isAppFee && appFeePaystackActive && (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-lg border border-[#2DBFB8]/30 bg-[#EBF9F8] p-4">
+                  <p className="font-body text-sm font-semibold text-[#1A1A2E]">Pay with Paystack</p>
+                  <p className="mt-1 font-body text-xs text-[#5A5A7A]">
+                    Pay your {formatGHS(remainingGhs)} application fee securely online. Your portal
+                    unlocks as soon as payment is confirmed.
+                  </p>
+                  {canPaystack ? (
+                    <div className="mt-3">
+                      <PaystackButton
+                        applicationRef={applicationRef}
+                        invoiceRef={invoice.reference}
+                        amount={paystackAmountPesewas}
+                        email={payerEmail}
+                        buttonLabel={`Pay with Paystack · ${formatGHS(remainingGhs)}`}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-3 font-body text-sm text-[#E84A4A]">
+                      Online payment is temporarily unavailable. Please refresh the page or contact
+                      accounts below.
+                    </p>
+                  )}
+                </div>
+                <ManualPaymentOffPortalHelp settings={settings} />
+              </div>
+            )}
+
+            {showPaymentSection && isAppFee && !appFeePaystackActive && remainingGhs > 0 && (
               <div className="mt-4 space-y-4">
                 <PaymentInstructions settings={settings} invoiceReference={invoice.reference} />
                 <ManualPaymentClaimForm invoiceId={invoice.id} />
               </div>
             )}
 
-            {showBankInstructions && !isAppFee && !allowPaystack && (
+            {showPaymentSection && !isAppFee && !invoicePaystackActive && (
               <div className="mt-4">
                 <PortalInvoicePaymentCard
                   settings={settings}
@@ -146,41 +192,40 @@ export default function PortalInvoiceCard({
               </div>
             )}
 
-            {showBankInstructions && ((isAppFee && appFeePaystackEnabled) || (!isAppFee && allowPaystack)) && remainingGhs > 0 && (
+            {showPaymentSection && !isAppFee && invoicePaystackActive && remainingGhs > 0 && (
               <div className="mt-4 space-y-4">
                 <div className="rounded-lg border border-[#EFEFF5] bg-[#F7F8FC] p-4">
                   <p className="font-body text-sm font-semibold text-[#1A1A2E]">Pay online</p>
                   <p className="mt-1 font-body text-xs text-[#9898B8]">
-                    Card or mobile money - {formatGHS(remainingGhs)}
+                    Card or mobile money · {formatGHS(remainingGhs)}
                   </p>
-                  <div className="mt-3">
-                    <PaystackButton
-                      applicationRef={invoice.applications?.reference ?? invoice.reference}
-                      invoiceRef={invoice.reference}
-                      amount={paystackAmountPesewas}
-                      email={payerEmail}
-                    />
-                  </div>
+                  {canPaystack ? (
+                    <div className="mt-3">
+                      <PaystackButton
+                        applicationRef={applicationRef}
+                        invoiceRef={invoice.reference}
+                        amount={paystackAmountPesewas}
+                        email={payerEmail}
+                        buttonLabel={`Pay with Paystack · ${formatGHS(remainingGhs)}`}
+                      />
+                    </div>
+                  ) : null}
                 </div>
                 <p className="font-body text-xs text-[#9898B8]">Or pay manually:</p>
-                {isAppFee ? (
-                  <>
-                    <PaymentInstructions settings={settings} invoiceReference={invoice.reference} />
-                    <ManualPaymentClaimForm invoiceId={invoice.id} />
-                  </>
-                ) : (
-                  <PortalInvoicePaymentCard
-                    settings={settings}
-                    invoiceReference={invoice.reference}
-                    showInternational={showInternational}
-                  />
-                )}
+                <PortalInvoicePaymentCard
+                  settings={settings}
+                  invoiceReference={invoice.reference}
+                  showInternational={showInternational}
+                />
               </div>
             )}
 
             {status === 'paid' && (
-              <p className="mt-4 flex items-center gap-2 font-body text-sm font-semibold text-[#1E9990]">
-                <span aria-hidden>✓</span> Payment confirmed
+              <p className="mt-4 flex flex-wrap items-center gap-2 font-body text-sm font-semibold text-[#1E9990]">
+                <span aria-hidden>✓</span>
+                <span>
+                  {typeLabel} paid in full
+                </span>
                 {lastPaid && (
                   <span className="font-normal text-[#9898B8]">
                     · {formatApplicationDate(lastPaid)}

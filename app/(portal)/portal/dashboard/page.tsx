@@ -15,8 +15,11 @@ import {
   resolveTimelineActiveStep,
   timelineOptionsFromInvoices,
 } from '@/lib/portal/timeline'
+import { AppFeeGate } from '@/components/portal/AppFeeGate'
 import { fetchEnrolledCourseIds, fetchPublishedApplyCourses } from '@/lib/portal/fetch-apply-courses'
+import { getPaymentSettings } from '@/lib/portal/settings'
 import type { InvoiceStatus } from '@/lib/payments/types'
+import { isPaystackEnabled } from '@/lib/settings/paystack-enabled'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +45,7 @@ async function PortalDashboardContent({
       *,
       courses(title, category, mode, tuition_fee_ghs),
       intakes(name, start_date, end_date),
-      invoices(*, installments(amount_ghs))
+      invoices(id, reference, type, status, total_ghs, amount_ghs, installments(amount_ghs))
     `,
     )
     .eq('auth_user_id', user.id)
@@ -118,6 +121,25 @@ async function PortalDashboardContent({
     : []
   const applyCourses = student ? await fetchPublishedApplyCourses(supabase) : []
 
+  const settings = await getPaymentSettings()
+  const paystackEnabled = isPaystackEnabled(settings)
+
+  type AppInvoiceRow = {
+    id: string
+    reference: string
+    type: string
+    status: string
+    total_ghs?: number
+    amount_ghs?: number
+  }
+  const appInvoices = (application?.invoices as AppInvoiceRow[] | undefined) ?? []
+  const appFeeInvoice = appInvoices.find((inv) => inv.type === 'application_fee')
+  const showAppFeeGate =
+    !student &&
+    application &&
+    application.status !== 'waitlisted' &&
+    !application.app_fee_paid
+
   const heroIdentifier = student
     ? (student.student_id as string)
     : (application?.reference as string) ?? '—'
@@ -133,7 +155,24 @@ async function PortalDashboardContent({
         enrolled={Boolean(student)}
       />
 
-      {application ? (
+      {showAppFeeGate ? (
+        <AppFeeGate
+          appFeePaid={false}
+          invoiceId={appFeeInvoice?.id}
+          invoiceRef={appFeeInvoice?.reference}
+          appFeeAmount={
+            appFeeInvoice
+              ? Number(appFeeInvoice.total_ghs ?? appFeeInvoice.amount_ghs)
+              : undefined
+          }
+          applicationRef={application.reference as string}
+          payerEmail={(application.real_email as string) ?? user.email ?? undefined}
+          paystackEnabled={paystackEnabled}
+          settings={settings}
+        />
+      ) : null}
+
+      {application && !showAppFeeGate ? (
         <PortalStatusCard
           applications={pickerItems.length > 1 ? pickerItems : undefined}
           activeStep={activeStep}

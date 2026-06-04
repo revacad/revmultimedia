@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 import { withRetry } from '@/lib/retry'
 import { getSystemSettings } from '@/lib/settings/cache'
 import { escapeHtml } from '@/lib/security/escape-html'
+import { accountsWhatsAppWaMeUrl } from '@/lib/settings/accounts-whatsapp'
 import {
   amountDueBlock,
   bodyParagraph,
@@ -824,12 +825,48 @@ export async function sendManualPaymentClaimEmail(
         'We have received your manual payment claim. Our finance team will verify it against our records.',
       ),
       detailsCard([
-        { label: 'Transaction ref', value: data.transactionRef },
+        { label: 'MoMo reference', value: data.transactionRef },
         { label: 'Invoice', value: data.invoiceReference },
         { label: 'Amount', value: `GHS ${data.amountGhs.toFixed(2)}` },
       ]),
     ].join(''),
     footerNote: 'Our team will verify and confirm within 24 hours.',
+  })
+}
+
+export async function sendManualPaymentClaimRejectedEmail(
+  to: string,
+  data: {
+    name: string
+    invoiceReference: string
+    transactionRef: string
+  },
+): Promise<void> {
+  const settings = await getSystemSettings()
+  const waUrl = accountsWhatsAppWaMeUrl(settings.accounts_whatsapp_number)
+
+  await sendTemplateEmail(to, {
+    recipientName: data.name,
+    badgeLabel: 'Payment Claim Rejected',
+    badgeColor: '#f5a623',
+    title: 'Your payment claim could not be verified.',
+    bodyHtml: [
+      warningCard(
+        'We could not verify your payment claim against our records. Your application fee remains unpaid in the portal until payment is confirmed.',
+      ),
+      detailsCard([
+        { label: 'Invoice', value: data.invoiceReference },
+        { label: 'MoMo reference submitted', value: data.transactionRef },
+      ]),
+      bodyParagraph(
+        'If you have already paid, please contact our accounts team on WhatsApp with your invoice reference and MoMo receipt so we can assist you.',
+      ),
+    ].join(''),
+    ctaButton: waUrl
+      ? { label: 'Chat with Accounts on WhatsApp', url: waUrl }
+      : undefined,
+    footerNote:
+      'You can also pay your application fee online via Paystack from the Invoices page if online payments are enabled.',
   })
 }
 
@@ -925,7 +962,7 @@ export async function sendPaymentReceiptEmail(
   const methodLabel = data.paymentMethod.replace(/_/g, ' ')
   const rows = [
     { label: 'Invoice', value: data.invoiceReference },
-    { label: 'Payment for', value: data.paymentForLabel },
+    { label: 'Payment for', value: `${data.paymentForLabel}` },
     { label: 'Amount received', value: `GHS ${data.amountPaidGhs.toFixed(2)}` },
     { label: 'Invoice total', value: `GHS ${data.totalInvoiceGhs.toFixed(2)}` },
     { label: 'Paid to date', value: `GHS ${data.totalPaidGhs.toFixed(2)}` },
@@ -943,7 +980,7 @@ export async function sendPaymentReceiptEmail(
     badgeLabel: 'Payment Receipt',
     badgeColor: '#2ecc71',
     title: data.fullyPaid
-      ? 'Your invoice is paid in full.'
+      ? `${data.paymentForLabel} invoice paid in full.`
       : 'We received your payment.',
     bodyHtml: [
       bodyParagraph('Please keep this email for your records.'),

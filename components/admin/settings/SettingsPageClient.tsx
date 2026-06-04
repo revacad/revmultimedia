@@ -19,6 +19,7 @@ import MaintenanceSettingsSection from '@/components/admin/settings/MaintenanceS
 import MessagingSettingsSection from '@/components/admin/settings/MessagingSettingsSection'
 import { MAINTENANCE_SETTING_KEYS } from '@/lib/settings/labels'
 import { MOMO_PROVIDER_OPTIONS } from '@/lib/settings/momo-provider'
+import { accountsWhatsAppWaMeUrl } from '@/lib/settings/accounts-whatsapp'
 
 interface SettingsPageClientProps {
   values: Record<string, string>
@@ -78,6 +79,37 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
             }))
           }
         />
+      )
+    }
+
+    if (key === 'accounts_whatsapp_number') {
+      const waUrl = accountsWhatsAppWaMeUrl(draft.accounts_whatsapp_number)
+      return (
+        <div key={key}>
+          <AdminLabel htmlFor={key}>{SETTINGS_LABELS[key] ?? key}</AdminLabel>
+          {SETTINGS_HELPERS[key] && (
+            <p className="mb-1 font-body text-xs text-[#9898B8]">{SETTINGS_HELPERS[key]}</p>
+          )}
+          <input
+            id={key}
+            type="tel"
+            inputMode="numeric"
+            value={draft[key] ?? ''}
+            onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+            placeholder="e.g. 233204543372"
+            className={adminFieldClassName}
+          />
+          {waUrl ? (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex font-body text-sm font-semibold text-[#1E9990] hover:underline"
+            >
+              Open in WhatsApp to test this number
+            </a>
+          ) : null}
+        </div>
       )
     }
 

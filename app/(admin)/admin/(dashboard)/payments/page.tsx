@@ -15,10 +15,11 @@ export const dynamic = 'force-dynamic'
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; tab?: string }>
 }) {
   const admin = await requireFinanceAccess()
-  const { page: pageParam } = await searchParams
+  const { page: pageParam, tab } = await searchParams
+  const defaultTab = tab === 'claims' ? 'claims' : 'invoices'
   const page = parseAdminPage(pageParam)
   const { from, to } = adminListRange(page)
 
@@ -64,6 +65,7 @@ export default async function AdminPaymentsPage({
       currentPage={page}
       totalCount={count ?? 0}
       pageSize={ADMIN_PAGE_SIZE}
+      defaultTab={defaultTab}
     />
   )
 }

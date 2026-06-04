@@ -45,6 +45,7 @@ interface PaymentsPageClientProps {
   currentPage: number
   totalCount: number
   pageSize: number
+  defaultTab?: 'invoices' | 'claims'
 }
 
 function studentDisplayName(inv: PaymentListRow): string {
@@ -78,6 +79,7 @@ export default function PaymentsPageClient({
   currentPage,
   totalCount,
   pageSize,
+  defaultTab = 'invoices',
 }: PaymentsPageClientProps) {
   const isAccountsRole = viewerRole === 'accounts'
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all')
@@ -120,7 +122,7 @@ export default function PaymentsPageClient({
         ))}
       </div>
 
-      <Tabs.Root defaultValue="invoices">
+      <Tabs.Root defaultValue={defaultTab}>
         <Tabs.List className="mb-6 flex border-b border-[#EFEFF5]">
           <Tabs.Trigger
             value="invoices"

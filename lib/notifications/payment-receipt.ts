@@ -104,8 +104,8 @@ export async function sendPaymentReceiptNotification(options: {
 
   const smsAmount = options.amountPaidGhs.toFixed(2)
   const smsBody = options.fullyPaid
-    ? `Rev Multimedia: Payment of GHS ${smsAmount} received for ${paymentForLabel} (${invoice.reference}). Thank you!`
-    : `Rev Multimedia: Payment of GHS ${smsAmount} recorded for ${invoice.reference}. Balance remaining on your invoice.`
+    ? `Rev Multimedia: Your ${paymentForLabel} invoice ${invoice.reference} is paid in full (GHS ${smsAmount}). Thank you!`
+    : `Rev Multimedia: Payment of GHS ${smsAmount} recorded for ${paymentForLabel} (${invoice.reference}). Balance remaining on your invoice.`
 
   await deliverWhatsAppThenSms({
     phone: application.phone,
