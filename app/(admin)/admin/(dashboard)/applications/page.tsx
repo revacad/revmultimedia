@@ -34,7 +34,7 @@ export default async function AdminApplicationsPage({
       .select(
         `
       id, reference, full_name, real_email, phone,
-      country, status, app_fee_paid, created_at,
+      country, status, app_fee_paid, requires_admin_review, created_at,
       students:students!students_application_id_fkey(student_id),
       returning_student:students!applications_returning_student_id_fkey(student_id),
       courses(title, category),

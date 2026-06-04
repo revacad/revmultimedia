@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
+import { adminLogout } from '@/actions/auth'
 import { cn } from '@/lib/utils'
 import type { AdminRole } from '@/lib/auth/admin'
 import { filterGroupsForRole, type NavIconName } from '@/lib/admin/nav'
@@ -244,6 +245,29 @@ export default function AdminSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
+        <form action={adminLogout} className="mt-2">
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-2 rounded-lg px-2.5 py-2 font-body text-[13px] font-semibold text-[#e63946] transition-colors hover:bg-white/5"
+          >
+            <svg
+              className="h-4 w-4 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+              <path d="M9 12h12l-3 -3" />
+              <path d="M18 15l3 -3" />
+            </svg>
+            Sign out
+          </button>
+        </form>
       </div>
     </aside>
   )

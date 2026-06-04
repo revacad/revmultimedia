@@ -22,6 +22,7 @@ export type ApplicationListRow = {
   country: string
   status: ApplicationStatus
   app_fee_paid: boolean
+  requires_admin_review: boolean
   created_at: string
   courses: { title: string; category: CourseCategory } | null
   intakes: { name: string; start_date: string } | null
@@ -86,6 +87,8 @@ export type ApplicationDetail = {
   year_completed: number
   prior_experience: string | null
   hybrid_attendance_confirmed: boolean
+  requires_admin_review: boolean
+  admin_review_reason: string | null
   status: ApplicationStatus
   waitlist_position: number | null
   waitlist_notified_at: string | null

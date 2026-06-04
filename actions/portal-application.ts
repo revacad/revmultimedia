@@ -12,10 +12,15 @@ import {
 } from '@/lib/notifications/log-delivery'
 import { sendAdminNewApplication } from '@/lib/notifications/email'
 import { runAfterResponse } from '@/lib/background'
-import { sanitizeFileName } from '@/lib/security/files'
+import {
+  copyDocumentsFromPreviousApplication,
+  findPreviousApplicationId,
+} from '@/lib/portal/copy-return-student-documents'
 import { fetchReturnStudentEducation } from '@/lib/portal/return-student-education'
+import { findSameIntakeActiveEnrollment } from '@/lib/portal/same-intake-active-enrollment'
 import { getApplicationFeeGhs } from '@/lib/settings/application-fee'
 import { submitReturnStudentApplicationSchema } from '@/lib/validations/return-application'
+import { sendSameIntakeAdminReviewRequiredEmail } from '@/lib/notifications/email'
 
 type RpcResult = {
   error?: string
@@ -145,41 +150,51 @@ export async function submitReturnStudentApplication(formData: unknown) {
     priorExperience: priorEducation.priorExperience ?? null,
   })
 
-  const idDocType = student.country === 'Ghana' ? 'national_id' : 'passport'
-  const docs = parsed.data.documents
-  const documentRows = [
-    {
-      application_id: rpc.application_id,
-      document_type: idDocType,
-      r2_key: docs.idDocument.key,
-      file_name: sanitizeFileName(docs.idDocument.fileName),
-      file_size_bytes: docs.idDocument.fileSize,
-      mime_type: docs.idDocument.mimeType,
-      uploaded_by: 'student' as const,
-    },
-    {
-      application_id: rpc.application_id,
-      document_type: 'passport_photo',
-      r2_key: docs.passportPhoto.key,
-      file_name: sanitizeFileName(docs.passportPhoto.fileName),
-      file_size_bytes: docs.passportPhoto.fileSize,
-      mime_type: docs.passportPhoto.mimeType,
-      uploaded_by: 'student' as const,
-    },
-    ...(docs.certificates ?? []).map((file) => ({
-      application_id: rpc.application_id!,
-      document_type: 'certificate' as const,
-      r2_key: file.key,
-      file_name: sanitizeFileName(file.fileName),
-      file_size_bytes: file.fileSize,
-      mime_type: file.mimeType,
-      uploaded_by: 'student' as const,
-    })),
-  ]
+  const previousApplicationId = await findPreviousApplicationId(supabase, {
+    studentDbId: student.id,
+    authUserId: student.auth_user_id,
+    originalApplicationId: student.application_id,
+    excludeApplicationId: rpc.application_id,
+  })
 
-  const { error: docsError } = await supabase.from('documents').insert(documentRows)
-  if (docsError) {
-    console.error('[submitReturnStudentApplication] documents insert', docsError)
+  if (previousApplicationId) {
+    const copyResult = await copyDocumentsFromPreviousApplication(
+      supabase,
+      previousApplicationId,
+      rpc.application_id,
+    )
+    if (!copyResult.ok) {
+      console.error(
+        '[submitReturnStudentApplication] document copy failed',
+        copyResult.error,
+      )
+    }
+  } else {
+    console.error('[submitReturnStudentApplication] no previous application for documents')
+  }
+
+  const sameIntakeEnrollment = await findSameIntakeActiveEnrollment(
+    supabase,
+    student.id,
+    parsed.data.intakeId,
+  )
+
+  if (sameIntakeEnrollment) {
+    const { error: reviewFlagError } = await supabase
+      .from('applications')
+      .update({
+        requires_admin_review: true,
+        admin_review_reason: 'Student already has an active enrollment in this intake',
+        status: 'under_review',
+      })
+      .eq('id', rpc.application_id)
+
+    if (reviewFlagError) {
+      console.error(
+        '[submitReturnStudentApplication] admin review flag update',
+        reviewFlagError,
+      )
+    }
   }
 
   const successResult = {
@@ -245,6 +260,22 @@ export async function submitReturnStudentApplication(formData: unknown) {
       })
     } catch (err) {
       console.error('Admin new application email failed:', err)
+    }
+
+    if (sameIntakeEnrollment) {
+      try {
+        await sendSameIntakeAdminReviewRequiredEmail({
+          studentId: student.student_id,
+          studentName: student.full_name,
+          reference: rpc.reference!,
+          applicationId: rpc.application_id!,
+          existingCourseTitle: sameIntakeEnrollment.existingCourseTitle,
+          intakeName: sameIntakeEnrollment.intakeName,
+          newCourseTitle: courseTitle,
+        })
+      } catch (err) {
+        console.error('Same-intake admin review email failed:', err)
+      }
     }
   })
 

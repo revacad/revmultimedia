@@ -36,6 +36,7 @@ export function mapApplicationListRow(row: Record<string, unknown>): Application
     country: row.country as string,
     status: row.status as ApplicationListRow['status'],
     app_fee_paid: row.app_fee_paid as boolean,
+    requires_admin_review: Boolean(row.requires_admin_review),
     created_at: row.created_at as string,
     courses: courses
       ? {

@@ -1,33 +1,25 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { LogoLoader } from '@/components/ui/LogoLoader'
 import Button from '@/components/ui/Button'
 import StepIndicator from '@/components/public/apply/StepIndicator'
 import Step2Course from '@/components/public/apply/steps/Step2Course'
-import Step4Documents from '@/components/public/apply/steps/Step4Documents'
 import { submitReturnStudentApplication } from '@/actions/portal-application'
-import { createApplicationDraft } from '@/actions/application-draft'
 import type { ApplyCourse } from '@/lib/apply/types'
 import type { ApplicationFormData } from '@/lib/apply/types'
 import { formatGHS } from '@/lib/utils'
 import { getStepValidation, type ApplyFieldErrors } from '@/lib/apply/validation'
 
-const RETURN_STUDENT_STEP_LABELS = [
-  'Personal Info',
-  'Course',
-  'Documents',
-  'Review',
-] as const
+const RETURN_STUDENT_STEP_LABELS = ['Personal Info', 'Course', 'Review'] as const
 
 const TOTAL_STEPS = RETURN_STUDENT_STEP_LABELS.length
 
 function validationStepForUiStep(uiStep: number): number | null {
   if (uiStep === 1) return null
   if (uiStep === 2) return 2
-  if (uiStep === 3) return 4
-  if (uiStep === 4) return 5
+  if (uiStep === 3) return 5
   return null
 }
 
@@ -49,9 +41,6 @@ export default function ReturnStudentApplyForm({
   initialIntakeId,
   student,
 }: ReturnStudentApplyFormProps) {
-  const [draftId, setDraftId] = useState<string | null>(null)
-  const [uploadToken, setUploadToken] = useState<string | null>(null)
-  const [draftError, setDraftError] = useState<string | null>(null)
   const [idempotencyKey] = useState(
     () => `portal-apply-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   )
@@ -70,17 +59,6 @@ export default function ReturnStudentApplyForm({
 
   const patchForm = useCallback((patch: Partial<ApplicationFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }))
-  }, [])
-
-  useEffect(() => {
-    void createApplicationDraft()
-      .then(({ draftId: id, uploadToken: token }) => {
-        setDraftId(id)
-        setUploadToken(token)
-      })
-      .catch(() => {
-        setDraftError('Unable to start your application. Please refresh the page.')
-      })
   }, [])
 
   const goNext = () => {
@@ -127,11 +105,6 @@ export default function ReturnStudentApplyForm({
         courseId: formData.courseId!,
         intakeId: formData.intakeId!,
         hybridAttendanceConfirmed: formData.hybridAttendanceConfirmed ?? hybridWarningAccepted,
-        documents: {
-          idDocument: formData.idDocument!,
-          passportPhoto: formData.passportPhoto!,
-          certificates: formData.certificates,
-        },
       })
 
       if ('error' in res && res.error) {
@@ -239,32 +212,18 @@ export default function ReturnStudentApplyForm({
             onChange={patchForm}
           />
         )}
-        {currentStep === 3 &&
-          (draftError ? (
-            <p className="text-sm text-[#E84A4A]" role="alert">
-              {draftError}
-            </p>
-          ) : draftId && uploadToken ? (
-            <Step4Documents
-              formData={{ ...formData, country: formData.country ?? 'Ghana' }}
-              draftId={draftId}
-              uploadToken={uploadToken}
-              fieldErrors={fieldErrors}
-              showValidation={showValidation}
-              onChange={patchForm}
-            />
-          ) : (
-            <div className="flex justify-center py-12">
-              <LogoLoader />
-            </div>
-          ))}
-        {currentStep === 4 && (
+        {currentStep === 3 && (
           <div>
             <h2 className="font-display text-2xl text-[#1A1A2E]">Review and submit</h2>
-            <p className="mb-6 mt-2 font-body text-[15px] text-[#9898B8]">
-              Confirm your course choice and uploaded documents. Your education details from your
-              previous application will be reused.
+            <p className="mb-4 mt-2 font-body text-[15px] text-[#9898B8]">
+              Confirm your course choice. Your education details from your previous application will
+              be reused.
             </p>
+            <div className="mb-6 rounded-[14px] border border-[#EFEFF5] bg-[#FFFBEB] px-4 py-3">
+              <p className="font-body text-sm text-[#5A5A7A]">
+                Your documents from your previous application will be used for this application.
+              </p>
+            </div>
             {reviewCourse ? (
               <div className="mb-6 rounded-[14px] border border-[#EFEFF5] bg-[#F7F8FC] p-4">
                 <p className="font-body text-sm font-semibold text-[#1A1A2E]">{reviewCourse.title}</p>
@@ -283,7 +242,7 @@ export default function ReturnStudentApplyForm({
                 checked={Boolean(formData.infoConfirmed)}
                 onChange={(e) => patchForm({ infoConfirmed: e.target.checked })}
               />
-              <span>I confirm the information and documents provided are accurate.</span>
+              <span>I confirm the information provided is accurate.</span>
             </label>
             {showValidation && fieldErrors.infoConfirmed && (
               <p className="mt-2 text-sm text-red-600">{fieldErrors.infoConfirmed}</p>

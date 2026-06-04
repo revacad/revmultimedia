@@ -3,7 +3,9 @@ import ApplicationDetailView from '@/components/admin/applications/ApplicationDe
 import { requireStaffAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapApplicationDetail } from '@/lib/applications/map'
+import { findSameIntakeActiveEnrollment } from '@/lib/portal/same-intake-active-enrollment'
 import { getPrivateR2PresignedUrl } from '@/lib/r2/private-object-url'
+import type { AdminReviewBanner } from '@/components/admin/applications/ApplicationDetailView'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,21 +45,58 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     notFound()
   }
 
-  const { data: studentRow } = await supabase
+  const mapped = mapApplicationDetail(application as Record<string, unknown>)
+
+  const { data: studentByApplication } = await supabase
     .from('students')
-    .select('id, profile_photo_r2_key')
+    .select('id, student_id, profile_photo_r2_key')
     .eq('application_id', id)
     .maybeSingle()
 
+  let returningStudent: { id: string; student_id: string } | null = null
+  const returningStudentId = (application as { returning_student_id?: string | null })
+    .returning_student_id
+  if (returningStudentId) {
+    const { data } = await supabase
+      .from('students')
+      .select('id, student_id')
+      .eq('id', returningStudentId)
+      .maybeSingle()
+    returningStudent = data
+  }
+
   const profilePhotoUrl = await getPrivateR2PresignedUrl(
-    studentRow?.profile_photo_r2_key as string | null,
+    studentByApplication?.profile_photo_r2_key as string | null,
   )
+
+  let adminReviewBanner: AdminReviewBanner | null = null
+  if (mapped.requires_admin_review && mapped.intakes?.id) {
+    const studentDbId = returningStudent?.id ?? studentByApplication?.id
+    const studentId =
+      returningStudent?.student_id ?? studentByApplication?.student_id ?? null
+
+    if (studentDbId) {
+      const conflict = await findSameIntakeActiveEnrollment(
+        supabase,
+        studentDbId,
+        mapped.intakes.id,
+      )
+      if (conflict && studentId) {
+        adminReviewBanner = {
+          studentId,
+          existingCourseTitle: conflict.existingCourseTitle,
+          intakeName: conflict.intakeName,
+        }
+      }
+    }
+  }
 
   return (
     <ApplicationDetailView
-      application={mapApplicationDetail(application as Record<string, unknown>)}
-      hasStudentRecord={Boolean(studentRow)}
+      application={mapped}
+      hasStudentRecord={Boolean(studentByApplication)}
       profilePhotoUrl={profilePhotoUrl}
+      adminReviewBanner={adminReviewBanner}
     />
   )
 }

@@ -197,7 +197,14 @@ export default function ApplicationsPageClient({
                       {app.country}
                     </td>
                     <td className="px-4 py-4">
-                      <ApplicationStatusBadge status={app.status} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ApplicationStatusBadge status={app.status} />
+                        {app.requires_admin_review && (
+                          <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 font-body text-[11px] font-semibold text-amber-950">
+                            Review Required
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       {app.app_fee_paid ? (

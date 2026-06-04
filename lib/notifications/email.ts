@@ -9,6 +9,7 @@ import {
   bodyParagraphHtml,
   buildEmailHtml,
   detailsCard,
+  emailAppUrl,
   emailSubject,
   messageQuoteBlock,
   otpCodeBlock,
@@ -32,14 +33,6 @@ const adminEmail =
   process.env.RESEND_ADMIN_EMAIL ?? 'admin@revmultimedia.com'
 const contactAdminEmail =
   process.env.CONTACT_ADMIN_EMAIL?.trim() || 'godfredkojoappiah@gmail.com'
-
-function appUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ??
-    'http://localhost:3000'
-  )
-}
 
 function formatInvoiceDate(d: string): string {
   if (!d) return '-'
@@ -218,7 +211,7 @@ export async function sendApplicationReceivedEmail(
     ].join(''),
     ctaButton: {
       label: `Pay Application Fee: GHS ${feeLabel}`,
-      url: `${appUrl()}/portal/application`,
+      url: `${emailAppUrl()}/portal/application`,
     },
     ctaNote: `Save your reference ${data.reference} — you will need it to log in.`,
   })
@@ -299,7 +292,7 @@ export async function sendStatusChangedEmail(
     ].join(''),
     ctaButton: {
       label: 'View your portal',
-      url: `${appUrl()}/portal/application`,
+      url: `${emailAppUrl()}/portal/application`,
     },
   })
 }
@@ -319,7 +312,7 @@ export async function sendAppFeeInvoiceEmail(
 ): Promise<void> {
   const badgeLabel = 'Invoice'
   const title = 'Your application fee invoice'
-  const portalUrl = `${appUrl()}/portal/application`
+  const portalUrl = `${emailAppUrl()}/portal/application`
 
   await sendTemplateEmail(to, {
     recipientName: data.name,
@@ -418,7 +411,7 @@ export async function sendInvoiceReadyEmail(
     bodyHtml: bodyParts.join(''),
     ctaButton: data.pdfUrl
       ? { label: 'Download invoice PDF', url: data.pdfUrl }
-      : { label: 'View invoices in portal', url: `${appUrl()}/portal/invoices` },
+      : { label: 'View invoices in portal', url: `${emailAppUrl()}/portal/invoices` },
     ctaNote: data.pdfUrl ? 'PDF link expires in 24 hours.' : undefined,
   })
 }
@@ -474,7 +467,7 @@ export async function sendPaymentConfirmedEmail(
     ].join(''),
     ctaButton: {
       label: enrolled ? 'Go to student portal' : 'View my portal',
-      url: enrolled ? `${appUrl()}/portal/dashboard` : `${appUrl()}/portal/application`,
+      url: enrolled ? `${emailAppUrl()}/portal/dashboard` : `${emailAppUrl()}/portal/application`,
     },
   })
 }
@@ -671,7 +664,7 @@ export async function sendWaitlistNotificationEmail(
     ].join(''),
     ctaButton: {
       label: 'Log in to Portal',
-      url: `${appUrl()}/portal/application`,
+      url: `${emailAppUrl()}/portal/application`,
     },
   })
 }
@@ -989,7 +982,7 @@ export async function sendPaymentReceiptEmail(
     ].join(''),
     ctaButton: data.receiptPdfUrl
       ? { label: 'Download receipt PDF', url: data.receiptPdfUrl }
-      : { label: 'View my invoices', url: `${appUrl()}/portal/invoices` },
+      : { label: 'View my invoices', url: `${emailAppUrl()}/portal/invoices` },
     ctaNote: data.receiptPdfUrl ? 'Receipt link expires in 7 days.' : undefined,
   })
 }
@@ -1011,9 +1004,56 @@ export async function sendCertificateUploaded(
     ].join(''),
     ctaButton: {
       label: 'Download certificate',
-      url: `${appUrl()}/portal/resources`,
+      url: `${emailAppUrl()}/portal/resources`,
     },
   })
+}
+
+export async function sendSameIntakeAdminReviewRequiredEmail(params: {
+  studentId: string
+  studentName: string
+  reference: string
+  applicationId: string
+  existingCourseTitle: string
+  intakeName: string
+  newCourseTitle: string
+}): Promise<void> {
+  const settings = await getSystemSettings()
+  const to =
+    settings.academy_email?.trim() || adminEmail
+
+  await sendHtmlEmail(
+    to,
+    'Admin Review Required - Same Intake Application',
+    buildEmailHtml({
+      recipientName: 'Team',
+      badgeLabel: 'Admin Review Required',
+      title: 'Same-intake application needs review',
+      contact: resolveEmailContactFooter(settings),
+      bodyHtml: [
+        bodyParagraph(
+          'A returning student submitted a new application for a course in an intake where they already have an active enrollment. Please verify before accepting — some courses cannot be taken simultaneously.',
+        ),
+        detailsCard([
+          { label: 'Student ID', value: params.studentId },
+          { label: 'Student name', value: params.studentName },
+          { label: 'Application reference', value: params.reference },
+          {
+            label: 'Current active enrollment',
+            value: `${params.existingCourseTitle} (${params.intakeName} intake)`,
+          },
+          { label: 'New course applied for', value: params.newCourseTitle },
+        ]),
+        warningCard(
+          'This application was set to Under Review automatically. Accepting it is still allowed after you verify the enrollment is appropriate.',
+        ),
+      ].join(''),
+      ctaButton: {
+        label: 'Review application',
+        url: `${emailAppUrl()}/admin/applications/${params.applicationId}`,
+      },
+    }),
+  )
 }
 
 export async function sendAdminNewApplication(params: {
@@ -1035,7 +1075,7 @@ export async function sendAdminNewApplication(params: {
     ].join(''),
     ctaButton: {
       label: 'Review in admin',
-      url: `${appUrl()}/admin/applications`,
+      url: `${emailAppUrl()}/admin/applications`,
     },
   })
 }
@@ -1088,7 +1128,7 @@ export async function sendDeletionRequestAdminAlert(data: {
     ].join(''),
     ctaButton: {
       label: 'Review in admin',
-      url: `${appUrl()}/admin/compliance`,
+      url: `${emailAppUrl()}/admin/compliance`,
     },
   })
 }

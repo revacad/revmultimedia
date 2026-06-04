@@ -1,5 +1,24 @@
 import { escapeHtml } from '@/lib/security/escape-html'
 
+/** Rev Multimedia primary brand pink */
+export const BRAND_PINK = '#E8007D'
+
+const BRAND_LOGO_HTML = `<table role="presentation" cellspacing="0" cellpadding="0" border="0">
+  <tr>
+    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#E8007D;font-size:0;line-height:0;">&nbsp;</td>
+    <td width="4">&nbsp;</td>
+    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#F5A800;font-size:0;line-height:0;">&nbsp;</td>
+  </tr>
+  <tr><td colspan="3" height="4" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr>
+    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#00B5B5;font-size:0;line-height:0;">&nbsp;</td>
+    <td width="4">&nbsp;</td>
+    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#7B2D8B;font-size:0;line-height:0;">&nbsp;</td>
+  </tr>
+</table>`
+
+const ACCENT_GRADIENT_RULE = `<tr><td height="3" style="height:3px;background:linear-gradient(to right,#E8007D,#F5A800,#00B5B5,#7B2D8B);font-size:0;line-height:0;">&nbsp;</td></tr>`
+
 export type EmailContactDetails = {
   email: string
   website: string
@@ -19,12 +38,19 @@ export interface EmailTemplateOptions {
   contact?: EmailContactDetails
 }
 
+/** Base URL for portal/admin links in emails (from env; never hardcoded per environment). */
+export function emailAppUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ??
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+  if (raw) return raw
+  return 'http://localhost:3000'
+}
+
 export function resolveEmailContactFooter(
   settings?: Record<string, string>,
 ): EmailContactDetails {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+  const siteUrl = emailAppUrl()
 
   let website = settings?.academy_website?.trim()
   if (!website && siteUrl) {
@@ -54,8 +80,8 @@ export function emailSubject(badgeLabel: string, title: string): string {
 }
 
 export function buildEmailHtml(opts: EmailTemplateOptions): string {
-  const accent = opts.accentColor ?? '#e63946'
-  const badge = opts.badgeColor ?? accent
+  const accent = opts.accentColor ?? BRAND_PINK
+  const badge = opts.badgeColor ?? BRAND_PINK
   const contact = opts.contact ?? resolveEmailContactFooter()
   const safeName = escapeHtml(opts.recipientName)
   const safeTitle = escapeHtml(opts.title)
@@ -79,6 +105,7 @@ export function buildEmailHtml(opts: EmailTemplateOptions): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <title>${safeTitle}</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Plus Jakarta Sans',Arial,sans-serif;">
@@ -93,82 +120,58 @@ export function buildEmailHtml(opts: EmailTemplateOptions): string {
 <td>
 <table role="presentation" cellspacing="0" cellpadding="0" border="0">
 <tr>
-<td style="padding-right:10px;">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:24px;">
-<tr>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};"></td>
-<td style="width:2px;"></td>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};"></td>
-<td style="width:2px;"></td>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};"></td>
-</tr>
-<tr><td colspan="5" style="height:3px;"></td></tr>
-<tr>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};opacity:0.6;"></td>
-<td style="width:2px;"></td>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};opacity:0.6;"></td>
-<td style="width:2px;"></td>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};opacity:0.6;"></td>
-</tr>
-<tr><td colspan="5" style="height:3px;"></td></tr>
-<tr>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};opacity:0.3;"></td>
-<td style="width:2px;"></td>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};opacity:0.3;"></td>
-<td style="width:2px;"></td>
-<td style="width:6px;height:6px;border-radius:50%;background:${accent};opacity:0.3;"></td>
-</tr>
-</table>
+<td style="padding-right:10px;vertical-align:middle;">
+${BRAND_LOGO_HTML}
 </td>
-<td>
-<div style="color:#ffffff;font-weight:700;font-size:15px;">Rev Multimedia</div>
-<div style="color:#888888;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;">Creative Education</div>
+<td style="vertical-align:middle;">
+<div style="color:#ffffff;font-weight:700;font-size:15px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Rev Multimedia</div>
+<div style="color:#888888;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Creative Education</div>
 </td>
 </tr>
 </table>
 </td>
-<td align="right">
-<span style="background:${badge};color:#ffffff;font-size:10px;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600;">${safeBadge}</span>
+<td align="right" style="vertical-align:middle;">
+<span style="background:${badge};color:#ffffff;font-size:10px;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${safeBadge}</span>
 </td>
 </tr>
 </table>
 </td></tr>
 
 <!-- ACCENT RULE -->
-<tr><td style="height:3px;background:${accent};font-size:0;line-height:0;">&nbsp;</td></tr>
+${ACCENT_GRADIENT_RULE}
 
 <!-- BODY -->
 <tr><td style="padding:32px 28px 24px;">
-<p style="margin:0 0 6px;font-size:13px;color:#888888;">Hi ${safeName},</p>
-<h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.3;">${safeTitle}</h1>
+<p style="margin:0 0 6px;font-size:13px;color:#888888;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Hi ${safeName},</p>
+<h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.3;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${safeTitle}</h1>
 ${opts.bodyHtml}
 ${
   opts.ctaButton
     ? `
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 0;">
 <tr><td align="center">
-<a href="${safeCtaUrl}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:600;letter-spacing:0.3px;">${safeCtaLabel}</a>
-${opts.ctaNote ? `<p style="margin:10px 0 0;font-size:12px;color:#999999;">${safeCtaNote}</p>` : ''}
+<a href="${safeCtaUrl}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:100px;font-size:15px;font-weight:600;letter-spacing:0.3px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${safeCtaLabel}</a>
+${opts.ctaNote ? `<p style="margin:10px 0 0;font-size:12px;color:#999999;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${safeCtaNote}</p>` : ''}
 </td></tr>
 </table>`
     : ''
 }
-${opts.footerNote ? `<p style="margin:24px 0 0;font-size:12px;color:#999999;line-height:1.6;">${safeFooterNote}</p>` : ''}
+${opts.footerNote ? `<p style="margin:24px 0 0;font-size:12px;color:#999999;line-height:1.6;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${safeFooterNote}</p>` : ''}
 </td></tr>
 
 <!-- FOOTER -->
 <tr><td style="background:#1a1a2e;padding:16px 28px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 <tr>
-<td style="color:#666666;font-size:11px;">${contactEmail}</td>
-<td align="center" style="color:#666666;font-size:11px;"><a href="${websiteHref}" style="color:#666666;text-decoration:none;">${websiteDisplay}</a></td>
-<td align="right" style="color:#666666;font-size:11px;">${contactPhone}</td>
+<td style="color:#666666;font-size:11px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${contactEmail}</td>
+<td align="center" style="color:#666666;font-size:11px;font-family:'Plus Jakarta Sans',Arial,sans-serif;"><a href="${websiteHref}" style="color:#666666;text-decoration:none;">${websiteDisplay}</a></td>
+<td align="right" style="color:#666666;font-size:11px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${contactPhone}</td>
 </tr>
 </table>
 </td></tr>
 <tr><td style="background:#1a1a2e;padding:0 28px 16px;text-align:center;">
-<p style="margin:0;color:#444444;font-size:10px;">© ${new Date().getFullYear()} Rev Multimedia · Weija, Greater Accra, Ghana</p>
-<p style="margin:4px 0 0;color:#444444;font-size:10px;">You are receiving this because you have an account or application with Rev Multimedia.</p>
+<p style="margin:0;color:#444444;font-size:10px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">© ${new Date().getFullYear()} Rev Multimedia · Weija, Greater Accra, Ghana</p>
+<p style="margin:4px 0 0;color:#444444;font-size:10px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">You are receiving this because you have an account or application with Rev Multimedia.</p>
 </td></tr>
 
 </table>
@@ -180,11 +183,11 @@ ${opts.footerNote ? `<p style="margin:24px 0 0;font-size:12px;color:#999999;line
 
 export function detailsCard(
   rows: { label: string; value: string }[],
-  accentColor = '#e63946',
+  accentColor = BRAND_PINK,
 ): string {
   return `<div style="background:#f7f7f7;border-left:3px solid ${accentColor};border-radius:0 6px 6px 0;padding:14px 16px;margin:16px 0 20px;">
-  <div style="font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Details</div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:13px;">
+  <div style="font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Details</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:13px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">
   ${rows
     .map(
       (r) =>
@@ -196,47 +199,47 @@ export function detailsCard(
 }
 
 export function bodyParagraph(text: string): string {
-  return `<p style="margin:0 0 16px;font-size:15px;color:#444444;line-height:1.7;">${escapeHtml(text)}</p>`
+  return `<p style="margin:0 0 16px;font-size:15px;color:#444444;line-height:1.7;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${escapeHtml(text)}</p>`
 }
 
 export function bodyParagraphHtml(html: string): string {
-  return `<p style="margin:0 0 16px;font-size:15px;color:#444444;line-height:1.7;">${html}</p>`
+  return `<p style="margin:0 0 16px;font-size:15px;color:#444444;line-height:1.7;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${html}</p>`
 }
 
 export function warningCard(text: string): string {
-  return `<div style="background:#fff8f0;border-left:3px solid #f5a623;border-radius:0 6px 6px 0;padding:12px 16px;margin:16px 0 20px;font-size:13px;color:#8a5a00;">${escapeHtml(text)}</div>`
+  return `<div style="background:#fff8f0;border-left:3px solid #f5a623;border-radius:0 6px 6px 0;padding:12px 16px;margin:16px 0 20px;font-size:13px;color:#8a5a00;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${escapeHtml(text)}</div>`
 }
 
 export function successCard(text: string): string {
-  return `<div style="background:#f0faf5;border-left:3px solid #2ecc71;border-radius:0 6px 6px 0;padding:12px 16px;margin:16px 0 20px;font-size:13px;color:#1a6b3a;">${escapeHtml(text)}</div>`
+  return `<div style="background:#f0faf5;border-left:3px solid #2ecc71;border-radius:0 6px 6px 0;padding:12px 16px;margin:16px 0 20px;font-size:13px;color:#1a6b3a;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${escapeHtml(text)}</div>`
 }
 
 export function otpCodeBlock(code: string): string {
   const safeCode = escapeHtml(code)
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:8px 0 20px;">
 <tr><td style="background:#f7f7f7;border:1px solid #e0e0e0;border-radius:8px;padding:28px;text-align:center;">
-<p style="margin:0 0 8px;font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:0.8px;">Verification code</p>
-<p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:700;color:#e63946;letter-spacing:10px;line-height:1.2;">${safeCode}</p>
-<p style="margin:14px 0 0;font-size:12px;color:#999999;">Valid for 10 minutes</p>
+<p style="margin:0 0 8px;font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:0.8px;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Verification code</p>
+<p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:700;color:${BRAND_PINK};letter-spacing:10px;line-height:1.2;">${safeCode}</p>
+<p style="margin:14px 0 0;font-size:12px;color:#999999;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Valid for 10 minutes</p>
 </td></tr>
 </table>`
 }
 
 export function amountDueBlock(amountGhs: number, dueDate?: string): string {
   const dueLine = dueDate
-    ? `<p style="margin:8px 0 0;font-size:13px;color:#888888;">Due ${escapeHtml(dueDate)}</p>`
+    ? `<p style="margin:8px 0 0;font-size:13px;color:#888888;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Due ${escapeHtml(dueDate)}</p>`
     : ''
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:8px 0 16px;">
 <tr><td style="background:#1a1a2e;border-radius:8px;padding:24px;text-align:center;">
-<p style="margin:0 0 4px;font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.08em;">Amount due</p>
-<p style="margin:0;font-size:32px;font-weight:700;color:#e63946;">GHS ${escapeHtml(amountGhs.toFixed(2))}</p>
+<p style="margin:0 0 4px;font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.08em;font-family:'Plus Jakarta Sans',Arial,sans-serif;">Amount due</p>
+<p style="margin:0;font-size:32px;font-weight:700;color:${BRAND_PINK};font-family:'Plus Jakarta Sans',Arial,sans-serif;">GHS ${escapeHtml(amountGhs.toFixed(2))}</p>
 ${dueLine}
 </td></tr>
 </table>`
 }
 
 export function messageQuoteBlock(message: string): string {
-  return `<div style="background:#f7f7f7;border-left:3px solid #e63946;border-radius:0 6px 6px 0;padding:14px 16px;margin:16px 0 20px;">
-<p style="margin:0;font-size:14px;color:#444444;line-height:1.7;white-space:pre-wrap;">${escapeHtml(message)}</p>
+  return `<div style="background:#f7f7f7;border-left:3px solid ${BRAND_PINK};border-radius:0 6px 6px 0;padding:14px 16px;margin:16px 0 20px;">
+<p style="margin:0;font-size:14px;color:#444444;line-height:1.7;white-space:pre-wrap;font-family:'Plus Jakarta Sans',Arial,sans-serif;">${escapeHtml(message)}</p>
 </div>`
 }
