@@ -1,5 +1,7 @@
+import AccountsWhatsAppNotifyLink from '@/components/portal/AccountsWhatsAppNotifyLink'
 import CopyButton from '@/components/portal/CopyButton'
 import { hasManualPaymentDetails } from '@/lib/portal/payment-details'
+import { accountsWhatsAppWaMeUrl } from '@/lib/settings/accounts-whatsapp'
 import { momoPaymentHeading } from '@/lib/settings/momo-provider'
 import { WHATSAPP_SUPPORT_URL } from '@/lib/support/whatsapp'
 
@@ -29,6 +31,7 @@ export default function PaymentInstructions({
   invoiceReference,
 }: PaymentInstructionsProps) {
   if (!hasManualPaymentDetails(settings)) {
+    const accountsWaUrl = accountsWhatsAppWaMeUrl(settings.accounts_whatsapp_number)
     return (
       <div className="mt-4 rounded-lg border border-[#F5E6C8] bg-[#FFFBF0] p-4">
         <div className="flex gap-3">
@@ -38,14 +41,18 @@ export default function PaymentInstructions({
               Payment details are not yet configured. Please contact us directly to arrange your
               payment.
             </p>
-            <a
-              href={WHATSAPP_SUPPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex font-body text-sm font-semibold text-[#1E9990] hover:underline"
-            >
-              Chat on WhatsApp
-            </a>
+            {accountsWaUrl ? (
+              <AccountsWhatsAppNotifyLink settings={settings} className="mt-3 inline-flex" />
+            ) : (
+              <a
+                href={WHATSAPP_SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex font-body text-sm font-semibold text-[#1E9990] hover:underline"
+              >
+                Chat on WhatsApp
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -94,6 +101,7 @@ export default function PaymentInstructions({
           </div>
         )}
       </div>
+      <AccountsWhatsAppNotifyLink settings={settings} />
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import AccountsWhatsAppNotifyLink from '@/components/portal/AccountsWhatsAppNotifyLink'
 import CopyButton from '@/components/portal/CopyButton'
 import { momoPaymentHeading } from '@/lib/settings/momo-provider'
 
@@ -61,6 +62,7 @@ export default function PortalInvoicePaymentCard({
           )}
         </section>
       )}
+      <AccountsWhatsAppNotifyLink settings={settings} />
     </div>
   )
 }

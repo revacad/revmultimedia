@@ -34,7 +34,14 @@ export const SETTINGS_TABS = [
     id: 'academy',
     title: 'Organisation Info',
     sections: [
-      { keys: ['academy_email', 'academy_phone', 'academy_address'] as const },
+      {
+        keys: [
+          'academy_email',
+          'academy_phone',
+          'accounts_whatsapp_number',
+          'academy_address',
+        ] as const,
+      },
       {
         title: 'Enrollment letter',
         keys: [
@@ -94,6 +101,7 @@ export const SETTINGS_LABELS: Record<string, string> = {
   bank_iban: 'IBAN',
   academy_email: 'Contact Email',
   academy_phone: 'Contact Phone',
+  accounts_whatsapp_number: 'Accounts WhatsApp Number',
   academy_address: 'Address',
   enrollment_letter_signatory_name: 'Signatory name (printed on PDF)',
   enrollment_letter_signatory_title: 'Signatory title',
@@ -104,6 +112,8 @@ export const SETTINGS_HELPERS: Record<string, string> = {
     'When enabled, students can pay application fees online via Paystack. Disable to accept manual payments only.',
   application_deadline_message:
     'Shown on the home page. Leave blank to hide.',
+  accounts_whatsapp_number:
+    'Students will be directed to this number when making manual payments.',
   enrollment_letter_signatory_name:
     'Shown under the signature on enrollment letters.',
   enrollment_letter_signatory_title:

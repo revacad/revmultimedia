@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
-import { adminLogout, logoutAllAdminDevices } from '@/actions/auth'
 import AdminSearchBar from '@/components/admin/AdminSearchBar'
 import { getAdminPageTitle } from '@/lib/admin/page-titles'
 
@@ -33,23 +32,6 @@ export default function AdminTopBar({ adminName, onMenuClick }: AdminTopBarProps
       <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-4">
         <AdminSearchBar />
         <span className="hidden font-body text-sm text-[#5A5A7A] sm:inline">{adminName}</span>
-        <form action={adminLogout} className="inline">
-          <button
-            type="submit"
-            className="font-body text-sm font-semibold text-primary hover:text-[#9E3068]"
-          >
-            Sign out
-          </button>
-        </form>
-        <form action={logoutAllAdminDevices} className="hidden sm:inline">
-          <button
-            type="submit"
-            title="Revoke sessions on all devices"
-            className="font-body text-xs text-[#9898B8] hover:text-[#5A5A7A]"
-          >
-            All devices
-          </button>
-        </form>
       </div>
     </header>
   )

@@ -257,13 +257,6 @@ export default function PaymentDetailView({ invoice, viewerRole }: PaymentDetail
                 </Link>
               )}
               <ResendInvoiceButton invoiceId={invoice.id} />
-              <button
-                type="button"
-                disabled
-                className="rounded-full border-2 border-gray-200 bg-surface-2 px-5 py-2.5 text-left font-body text-sm font-semibold text-gray-400"
-              >
-                Download Invoice PDF (coming soon)
-              </button>
             </div>
           </section>
         </aside>

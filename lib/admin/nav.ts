@@ -89,9 +89,6 @@ export function filterGroupsForRole(role: AdminRole): NavGroup[] {
       if (group.label === 'System') return role === 'superadmin'
       if (group.label === 'Overview') return true
       if (group.label === 'Finance') return hasFinanceAccess(role)
-      if (group.label === 'Admissions' && link.href === '/admin/students') {
-        return hasFinanceAccess(role)
-      }
       if (hasFinanceAccess(role) && !isStaffAdmin(role)) {
         if (link.href === '/admin/communications/logs') return true
         return false
