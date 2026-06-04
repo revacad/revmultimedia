@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useMemo, useState } from 'react'
+import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import { formatPaymentDateTime } from '@/lib/payments/format'
 
 export type AuditLogRow = {
@@ -42,12 +43,18 @@ interface AuditLogPageClientProps {
   logs: AuditLogRow[]
   admins: AdminOption[]
   actionTypes: string[]
+  currentPage: number
+  totalCount: number
+  pageSize: number
 }
 
 export default function AuditLogPageClient({
   logs,
   admins,
   actionTypes,
+  currentPage,
+  totalCount,
+  pageSize,
 }: AuditLogPageClientProps) {
   const [actionFilter, setActionFilter] = useState('')
   const [adminFilter, setAdminFilter] = useState('')
@@ -155,6 +162,13 @@ export default function AuditLogPageClient({
         </div>
       </div>
 
+      <PaginationSummary
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        className="mb-4"
+      />
+
       <section className="overflow-x-auto rounded-xl bg-white shadow-card">
         <table className="w-full min-w-[800px] text-left font-body text-sm">
           <thead>
@@ -225,6 +239,12 @@ export default function AuditLogPageClient({
           </tbody>
         </table>
       </section>
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        className="mt-6"
+      />
     </div>
   )
 }

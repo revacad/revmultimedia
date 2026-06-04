@@ -13,9 +13,27 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 }
 
 export function mapPaymentListRow(row: Record<string, unknown>): PaymentListRow {
-  const applications = firstRelation(
-    row.applications as PaymentListRow['applications'] | PaymentListRow['applications'][] | null,
+  const applicationsRaw = firstRelation(
+    row.applications as Record<string, unknown> | Record<string, unknown>[] | null,
   )
+  const applications = applicationsRaw
+    ? {
+        id: applicationsRaw.id as string,
+        reference: applicationsRaw.reference as string,
+        full_name: applicationsRaw.full_name as string,
+        real_email: applicationsRaw.real_email as string,
+        country: applicationsRaw.country as string,
+        courses: firstRelation(
+          applicationsRaw.courses as { title: string } | { title: string }[] | null,
+        ),
+        students: firstRelation(
+          applicationsRaw.students as
+            | { full_name: string; student_id: string }
+            | { full_name: string; student_id: string }[]
+            | null,
+        ),
+      }
+    : null
   const admins = firstRelation(
     row.admins as PaymentListRow['admins'] | PaymentListRow['admins'][] | null,
   )

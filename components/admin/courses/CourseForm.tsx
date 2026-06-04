@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
 import {
   AdminFormCard,
@@ -23,12 +23,90 @@ interface CourseFormProps {
   course?: Course
 }
 
+const FORM_ID = 'course-form'
+
+function blurNumberInputOnWheel(e: React.WheelEvent<HTMLInputElement>) {
+  e.currentTarget.blur()
+}
+
+function CourseSaveButton({
+  isEditing,
+  isSubmitting,
+  disabled,
+  label,
+}: {
+  isEditing: boolean
+  isSubmitting: boolean
+  disabled: boolean
+  label?: string
+}) {
+  const buttonLabel =
+    label ??
+    (isSubmitting
+      ? isEditing
+        ? 'Saving...'
+        : 'Creating...'
+      : isEditing
+        ? 'Save course'
+        : 'Create Course')
+
+  return (
+    <button
+      type="submit"
+      form={FORM_ID}
+      disabled={disabled}
+      style={{
+        backgroundColor: isSubmitting ? '#9E3068' : '#C74A86',
+        color: 'white',
+        border: 'none',
+        padding: '14px 32px',
+        borderRadius: '9999px',
+        fontFamily: 'DM Sans, sans-serif',
+        fontSize: '15px',
+        fontWeight: 600,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        opacity: isSubmitting ? 0.8 : 1,
+        transition: 'all 0.2s ease',
+        width: 'fit-content',
+        flexShrink: 0,
+      }}
+    >
+      {isSubmitting && (
+        <div
+          style={{
+            width: '16px',
+            height: '16px',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderTop: '2px solid white',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+      )}
+      {isSubmitting
+        ? isEditing
+          ? label?.includes('Update')
+            ? 'Updating...'
+            : 'Saving...'
+          : 'Creating...'
+        : buttonLabel}
+    </button>
+  )
+}
+
 export default function CourseForm({ course }: CourseFormProps) {
   const router = useRouter()
+  const params = useParams()
   const isEditing = Boolean(course)
+  const courseId =
+    course?.id ?? (typeof params?.id === 'string' ? params.id : undefined)
   const thumbnailInputRef = useRef<HTMLInputElement>(null)
 
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [curriculumHtmlValue, setCurriculumHtmlValue] = useState(() =>
     curriculumHtml(course?.curriculum ?? null),
@@ -50,10 +128,17 @@ export default function CourseForm({ course }: CourseFormProps) {
   const [instructorPhotoError, setInstructorPhotoError] = useState<string | null>(null)
   const [isUploadingInstructorPhoto, setIsUploadingInstructorPhoto] = useState(false)
 
-  const canUploadImages = Boolean(course?.id)
+  const canUploadCurriculumImages = Boolean(courseId)
+  const canUploadInstructorPhoto = Boolean(courseId)
+
+  useEffect(() => {
+    if (!successMessage) return
+    const timer = window.setTimeout(() => setSuccessMessage(null), 3000)
+    return () => window.clearTimeout(timer)
+  }, [successMessage])
 
   async function handleCurriculumImageUpload(file: File): Promise<string> {
-    if (!course?.id) {
+    if (!courseId) {
       throw new Error('Save the course first')
     }
     const res = await fetch('/api/r2/presign', {
@@ -64,7 +149,7 @@ export default function CourseForm({ course }: CourseFormProps) {
         fileType: file.type,
         fileSize: file.size,
         uploadContext: 'course_content',
-        courseId: course.id,
+        courseId,
       }),
     })
     if (!res.ok) {
@@ -78,7 +163,7 @@ export default function CourseForm({ course }: CourseFormProps) {
     const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
     await uploadFileToR2ViaServer(file, key, {
       type: 'course_content',
-      courseId: course.id,
+      courseId,
     })
     return publicUrl
   }
@@ -112,7 +197,7 @@ export default function CourseForm({ course }: CourseFormProps) {
           fileType: file.type,
           fileSize: file.size,
           uploadContext: 'course_thumbnail',
-          ...(course?.id ? { courseId: course.id } : {}),
+          ...(courseId ? { courseId } : {}),
         }),
       })
 
@@ -126,7 +211,7 @@ export default function CourseForm({ course }: CourseFormProps) {
       const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
       await uploadFileToR2ViaServer(file, key, {
         type: 'course_thumbnail',
-        ...(course?.id ? { courseId: course.id } : {}),
+        ...(courseId ? { courseId } : {}),
       })
 
       const preview = await presignCourseMediaForPreview(key)
@@ -148,7 +233,7 @@ export default function CourseForm({ course }: CourseFormProps) {
 
   const handleInstructorPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !course?.id) return
+    if (!file || !courseId) return
 
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setInstructorPhotoError('Please upload a JPG, PNG or WebP image')
@@ -171,7 +256,7 @@ export default function CourseForm({ course }: CourseFormProps) {
           fileType: file.type,
           fileSize: file.size,
           uploadContext: 'course_instructor_photo',
-          courseId: course.id,
+          courseId,
         }),
       })
 
@@ -185,7 +270,7 @@ export default function CourseForm({ course }: CourseFormProps) {
       const { uploadFileToR2ViaServer } = await import('@/lib/r2/client-upload')
       await uploadFileToR2ViaServer(file, key, {
         type: 'course_instructor_photo',
-        courseId: course.id,
+        courseId,
       })
 
       const preview = await presignCourseMediaForPreview(key)
@@ -205,6 +290,7 @@ export default function CourseForm({ course }: CourseFormProps) {
     e.preventDefault()
     setIsSubmitting(true)
     setError(null)
+    setSuccessMessage(null)
 
     const formData = new FormData(e.currentTarget)
     formData.set('curriculum_html', curriculumHtmlValue)
@@ -222,6 +308,7 @@ export default function CourseForm({ course }: CourseFormProps) {
       }
 
       if (course) {
+        setSuccessMessage('Course saved successfully.')
         router.refresh()
       } else if (result.data?.id) {
         router.push(`/admin/courses/${result.data.id}`)
@@ -231,10 +318,46 @@ export default function CourseForm({ course }: CourseFormProps) {
     }
   }
 
+  const submitDisabled = isSubmitting || Boolean(videoUrlError)
+
   return (
-    <AdminFormCard>
-      <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col">
-        {error && (
+    <>
+      {isEditing && course ? (
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="mb-2 font-display text-3xl font-bold text-dark">Edit course</h1>
+            <p className="text-sm text-gray-600">{course.title}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {successMessage && (
+              <p
+                role="status"
+                className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700"
+              >
+                {successMessage}
+              </p>
+            )}
+            {error && (
+              <p
+                role="alert"
+                className="max-w-sm rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600"
+              >
+                {error}
+              </p>
+            )}
+            <CourseSaveButton
+              isEditing={isEditing}
+              isSubmitting={isSubmitting}
+              disabled={submitDisabled}
+              label="Save course"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <AdminFormCard>
+      <form id={FORM_ID} onSubmit={(e) => void handleSubmit(e)} className="flex flex-col">
+        {!isEditing && error && (
           <p className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </p>
@@ -327,12 +450,14 @@ export default function CourseForm({ course }: CourseFormProps) {
                 <RichTextEditor
                   content={curriculumHtmlValue}
                   onChange={setCurriculumHtmlValue}
-                  onImageUpload={canUploadImages ? handleCurriculumImageUpload : undefined}
+                  onImageUpload={
+                    canUploadCurriculumImages ? handleCurriculumImageUpload : undefined
+                  }
                   placeholder="Describe the course curriculum..."
                   minHeight={200}
                 />
               </div>
-              {!canUploadImages && (
+              {!canUploadCurriculumImages && (
                 <p className="mt-2 font-body text-xs text-[#9898B8]">
                   Save the course first to enable image uploads in the curriculum editor.
                 </p>
@@ -554,11 +679,7 @@ export default function CourseForm({ course }: CourseFormProps) {
                 style={{ display: 'none' }}
                 onChange={(ev) => void handleInstructorPhotoChange(ev)}
               />
-              {!canUploadImages ? (
-                <p className="font-body text-xs text-[#9898B8]">
-                  Save the course first to upload an instructor photo.
-                </p>
-              ) : (
+              {canUploadInstructorPhoto ? (
                 <button
                   type="button"
                   onClick={handleInstructorPhotoClick}
@@ -571,6 +692,10 @@ export default function CourseForm({ course }: CourseFormProps) {
                       ? 'Change instructor photo'
                       : 'Upload instructor photo'}
                 </button>
+              ) : (
+                <p className="font-body text-xs text-[#9898B8]">
+                  Save the course first to upload an instructor photo.
+                </p>
               )}
               {instructorPhotoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -602,6 +727,7 @@ export default function CourseForm({ course }: CourseFormProps) {
                 step="0.01"
                 className={adminFieldClassName}
                 defaultValue={course?.tuition_fee_ghs ?? ''}
+                onWheel={blurNumberInputOnWheel}
                 required
               />
             </div>
@@ -614,6 +740,7 @@ export default function CourseForm({ course }: CourseFormProps) {
                 min="1"
                 className={adminFieldClassName}
                 defaultValue={course?.max_slots ?? 20}
+                onWheel={blurNumberInputOnWheel}
                 required
               />
             </div>
@@ -629,49 +756,32 @@ export default function CourseForm({ course }: CourseFormProps) {
           />
         </AdminFormSection>
 
-        <button
-          type="submit"
-          disabled={isSubmitting || Boolean(videoUrlError)}
-          style={{
-            backgroundColor: isSubmitting ? '#9E3068' : '#C74A86',
-            color: 'white',
-            border: 'none',
-            padding: '14px 32px',
-            borderRadius: '9999px',
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '15px',
-            fontWeight: 600,
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            opacity: isSubmitting ? 0.8 : 1,
-            transition: 'all 0.2s ease',
-            marginTop: '8px',
-            width: 'fit-content',
-          }}
-        >
-          {isSubmitting && (
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTop: '2px solid white',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          {isEditing && successMessage && (
+            <p
+              role="status"
+              className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700"
+            >
+              {successMessage}
+            </p>
           )}
-          {isSubmitting
-            ? isEditing
-              ? 'Updating...'
-              : 'Creating...'
-            : isEditing
-              ? 'Update Course'
-              : 'Create Course'}
-        </button>
+          {isEditing && error && (
+            <p
+              role="alert"
+              className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600"
+            >
+              {error}
+            </p>
+          )}
+          <CourseSaveButton
+            isEditing={isEditing}
+            isSubmitting={isSubmitting}
+            disabled={submitDisabled}
+            label={isEditing ? 'Update Course' : 'Create Course'}
+          />
+        </div>
       </form>
     </AdminFormCard>
+    </>
   )
 }

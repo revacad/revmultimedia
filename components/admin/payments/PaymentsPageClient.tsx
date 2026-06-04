@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import InvoiceStatusBadge from '@/components/admin/payments/InvoiceStatusBadge'
 import InvoiceTypeBadge from '@/components/admin/payments/InvoiceTypeBadge'
+import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
+import type { AdminRole } from '@/lib/auth/admin'
 import {
   formatAmountGhs,
   formatPaymentDate,
@@ -34,12 +36,40 @@ const TYPE_FILTERS: { value: InvoiceType | 'all'; label: string }[] = [
 interface PaymentsPageClientProps {
   invoices: PaymentListRow[]
   fetchError?: string | null
+  viewerRole: AdminRole
+  currentPage: number
+  totalCount: number
+  pageSize: number
+}
+
+function studentDisplayName(inv: PaymentListRow): string {
+  return (
+    inv.applications?.students?.full_name ??
+    inv.applications?.full_name ??
+    '—'
+  )
+}
+
+function latestPaymentDate(inv: PaymentListRow): string | null {
+  const paidDates = inv.installments
+    .map((installment) => installment.paid_at)
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+
+  if (paidDates.length > 0) return paidDates[0]
+  if (inv.status === 'paid' || inv.status === 'waived') return inv.updated_at
+  return null
 }
 
 export default function PaymentsPageClient({
   invoices,
   fetchError = null,
+  viewerRole,
+  currentPage,
+  totalCount,
+  pageSize,
 }: PaymentsPageClientProps) {
+  const isAccountsRole = viewerRole === 'accounts'
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<InvoiceType | 'all'>('all')
 
@@ -121,28 +151,46 @@ export default function PaymentsPageClient({
         loading={false}
         error={fetchError}
         empty={!fetchError && filtered.length === 0}
-        emptyTitle={invoices.length === 0 ? 'No invoices yet' : 'No matching invoices'}
+        emptyTitle={totalCount === 0 ? 'No invoices yet' : 'No matching invoices'}
         emptyMessage={
-          invoices.length === 0
+          totalCount === 0
             ? 'Invoices created from applications will appear here.'
             : 'Try a different filter.'
         }
       >
+        <PaginationSummary
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          className="mb-4"
+        />
         <div className="overflow-hidden rounded-xl border border-[#EFEFF5] bg-white shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] text-left">
               <thead>
                 <tr className="border-b border-[#EFEFF5] bg-[#F7F8FC]">
-                  {[
-                    'Invoice Ref',
-                    'Applicant',
-                    'Type',
-                    'Amount',
-                    'Due Date',
-                    'Status',
-                    'Paid',
-                    'Actions',
-                  ].map((col) => (
+                  {(isAccountsRole
+                    ? [
+                        'Invoice Ref',
+                        'Student',
+                        'Application Ref',
+                        'Course',
+                        'Amount',
+                        'Status',
+                        'Payment Date',
+                        'Actions',
+                      ]
+                    : [
+                        'Invoice Ref',
+                        'Applicant',
+                        'Type',
+                        'Amount',
+                        'Due Date',
+                        'Status',
+                        'Paid',
+                        'Actions',
+                      ]
+                  ).map((col) => (
                     <th
                       key={col}
                       className="px-4 py-3 font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#9898B8]"
@@ -167,6 +215,49 @@ export default function PaymentsPageClient({
                       : 0
                   const overdue = isOverdue(inv.due_date, inv.status)
 
+                  const paymentDate = latestPaymentDate(inv)
+
+                  if (isAccountsRole) {
+                    return (
+                      <tr
+                        key={inv.id}
+                        className="border-b border-[#EFEFF5] hover:bg-[#FAFAFA]"
+                      >
+                        <td className="px-4 py-4 font-mono text-[13px] text-[#C74A86]">
+                          {inv.reference}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm font-semibold text-[#1A1A2E]">
+                          {studentDisplayName(inv)}
+                        </td>
+                        <td className="px-4 py-4 font-mono text-[13px] text-[#5A5A7A]">
+                          {inv.applications?.reference ?? '—'}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-[#1A1A2E]">
+                          {inv.applications?.courses?.title ?? '—'}
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="font-body text-sm font-semibold text-[#1A1A2E]">
+                            {formatAmountGhs(inv.total_ghs)}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <InvoiceStatusBadge status={inv.status} dueDate={inv.due_date} />
+                        </td>
+                        <td className="px-4 py-4 font-body text-[13px] text-[#9898B8]">
+                          {paymentDate ? formatPaymentDate(paymentDate) : '—'}
+                        </td>
+                        <td className="px-4 py-4">
+                          <Link
+                            href={`/admin/payments/${inv.id}`}
+                            className="font-body text-sm font-semibold text-[#5A5A7A] hover:text-[#1A1A2E]"
+                          >
+                            Manage
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  }
+
                   return (
                     <tr
                       key={inv.id}
@@ -180,6 +271,10 @@ export default function PaymentsPageClient({
                           {inv.applications?.full_name ?? '—'}
                         </p>
                         <p className="font-body text-[13px] text-[#9898B8]">
+                          {inv.applications?.reference ?? ''}
+                          {inv.applications?.reference && inv.applications?.real_email
+                            ? ' · '
+                            : ''}
                           {inv.applications?.real_email ?? ''}
                         </p>
                       </td>
@@ -261,6 +356,12 @@ export default function PaymentsPageClient({
             </table>
           </div>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          className="mt-6"
+        />
       </StateWrapper>
     </div>
   )

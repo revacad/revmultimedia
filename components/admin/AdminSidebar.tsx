@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
+import { adminLogout } from '@/actions/auth'
 import { cn } from '@/lib/utils'
 import type { AdminRole } from '@/lib/auth/admin'
 import { filterGroupsForRole, type NavIconName } from '@/lib/admin/nav'
@@ -149,64 +150,67 @@ export default function AdminSidebar({
   return (
     <aside
       className={cn(
-        'flex min-h-screen w-64 shrink-0 flex-col border-r border-white/8 bg-[#1A1A2E] p-6',
-        'fixed left-0 top-0 bottom-0 z-50 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0',
+        'flex h-full w-64 shrink-0 flex-col border-r border-white/8 bg-[#1A1A2E] p-6',
+        'fixed bottom-0 left-0 top-0 z-50 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0',
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
       )}
     >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <Link href="/admin" className="block min-w-0" onClick={onNavigate}>
-          <span className="font-display text-xl font-bold text-primary">Rev</span>
-          <span className="font-display text-xl font-semibold text-white"> Admin</span>
-        </Link>
-        <div className="flex shrink-0 items-center gap-2">
-          <span
-            className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-white/60"
-            title="Open command palette"
-          >
-            {shortcutLabel}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
-            aria-label="Close navigation menu"
-          >
-            <X className="h-5 w-5" aria-hidden />
-          </button>
-        </div>
-      </div>
-      <nav className="flex-1 space-y-6 overflow-y-auto">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <p className="mb-2 px-3 font-body text-[10px] font-semibold uppercase tracking-wider text-white/35">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              {group.links.map((link) => {
-                const active = isActive(link.href)
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={onNavigate}
-                    className={cn(
-                      'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                      active
-                        ? 'border-l-2 border-primary bg-primary/10 text-white'
-                        : 'text-white/60 hover:bg-white/5 hover:text-white',
-                    )}
-                  >
-                    <NavIcon name={link.icon} />
-                    {link.label}
-                  </Link>
-                )
-              })}
-            </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <Link href="/admin" className="block min-w-0" onClick={onNavigate}>
+            <span className="font-display text-xl font-bold text-primary">Rev</span>
+            <span className="font-display text-xl font-semibold text-white"> Admin</span>
+          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <span
+              className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-white/60"
+              title="Open command palette"
+            >
+              {shortcutLabel}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
+              aria-label="Close navigation menu"
+            >
+              <X className="h-5 w-5" aria-hidden />
+            </button>
           </div>
-        ))}
-      </nav>
-      <div className="mt-6 border-t border-white/10 pt-6">
+        </div>
+        <nav className="space-y-6 pb-4">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-2 px-3 font-body text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.links.map((link) => {
+                  const active = isActive(link.href)
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={onNavigate}
+                      className={cn(
+                        'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                        active
+                          ? 'border-l-2 border-primary bg-primary/10 text-white'
+                          : 'text-white/60 hover:bg-white/5 hover:text-white',
+                      )}
+                    >
+                      <NavIcon name={link.icon} />
+                      {link.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-4 shrink-0 border-t border-white/10 pt-4">
         <Link
           href="/admin/profile"
           onClick={onNavigate}
@@ -231,10 +235,18 @@ export default function AdminSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
+        <form action={adminLogout} className="mt-3">
+          <button
+            type="submit"
+            className="w-full rounded-lg px-3 py-2 text-left font-body text-sm font-semibold text-primary transition-colors hover:bg-white/5 hover:text-[#E56BA3]"
+          >
+            Sign out
+          </button>
+        </form>
         <Link
           href="/"
           onClick={onNavigate}
-          className="mt-4 block text-sm text-gray-500 transition-colors hover:text-gray-700"
+          className="mt-3 block px-3 text-sm text-white/45 transition-colors hover:text-white/70"
         >
           Back to public site
         </Link>

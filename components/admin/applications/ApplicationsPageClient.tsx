@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import ApplicationStatusBadge from '@/components/admin/applications/ApplicationStatusBadge'
+import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import { FILTER_STATUSES } from '@/lib/applications/status'
 import { formatApplicationDate, getCountryFlag } from '@/lib/applications/format'
 import type { ApplicationListRow, ApplicationStatus } from '@/lib/applications/types'
@@ -15,26 +16,27 @@ import { cn } from '@/lib/utils'
 interface ApplicationsPageClientProps {
   applications: ApplicationListRow[]
   fetchError?: string | null
+  currentPage: number
+  totalCount: number
+  pageSize: number
+  stats: {
+    total: number
+    pendingReview: number
+    accepted: number
+    rejected: number
+  }
 }
 
 export default function ApplicationsPageClient({
   applications,
   fetchError = null,
+  currentPage,
+  totalCount,
+  pageSize,
+  stats,
 }: ApplicationsPageClientProps) {
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all')
   const [search, setSearch] = useState('')
-
-  const stats = useMemo(() => {
-    const pendingReview = applications.filter(
-      (a) => a.status === 'pending' || a.status === 'under_review',
-    ).length
-    return {
-      total: applications.length,
-      pendingReview,
-      accepted: applications.filter((a) => a.status === 'accepted').length,
-      rejected: applications.filter((a) => a.status === 'rejected').length,
-    }
-  }, [applications])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -108,14 +110,20 @@ export default function ApplicationsPageClient({
         error={fetchError}
         empty={!fetchError && filtered.length === 0}
         emptyTitle={
-          applications.length === 0 ? 'No applications yet' : 'No matching applications'
+          totalCount === 0 ? 'No applications yet' : 'No matching applications'
         }
         emptyMessage={
-          applications.length === 0
+          totalCount === 0
             ? 'Applications submitted through the public form will appear here.'
             : 'Try a different status or search term.'
         }
       >
+        <PaginationSummary
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          className="mb-4"
+        />
         <div className="overflow-hidden rounded-xl border border-[#EFEFF5] bg-white shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-left">
@@ -219,6 +227,12 @@ export default function ApplicationsPageClient({
             </table>
           </div>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          className="mt-6"
+        />
       </StateWrapper>
     </div>
   )

@@ -17,12 +17,6 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
   }
 
   return (
-    <div>
-      <h1 className="font-display text-3xl font-bold text-dark mb-2">
-        Edit course
-      </h1>
-      <p className="text-gray-600 text-sm mb-8">{course.title}</p>
-      <CourseForm course={course} />
-    </div>
+    <CourseForm course={course} />
   );
 }

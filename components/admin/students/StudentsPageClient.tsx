@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
+import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import { formatApplicationDate } from '@/lib/applications/format'
 import type { ProgramLifecycleStatus } from '@/lib/enrollment/program-status'
 import { StateWrapper } from '@/components/ui/StateWrapper'
@@ -28,11 +29,17 @@ export type StudentListRow = {
 interface StudentsPageClientProps {
   students: StudentListRow[]
   fetchError?: string | null
+  currentPage: number
+  totalCount: number
+  pageSize: number
 }
 
 export default function StudentsPageClient({
   students,
   fetchError = null,
+  currentPage,
+  totalCount,
+  pageSize,
 }: StudentsPageClientProps) {
   const [query, setQuery] = useState('')
 
@@ -56,7 +63,7 @@ export default function StudentsPageClient({
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-[#1A1A2E]">Students</h1>
         <p className="mt-2 font-body text-sm text-[#9898B8]">
-          {students.length} programme registrations · {enrolledCount} enrolled ·{' '}
+          {totalCount} programme registrations · {enrolledCount} enrolled ·{' '}
           {registeredCount} registered only
         </p>
         <p className="mt-1 font-body text-xs text-[#9898B8]">
@@ -78,14 +85,20 @@ export default function StudentsPageClient({
         error={fetchError}
         empty={!fetchError && filtered.length === 0}
         emptyTitle={
-          students.length === 0 ? 'No students enrolled yet' : 'No matching students'
+          totalCount === 0 ? 'No students enrolled yet' : 'No matching students'
         }
         emptyMessage={
-          students.length === 0
+          totalCount === 0
             ? 'Student registrations will appear here once applications are accepted.'
             : 'Try a different search term.'
         }
       >
+      <PaginationSummary
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        className="mb-4"
+      />
       <div className="overflow-hidden rounded-xl bg-white shadow-card">
         <table className="w-full min-w-[800px] text-left">
           <thead className="border-b border-[#EFEFF5] bg-[#F8F8FC]">
@@ -194,6 +207,12 @@ export default function StudentsPageClient({
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        className="mt-6"
+      />
       </StateWrapper>
     </div>
   )

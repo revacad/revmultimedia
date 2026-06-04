@@ -29,6 +29,8 @@ export type PaymentListRow = {
     full_name: string
     real_email: string
     country: string
+    courses: { title: string } | null
+    students: { full_name: string; student_id: string } | null
   } | null
   installments: { amount_ghs: number; paid_at?: string }[]
   admins: { full_name: string } | null
