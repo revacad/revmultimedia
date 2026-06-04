@@ -3,19 +3,7 @@ import { escapeHtml } from '@/lib/security/escape-html'
 /** Rev Multimedia primary brand pink */
 export const BRAND_PINK = '#E8007D'
 
-const BRAND_LOGO_HTML = `<table role="presentation" cellspacing="0" cellpadding="0" border="0">
-  <tr>
-    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#E8007D;font-size:0;line-height:0;">&nbsp;</td>
-    <td width="4">&nbsp;</td>
-    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#F5A800;font-size:0;line-height:0;">&nbsp;</td>
-  </tr>
-  <tr><td colspan="3" height="4" style="font-size:0;line-height:0;">&nbsp;</td></tr>
-  <tr>
-    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#00B5B5;font-size:0;line-height:0;">&nbsp;</td>
-    <td width="4">&nbsp;</td>
-    <td width="13" height="13" style="width:13px;height:13px;border-radius:7px;background-color:#7B2D8B;font-size:0;line-height:0;">&nbsp;</td>
-  </tr>
-</table>`
+const BRAND_LOGO_HTML = `<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI3IiBjeT0iNyIgcj0iNyIgZmlsbD0iI0U4MDA3RCIvPjxjaXJjbGUgY3g9IjI1IiBjeT0iNyIgcj0iNyIgZmlsbD0iI0Y1QTgwMCIvPjxjaXJjbGUgY3g9IjciIGN5PSIyNSIgcj0iNyIgZmlsbD0iIzAwQjVCNSIvPjxjaXJjbGUgY3g9IjI1IiBjeT0iMjUiIHI9IjciIGZpbGw9IiM3QjJEOEIiLz48L3N2Zz4=" width="32" height="32" alt="Rev Multimedia" style="display:block;">`
 
 const ACCENT_GRADIENT_RULE = `<tr><td height="3" style="height:3px;background:linear-gradient(to right,#E8007D,#F5A800,#00B5B5,#7B2D8B);font-size:0;line-height:0;">&nbsp;</td></tr>`
 
