@@ -3,6 +3,7 @@ import {
   intakeSlotsRemaining,
   isIntakeFull,
 } from '@/lib/apply/intake-availability'
+import { filterPublicOpenIntakes } from '@/lib/intakes/lifecycle'
 
 export interface SlotIndicator {
   text: string
@@ -16,12 +17,9 @@ export function formatIntakeShortLabel(intake: Intake): string {
 }
 
 function openIntakesSorted(intakes: Intake[]): Intake[] {
-  return intakes
-    .filter((i) => !i.is_closed)
-    .sort(
-      (a, b) =>
-        new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
-    )
+  return filterPublicOpenIntakes(intakes).sort(
+    (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
+  )
 }
 
 function indicatorForRemaining(

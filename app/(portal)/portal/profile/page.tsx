@@ -30,11 +30,15 @@ export default async function PortalProfilePage() {
   const user = await requirePortalUser()
   const supabase = await createServerClient()
 
-  const { data: student } = await supabase
+  const { data: studentRows } = await supabase
     .from('students')
     .select('*')
     .eq('auth_user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+
+  const student =
+    studentRows?.find((row) => row.profile_photo_r2_key) ?? studentRows?.[0] ?? null
+  const hasStudentRecord = (studentRows?.length ?? 0) > 0
 
   const { data: applications } = await supabase
     .from('applications')
@@ -115,7 +119,7 @@ export default async function PortalProfilePage() {
         </p>
       </header>
 
-      {student ? (
+      {hasStudentRecord && student ? (
         <PortalProfilePhotoSection
           studentDbId={student.id}
           fullName={student.full_name}

@@ -20,6 +20,8 @@ import { fetchEnrolledCourseIds, fetchPublishedApplyCourses } from '@/lib/portal
 import { getPaymentSettings } from '@/lib/portal/settings'
 import type { InvoiceStatus } from '@/lib/payments/types'
 import { isPaystackEnabled } from '@/lib/settings/paystack-enabled'
+import PortalIntakeLifecycleNotices from '@/components/portal/PortalIntakeLifecycleNotices'
+import { buildProgrammeLifecycleNotices } from '@/lib/portal/intake-lifecycle-notices'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,11 +34,14 @@ async function PortalDashboardContent({
   const supabase = await createServerClient()
   const rawParams = (await searchParams) ?? {}
 
-  const { data: student } = await supabase
+  const { data: studentRows } = await supabase
     .from('students')
     .select('id, student_id, full_name, profile_photo_r2_key')
     .eq('auth_user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+
+  const student = studentRows?.[0] ?? null
+  const studentDbIds = (studentRows ?? []).map((row) => row.id as string)
 
   const { data: applications } = await supabase
     .from('applications')
@@ -116,10 +121,30 @@ async function PortalDashboardContent({
       )
     : 1
 
-  const enrolledCourseIds = student
-    ? await fetchEnrolledCourseIds(supabase, student.id)
-    : []
+  const enrolledCourseIds =
+    studentDbIds.length > 0
+      ? await fetchEnrolledCourseIds(supabase, studentDbIds)
+      : []
   const applyCourses = student ? await fetchPublishedApplyCourses(supabase) : []
+
+  let programmeNotices: ReturnType<typeof buildProgrammeLifecycleNotices> = []
+  if (studentDbIds.length > 0) {
+    const { data: enrollmentRows } = await supabase
+      .from('enrollments')
+      .select(
+        `
+        intakes (
+          end_date,
+          is_closed,
+          courses ( title )
+        )
+      `,
+      )
+      .in('student_id', studentDbIds)
+      .eq('status', 'active')
+
+    programmeNotices = buildProgrammeLifecycleNotices(enrollmentRows ?? [])
+  }
 
   const settings = await getPaymentSettings()
   const paystackEnabled = isPaystackEnabled(settings)
@@ -144,6 +169,7 @@ async function PortalDashboardContent({
     ? (student.student_id as string)
     : (application?.reference as string) ?? '—'
   const heroIdentifierLabel = student ? 'Student ID' : 'Application reference'
+  const showEnrolledBadge = Boolean(application?.enrolled_at)
 
   return (
     <div className="space-y-6 pb-4">
@@ -151,9 +177,17 @@ async function PortalDashboardContent({
         displayName={firstName(displayName)}
         identifier={heroIdentifier}
         identifierLabel={heroIdentifierLabel}
-        statusVariant={application?.status as ApplicationStatus | undefined}
-        enrolled={Boolean(student)}
+        statusVariant={
+          showEnrolledBadge
+            ? undefined
+            : (application?.status as ApplicationStatus | undefined)
+        }
+        enrolled={showEnrolledBadge}
       />
+
+      {programmeNotices.length > 0 ? (
+        <PortalIntakeLifecycleNotices notices={programmeNotices} />
+      ) : null}
 
       {showAppFeeGate ? (
         <AppFeeGate

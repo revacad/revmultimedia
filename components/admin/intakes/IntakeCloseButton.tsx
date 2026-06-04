@@ -21,7 +21,7 @@ export default function IntakeCloseButton({ intakeId }: IntakeCloseButtonProps) 
       }}
       className="text-gray-600 hover:text-red-600 text-sm font-medium"
     >
-      {pending ? "…" : "Close"}
+      {pending ? "…" : "Close intake"}
     </button>
   );
 }

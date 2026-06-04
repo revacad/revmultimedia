@@ -176,9 +176,17 @@ export async function updateIntake(
     }
 
     const supabase = createAdminClient();
+    const today = new Date().toISOString().slice(0, 10);
+    const updatePayload: typeof parsed.data & { is_closed?: boolean } = {
+      ...parsed.data,
+    };
+    if (parsed.data.end_date > today) {
+      updatePayload.is_closed = false;
+    }
+
     const { data, error } = await supabase
       .from("intakes")
-      .update(parsed.data)
+      .update(updatePayload)
       .eq("id", id)
       .select("course_id")
       .single();

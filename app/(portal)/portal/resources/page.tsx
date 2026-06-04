@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import PortalResourcesList, {
   type PortalResource,
 } from '@/components/portal/PortalResourcesList'
@@ -12,16 +11,8 @@ export const metadata = {
 }
 
 export default async function PortalResourcesPage() {
-  const user = await requirePortalUser()
+  await requirePortalUser()
   const supabase = await createServerClient()
-
-  const { data: student } = await supabase
-    .from('students')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!student) redirect('/portal/dashboard')
 
   const { data: resources } = await supabase
     .from('resources')

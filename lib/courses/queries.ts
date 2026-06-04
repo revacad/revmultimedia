@@ -3,14 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { withCache } from "@/lib/redis/cache";
 import type { Course, Intake } from "@/lib/courses/types";
 import { weeksBetweenDates } from "@/lib/courses/duration";
+import { filterPublicOpenIntakes } from "@/lib/intakes/lifecycle";
 import { enrichCourseWithMediaUrls, enrichCoursesWithMediaUrls } from "@/lib/courses/enrich-media-urls";
 import { supabaseErrorMessage } from "@/lib/errors/query";
 
 function mapCourse(row: Record<string, unknown>): Course {
   const intakes = (row.intakes as Intake[] | null) ?? [];
-  const openIntakes = intakes
-    .filter((i) => !i.is_closed)
-    .sort(
+  const openIntakes = filterPublicOpenIntakes(intakes).sort(
       (a, b) =>
         new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
     );

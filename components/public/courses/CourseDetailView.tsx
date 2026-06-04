@@ -13,6 +13,7 @@ import { formatCategory, formatMode } from '@/lib/courses/labels'
 import { getCourseThumbnailSrc, isCourseThumbnailRemoteSrc } from '@/lib/courses/thumbnail'
 import { processCurriculum, getVimeoId, getYouTubeId } from '@/lib/courses/curriculum'
 import { getSlotIndicator } from '@/lib/courses/slots'
+import { hasPublicOpenIntakes } from '@/lib/intakes/lifecycle'
 import type { Course } from '@/lib/courses/types'
 import { publicSectionClass } from '@/lib/public-ui'
 import { isRichHtmlContent } from '@/lib/security/html'
@@ -96,6 +97,7 @@ function IntroVideo({ url }: { url: string }) {
 export default function CourseDetailView({ course }: CourseDetailViewProps) {
   const thumbnailSrc = getCourseThumbnailSrc(course)
   const slotIndicator = getSlotIndicator(course.intakes)
+  const canApply = hasPublicOpenIntakes(course.intakes)
 
   const { html: processedCurriculum, toc: tocItems } = processCurriculum(course.curriculum)
   const safeCurriculumHtml = processedCurriculum
@@ -211,11 +213,17 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
               <span className={`h-2 w-2 rounded-full ${slotIndicator.dotClass}`} />
               {slotIndicator.text}
             </div>
-            <Link href={`/apply?course=${course.slug}`} className="block">
-              <Button variant="primary" size="lg" className="w-full">
-                Apply for this course
-              </Button>
-            </Link>
+            {canApply ? (
+              <Link href={`/apply?course=${course.slug}`} className="block">
+                <Button variant="primary" size="lg" className="w-full">
+                  Apply for this course
+                </Button>
+              </Link>
+            ) : (
+              <p className="text-center text-sm font-medium text-gray-500">
+                No open intakes - check back soon
+              </p>
+            )}
           </div>
         </aside>
       </div>

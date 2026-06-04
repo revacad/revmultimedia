@@ -59,7 +59,7 @@ export default function PortalResourcesList({ resources }: { resources: PortalRe
         </div>
         <p className="font-body text-[15px] font-medium text-[#1A1A2E]">No resources available yet</p>
         <p className="mt-2 max-w-sm font-body text-sm text-[#9898B8]">
-          Resources will appear here when your instructors upload them.
+          Resources will appear here once you are enrolled.
         </p>
       </div>
     )

@@ -23,13 +23,16 @@ export async function fetchPublishedApplyCourses(
 
 export async function fetchEnrolledCourseIds(
   supabase: SupabaseClient,
-  studentDbId: string,
+  studentDbIds: string | string[],
 ): Promise<string[]> {
+  const ids = Array.isArray(studentDbIds) ? studentDbIds : [studentDbIds]
+  if (ids.length === 0) return []
+
   const { data } = await supabase
     .from('enrollments')
     .select('course_id')
-    .eq('student_id', studentDbId)
+    .in('student_id', ids)
     .eq('status', 'active')
 
-  return (data ?? []).map((row) => row.course_id as string)
+  return [...new Set((data ?? []).map((row) => row.course_id as string))]
 }

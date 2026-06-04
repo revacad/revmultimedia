@@ -7,10 +7,10 @@ import { buttonVariants } from '@/components/ui/Button'
 import { formatCategory } from '@/lib/courses/labels'
 import { getCourseThumbnailSrc, isCourseThumbnailRemoteSrc } from '@/lib/courses/thumbnail'
 import { getSlotIndicator } from '@/lib/courses/slots'
+import { hasPublicOpenIntakes } from '@/lib/intakes/lifecycle'
 import type { Course } from '@/lib/courses/types'
 import { formatCourseDuration } from '@/lib/courses/duration'
 import CourseAlumniAvatars from '@/components/public/courses/CourseAlumniAvatars'
-import CourseInstructorPill from '@/components/public/courses/CourseInstructorPill'
 import { cn, formatGHS } from '@/lib/utils'
 
 interface CourseCardProps {
@@ -29,6 +29,7 @@ export default function CourseCard({
   const thumbnailSrc = getCourseThumbnailSrc(course)
   const slotIndicator = getSlotIndicator(course.intakes)
   const durationLabel = formatCourseDuration(course)
+  const canApply = hasPublicOpenIntakes(course.intakes)
 
   return (
     <Link
@@ -69,13 +70,7 @@ export default function CourseCard({
           </span>
         </div>
 
-        <CourseInstructorPill course={course} compact className="absolute bottom-3 left-3" />
-
-        <CourseAlumniAvatars
-          slug={course.slug}
-          size="sm"
-          className="absolute bottom-3 right-3 items-end"
-        />
+        <CourseAlumniAvatars slug={course.slug} size="sm" />
 
         <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-dark/70 px-3 py-1 text-xs text-white">
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,16 +95,21 @@ export default function CourseCard({
           <span className="font-display text-xl font-semibold text-primary">
             {formatGHS(course.tuition_fee_ghs)}
           </span>
-          {showApplyButton && (
-            <span
-              className={cn(
-                buttonVariants({ variant: 'primary', size: 'sm' }),
-                'pointer-events-none',
-              )}
-            >
-              Apply Now
-            </span>
-          )}
+          {showApplyButton &&
+            (canApply ? (
+              <span
+                className={cn(
+                  buttonVariants({ variant: 'primary', size: 'sm' }),
+                  'pointer-events-none',
+                )}
+              >
+                Apply Now
+              </span>
+            ) : (
+              <span className="max-w-[9rem] text-right text-xs font-medium leading-snug text-gray-500">
+                No open intakes - check back soon
+              </span>
+            ))}
         </div>
         <div className={cn('mt-2 flex items-center gap-1.5 text-xs font-medium', slotIndicator.colorClass)}>
           <span className={cn('h-2 w-2 rounded-full', slotIndicator.dotClass)} />

@@ -5,6 +5,12 @@ import Link from 'next/link'
 import type { Intake } from '@/lib/courses/types'
 import { formatDate } from '@/lib/utils'
 import { isIntakeFull } from '@/lib/apply/intake-availability'
+import {
+  getIntakeLifecycleStatus,
+  intakeLifecycleStatusLabel,
+  isIntakeEndedNotClosed,
+  todayDateString,
+} from '@/lib/intakes/lifecycle'
 import IntakeCloseButton from '@/components/admin/intakes/IntakeCloseButton'
 import IntakeDuplicateModal, {
   type IntakeCourseOption,
@@ -34,6 +40,7 @@ export default function IntakeTable({
   const [duplicateIntake, setDuplicateIntake] = useState<IntakeRow | null>(null)
   const [deleteIntakeRow, setDeleteIntakeRow] = useState<IntakeRow | null>(null)
   const [notifyIntake, setNotifyIntake] = useState<IntakeRow | null>(null)
+  const today = todayDateString()
 
   if (fetchError) {
     return (
@@ -89,6 +96,8 @@ export default function IntakeTable({
             {intakes.map((intake) => {
               const waitlistCount = waitlistCounts[intake.id] ?? 0
               const intakeFull = !intake.is_closed && isIntakeFull(intake)
+              const lifecycleStatus = getIntakeLifecycleStatus(intake, today)
+              const endedNotClosed = isIntakeEndedNotClosed(intake, today)
 
               return (
                 <tr
@@ -98,6 +107,11 @@ export default function IntakeTable({
                   <td className="px-4 py-3 font-medium text-dark">
                     <div className="flex flex-wrap items-center gap-2">
                       <span>{intake.name}</span>
+                      {endedNotClosed && (
+                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                          Ended - mark complete
+                        </span>
+                      )}
                       {waitlistCount > 0 && (
                         <span className="rounded-full bg-[#F3EEFF] px-2 py-0.5 text-xs font-semibold text-[#7B5AE8]">
                           {waitlistCount} waitlisted
@@ -119,12 +133,14 @@ export default function IntakeTable({
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          intake.is_closed
+                          lifecycleStatus === 'closed'
                             ? 'bg-gray-100 text-gray-600'
-                            : 'bg-accent/15 text-accent'
+                            : lifecycleStatus === 'ended'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-accent/15 text-accent'
                         }`}
                       >
-                        {intake.is_closed ? 'Closed' : 'Open'}
+                        {intakeLifecycleStatusLabel(lifecycleStatus)}
                       </span>
                       {intakeFull && (
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
