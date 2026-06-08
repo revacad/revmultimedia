@@ -4,7 +4,7 @@ import PortalLoginForm from '@/components/auth/PortalLoginForm'
 import { pickRandomQuote } from '@/lib/quotes'
 
 export const metadata = {
-  title: 'Login — Rev Multimedia',
+  title: 'Login - Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

@@ -6,7 +6,7 @@ import { pickRandomQuote } from '@/lib/quotes'
 import { redis } from '@/lib/redis/client'
 
 export const metadata = {
-  title: 'Set Admin Password — Rev Multimedia',
+  title: 'Set Admin Password - Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

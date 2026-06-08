@@ -6,7 +6,7 @@ import { validateAdminInviteToken } from '@/actions/admin'
 import { pickRandomQuote } from '@/lib/quotes'
 
 export const metadata = {
-  title: 'Accept Invitation — Rev Multimedia',
+  title: 'Accept Invitation - Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

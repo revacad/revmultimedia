@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const metadata = {
-  title: 'Profile — Admin',
+  title: 'Profile - Admin',
 }
 
 export const dynamic = 'force-dynamic'

@@ -3,7 +3,7 @@ import { requireStaffAdmin } from "@/lib/auth/requireAdmin";
 import { getAllCoursesAdmin } from "@/lib/courses/queries";
 
 export const metadata = {
-  title: "New intake — Admin",
+  title: "New intake - Admin",
 };
 
 interface NewIntakePageProps {

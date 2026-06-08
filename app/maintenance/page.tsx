@@ -4,7 +4,7 @@ import { getMaintenanceSettings } from '@/lib/maintenance/settings'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Maintenance — Rev Multimedia',
+  title: 'Maintenance - Rev Multimedia',
   robots: { index: false, follow: false },
 }
 

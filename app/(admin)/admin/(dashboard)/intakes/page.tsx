@@ -6,7 +6,7 @@ import { getAllCoursesAdmin, getAllCoursesAdminResult, getAllIntakesAdminResult 
 import { getWaitlistCountsByIntake } from "@/actions/waitlist";
 
 export const metadata = {
-  title: "Intakes — Admin",
+  title: "Intakes - Admin",
 };
 
 export default async function AdminIntakesPage() {

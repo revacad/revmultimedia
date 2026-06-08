@@ -6,7 +6,7 @@ import { requireSuperAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
-  title: 'Admin Users — Admin',
+  title: 'Admin Users - Admin',
 }
 
 export const dynamic = 'force-dynamic'

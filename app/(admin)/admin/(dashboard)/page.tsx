@@ -13,7 +13,7 @@ import { fetchPendingManualPaymentClaims } from '@/lib/payments/manual-claims'
 import { formatGHS } from '@/lib/utils'
 
 export const metadata = {
-  title: 'Dashboard — Admin',
+  title: 'Dashboard - Admin',
 }
 
 export const dynamic = 'force-dynamic'

@@ -6,7 +6,7 @@ import { supabaseErrorMessage } from '@/lib/errors/query'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
-  title: 'Applications — Admin',
+  title: 'Applications - Admin',
 }
 
 export const dynamic = 'force-dynamic'

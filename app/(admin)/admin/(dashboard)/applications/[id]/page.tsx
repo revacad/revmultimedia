@@ -14,7 +14,7 @@ interface ApplicationDetailPageProps {
 export async function generateMetadata({ params }: ApplicationDetailPageProps) {
   const { id } = await params
   return {
-    title: `Application ${id.slice(0, 8)}… — Admin`,
+    title: `Application ${id.slice(0, 8)}… - Admin`,
   }
 }
 

@@ -5,7 +5,7 @@ import { requireStaffAdmin } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
-  title: 'Communications — Admin',
+  title: 'Communications - Admin',
 }
 
 export const dynamic = 'force-dynamic'

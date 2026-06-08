@@ -4,7 +4,7 @@ import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm'
 import { pickRandomQuote } from '@/lib/quotes'
 
 export const metadata = {
-  title: 'Reset Password — Rev Multimedia',
+  title: 'Reset Password - Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

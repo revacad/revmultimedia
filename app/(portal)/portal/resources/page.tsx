@@ -7,7 +7,7 @@ import { createServerClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Resources — Portal',
+  title: 'Resources - Portal',
 }
 
 export default async function PortalResourcesPage() {

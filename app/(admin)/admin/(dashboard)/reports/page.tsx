@@ -9,7 +9,7 @@ import { requireFinanceAccess } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
-  title: 'Reports — Admin',
+  title: 'Reports - Admin',
 }
 
 export const dynamic = 'force-dynamic'

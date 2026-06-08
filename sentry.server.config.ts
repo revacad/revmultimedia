@@ -3,9 +3,11 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { sentryBeforeSend } from "@/lib/sentry/before-send";
 
 Sentry.init({
   dsn: "https://ebd38a115ede1f43d4455de213d0decf@o4511450742718464.ingest.de.sentry.io/4511450752745552",
+  beforeSend: sentryBeforeSend,
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,

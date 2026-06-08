@@ -14,6 +14,7 @@ import {
   getMaintenanceSettings,
   shouldRedirectToMaintenance,
 } from '@/lib/maintenance/settings'
+import { hasInvalidMultipartContentType } from '@/lib/security/invalid-multipart'
 
 function isAdminAuthPath(path: string): boolean {
   return (
@@ -164,6 +165,10 @@ async function clearStaleAuthSession(
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
+
+  if (hasInvalidMultipartContentType(request)) {
+    return applySecurityHeaders(new NextResponse(null, { status: 400 }))
+  }
 
   if (process.env.NODE_ENV === 'production') {
     const proto = request.headers.get('x-forwarded-proto')

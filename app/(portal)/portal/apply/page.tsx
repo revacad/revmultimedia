@@ -7,7 +7,7 @@ import { withCache } from '@/lib/redis/cache'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const metadata = {
-  title: 'Apply for another course — Portal',
+  title: 'Apply for another course - Portal',
 }
 
 export const dynamic = 'force-dynamic'

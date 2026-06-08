@@ -4,7 +4,7 @@ import LoginForm from '@/components/auth/LoginForm'
 import { pickRandomQuote } from '@/lib/quotes'
 
 export const metadata = {
-  title: 'Admin Login — Rev Multimedia',
+  title: 'Admin Login - Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

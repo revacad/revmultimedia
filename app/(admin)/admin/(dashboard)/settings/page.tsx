@@ -4,7 +4,7 @@ import { MAINTENANCE_SETTING_KEYS, MESSAGING_SETTING_KEYS, SETTINGS_TABS } from 
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
-  title: 'Settings — Admin',
+  title: 'Settings - Admin',
 }
 
 export const dynamic = 'force-dynamic'

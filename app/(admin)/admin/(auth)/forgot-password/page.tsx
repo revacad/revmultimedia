@@ -5,7 +5,7 @@ import AdminForgotPasswordForm from '@/components/auth/AdminForgotPasswordForm'
 import { pickRandomQuote } from '@/lib/quotes'
 
 export const metadata = {
-  title: 'Reset Admin Password — Rev Multimedia',
+  title: 'Reset Admin Password - Rev Multimedia',
 }
 
 export const dynamic = 'force-dynamic'

@@ -6,7 +6,7 @@ import { listAllPaymentTypes } from '@/lib/payments/payment-types'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
-  title: 'Payment Types — Admin',
+  title: 'Payment Types - Admin',
 }
 
 export const dynamic = 'force-dynamic'

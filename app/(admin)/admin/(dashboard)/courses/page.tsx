@@ -5,7 +5,7 @@ import { requireStaffAdmin } from '@/lib/auth/requireAdmin'
 import { getAllCoursesAdminResult } from '@/lib/courses/queries'
 
 export const metadata = {
-  title: 'Courses — Admin',
+  title: 'Courses - Admin',
 }
 
 export default async function AdminCoursesPage() {
