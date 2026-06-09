@@ -1,5 +1,5 @@
 import { Ratelimit } from "@upstash/ratelimit";
-import { redis } from "@/lib/redis/client";
+import { isRedisConfigured, redis } from "@/lib/redis/client";
 
 export const applicationSubmitLimit = new Ratelimit({
   redis,
@@ -111,6 +111,19 @@ export async function checkRateLimit(
   limiter: Ratelimit,
   identifier: string,
 ): Promise<{ allowed: boolean }> {
-  const { success } = await limiter.limit(identifier);
-  return { allowed: success };
+  if (!isRedisConfigured) {
+    return { allowed: true };
+  }
+
+  try {
+    const { success } = await limiter.limit(identifier);
+    return { allowed: success };
+  } catch (error) {
+    console.error(
+      "[redis:ratelimit] limit check failed",
+      identifier,
+      error instanceof Error ? error.message : String(error),
+    );
+    return { allowed: true };
+  }
 }

@@ -1,18 +1,13 @@
-import { redis } from '@/lib/redis/client'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { withCache } from '@/lib/redis/cache'
 
 export async function getSystemSettings(): Promise<Record<string, string>> {
-  const cached = await redis.get<Record<string, string>>('settings:system')
-  if (cached) return cached
+  return withCache('settings:system', 3600, async () => {
+    const supabase = createAdminClient()
+    const { data } = await supabase.from('system_settings').select('key, value')
 
-  const supabase = createAdminClient()
-  const { data } = await supabase.from('system_settings').select('key, value')
-
-  const settings = Object.fromEntries(
-    (data ?? []).map((row) => [row.key, row.value ?? '']),
-  )
-
-  await redis.set('settings:system', settings, { ex: 3600 })
-
-  return settings
+    return Object.fromEntries(
+      (data ?? []).map((row) => [row.key, row.value ?? '']),
+    )
+  })
 }

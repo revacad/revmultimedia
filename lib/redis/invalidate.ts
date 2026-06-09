@@ -5,7 +5,10 @@ const PUBLIC_INTAKES_ACTIVE_KEY = "public:intakes:active";
 const ADMIN_DASHBOARD_STATS_KEY = "admin:dashboard:stats";
 
 function logInvalidateError(operation: string, error: unknown): void {
-  console.error(`[redis:invalidate] ${operation} failed`, error);
+  console.error(
+    `[redis:invalidate] ${operation} failed`,
+    error instanceof Error ? error.message : String(error),
+  );
 }
 
 export function invalidateCourse(slug: string): void {

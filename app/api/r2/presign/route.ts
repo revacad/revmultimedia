@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authErrorResponse, apiErrorResponse } from "@/lib/errors/api";
 import { z } from "zod";
-import { createServerClient } from "@/lib/supabase/server";
+import { resolveApiRequestUser, getSupabaseAuthCookieName } from "@/lib/auth/resolve-api-request-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminSession } from "@/lib/auth/admin";
 import {
@@ -23,6 +23,11 @@ import { assertCanUploadCertificate } from "@/lib/enrollment/certificate-upload"
 import { assertDraftUploadAuthorized } from "@/lib/apply/verify-draft-upload-token";
 import { logUnauthorizedAccessAttempt } from "@/lib/audit/log";
 import { getRequestIp, rateLimitOrNull } from "@/lib/security/rate-limit-request";
+
+// Auth: Supabase SSR cookie (see getSupabaseAuthCookieName()) via cookies(), or
+// Authorization: Bearer <access_token JWT> for API and load testing.
+// Do not send sb-access-token or the raw base64- cookie blob as Bearer.
+const SUPABASE_AUTH_COOKIE = getSupabaseAuthCookieName();
 
 const objectContextSchema = z.discriminatedUnion("type", [
   z.object({
@@ -328,15 +333,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   if (!isApplicationDraft) {
-    const supabase = await createServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { user, authError } = await resolveApiRequestUser(request);
 
     if (authError || !user) {
       console.error("[r2/presign] 401 unauthenticated", {
         authError: authError?.message,
+        expectedCookie: SUPABASE_AUTH_COOKIE,
       });
       return authErrorResponse("r2/presign", authError);
     }

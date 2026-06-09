@@ -6,7 +6,10 @@ import { createServerClient } from '@/lib/supabase/server'
 import { requireStaffAdmin } from '@/lib/auth/admin'
 import { logAuditEvent } from '@/lib/audit/log'
 import { logStudentActivity } from '@/lib/student-activity/log'
-import { assertStudentCanAccessResource } from '@/lib/resources/student-access'
+import {
+  assertStudentCanAccessResource,
+  resolveStudentDbIdsForAuthUser,
+} from '@/lib/resources/student-access'
 import { r2DocumentHref } from '@/lib/r2/document-url'
 import { normalizeR2ObjectKey } from '@/lib/r2/keys'
 import {
@@ -112,16 +115,6 @@ export async function getResourceUrl(resourceId: string): Promise<string> {
 
   const admin = createAdminClient()
 
-  const { data: student } = await admin
-    .from('students')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
-
-  if (!student) {
-    throw new Error('You do not have access to this resource.')
-  }
-
   const { data: resource } = await admin
     .from('resources')
     .select('file_r2_key, file_name, visibility, course_id, intake_id, is_active')
@@ -132,13 +125,18 @@ export async function getResourceUrl(resourceId: string): Promise<string> {
     throw new Error('Resource not found')
   }
 
-  await assertStudentCanAccessResource(admin, student.id, resource)
+  const studentDbIds = await resolveStudentDbIdsForAuthUser(admin, user.id)
 
-  await logStudentActivity({
-    studentId: student.id,
-    action: 'resource.downloaded',
-    metadata: { resourceId: parsed.data.resourceId, fileName: resource.file_name },
-  })
+  await assertStudentCanAccessResource(admin, studentDbIds, resource)
+
+  const activityStudentId = studentDbIds[0]
+  if (activityStudentId) {
+    await logStudentActivity({
+      studentId: activityStudentId,
+      action: 'resource.downloaded',
+      metadata: { resourceId: parsed.data.resourceId, fileName: resource.file_name },
+    })
+  }
 
   return r2DocumentHref(normalizeR2ObjectKey(resource.file_r2_key))
 }
