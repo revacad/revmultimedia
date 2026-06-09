@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePostHog } from 'posthog-js/react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 export function AuthBanner() {
+  const posthog = usePostHog()
   const [user, setUser] = useState<{
     firstName: string
     portalPath: string
@@ -123,6 +125,7 @@ export function AuthBanner() {
         type="button"
         onClick={async () => {
           const supabase = createBrowserClient()
+          posthog?.reset()
           await supabase.auth.signOut()
           setUser(null)
         }}

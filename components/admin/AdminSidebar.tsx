@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
+import { usePostHog } from 'posthog-js/react'
 import { adminLogout } from '@/actions/auth'
 import { cn } from '@/lib/utils'
 import type { AdminRole } from '@/lib/auth/admin'
@@ -139,6 +140,7 @@ export default function AdminSidebar({
   onNavigate,
 }: AdminSidebarProps) {
   const pathname = usePathname()
+  const posthog = usePostHog()
   const groups = filterGroupsForRole(adminRole)
   const shortcutLabel = useKeyboardShortcutLabel()
 
@@ -245,7 +247,13 @@ export default function AdminSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
-        <form action={adminLogout} className="mt-2">
+        <form
+          action={adminLogout}
+          className="mt-2"
+          onSubmit={() => {
+            posthog?.reset()
+          }}
+        >
           <button
             type="submit"
             className="flex w-full items-center justify-center gap-2 rounded-lg px-2.5 py-2 font-body text-[13px] font-semibold text-[#e63946] transition-colors hover:bg-white/5"

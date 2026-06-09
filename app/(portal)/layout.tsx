@@ -1,6 +1,7 @@
 import PortalNavbar from '@/components/portal/PortalNavbar'
 import PortalSecondaryNav from '@/components/portal/PortalSecondaryNav'
 import PortalMobileDock from '@/components/portal/PortalMobileDock'
+import { PostHogIdentify } from '@/components/auth/PostHogIdentify'
 import { createServerClient } from '@/lib/supabase/server'
 import { getPortalAuthUser } from '@/lib/portal/session'
 import { firstName } from '@/lib/portal/timeline'
@@ -21,7 +22,7 @@ export default async function PortalLayout({ children }: { children: React.React
       .maybeSingle(),
     supabase
       .from('students')
-      .select('full_name')
+      .select('full_name, student_id')
       .eq('auth_user_id', user.id)
       .order('created_at', { ascending: true })
       .limit(1),
@@ -32,6 +33,13 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F0F2F8]">
+      <PostHogIdentify
+        userId={user.id}
+        email={user.email ?? ''}
+        name={displayName}
+        role="student"
+        studentId={student?.student_id ?? undefined}
+      />
       <PortalNavbar displayName={firstName(displayName)} />
       <PortalSecondaryNav />
       <main className="min-h-0 flex-1 overflow-x-hidden pb-28 md:pb-6">

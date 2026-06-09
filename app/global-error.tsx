@@ -2,7 +2,9 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
+import posthog from 'posthog-js'
 import GlobalErrorFallback from '@/components/ui/GlobalErrorFallback'
+import { capturePostHogException } from '@/lib/analytics/capture-posthog-exception'
 
 export default function RootGlobalError({
   error,
@@ -11,6 +13,7 @@ export default function RootGlobalError({
 }) {
   useEffect(() => {
     Sentry.captureException(error)
+    capturePostHogException(posthog, error)
   }, [error])
 
   return (

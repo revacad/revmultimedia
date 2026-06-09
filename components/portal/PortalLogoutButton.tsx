@@ -1,10 +1,11 @@
 'use client'
 
 import { useTransition } from 'react'
-import { logout, logoutAllDevices } from '@/actions/auth'
+import { useLogout } from '@/lib/hooks/use-logout'
 
 export default function PortalLogoutButton() {
   const [pending, startTransition] = useTransition()
+  const { logout, logoutAllDevices } = useLogout()
 
   return (
     <div className="flex items-center gap-2">

@@ -2,7 +2,9 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
+import { usePostHog } from 'posthog-js/react'
 import ErrorState from '@/components/ui/ErrorState'
+import { capturePostHogException } from '@/lib/analytics/capture-posthog-exception'
 
 export default function AdminDashboardError({
   error,
@@ -11,9 +13,12 @@ export default function AdminDashboardError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const posthog = usePostHog()
+
   useEffect(() => {
     Sentry.captureException(error)
-  }, [error])
+    capturePostHogException(posthog, error)
+  }, [error, posthog])
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center p-8">
