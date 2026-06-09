@@ -14,13 +14,15 @@ export async function sendCampaignMessage(params: {
   message: string
   recipientName: string
   recipientAddress: string
+  /** Overrides RESEND_FROM_EMAIL for this send only (email channel). */
+  fromOverride?: string
 }): Promise<{
   sent: boolean
   skipped?: boolean
   error?: string
   providerMessageId?: string
 }> {
-  const { channel, subject, message, recipientName, recipientAddress } = params
+  const { channel, subject, message, recipientName, recipientAddress, fromOverride } = params
 
   if (channel === 'email') {
     const apiKey = process.env.RESEND_API_KEY
@@ -33,7 +35,7 @@ export async function sendCampaignMessage(params: {
       const { error } = await withRetry(
         () =>
           resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL!,
+            from: fromOverride?.trim() || process.env.RESEND_FROM_EMAIL!,
             to: recipientAddress,
             subject: subject || 'Message from Rev Multimedia',
             html: `<p>Dear ${escapeHtml(recipientName)},</p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,

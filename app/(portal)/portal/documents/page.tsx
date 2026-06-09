@@ -4,6 +4,7 @@ import PortalDocumentUpload from '@/components/portal/PortalDocumentUpload'
 import DocumentTypeIcon from '@/components/portal/DocumentTypeIcon'
 import PortalDocumentDownloadButton from '@/components/portal/PortalDocumentDownloadButton'
 import { formatApplicationDate, formatDocumentType } from '@/lib/applications/format'
+import { fetchStudentCertificates } from '@/lib/documents/fetch-student-certificates'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +39,10 @@ export default async function PortalDocumentsPage() {
     documentsQuery = documentsQuery.eq('application_id', application.id)
   }
 
-  const { data: documents } = await documentsQuery
+  const [{ data: documents }, certificates] = await Promise.all([
+    documentsQuery,
+    fetchStudentCertificates(supabase, user.id),
+  ])
 
   return (
     <div className="mx-auto max-w-[860px] px-6 py-8">
@@ -79,6 +83,42 @@ export default async function PortalDocumentsPage() {
           ))
         )}
       </div>
+
+      {certificates.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 font-display text-xl font-semibold text-[#1A1A2E]">
+            Certificates
+          </h2>
+          <div className="flex flex-col gap-4">
+            {certificates.map((cert) => (
+              <article
+                key={cert.id}
+                className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-5 shadow-card"
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  <DocumentTypeIcon type="certificate" />
+                  <div className="min-w-0">
+                    <p className="font-body text-[15px] font-semibold text-[#1A1A2E]">
+                      {cert.courseTitle
+                        ? `${cert.courseTitle} certificate`
+                        : 'Course certificate'}
+                    </p>
+                    <p className="truncate font-body text-[13px] text-[#9898B8]">
+                      {cert.fileName}
+                    </p>
+                    {cert.uploadedAt && (
+                      <p className="font-body text-xs text-[#9898B8]">
+                        {formatApplicationDate(cert.uploadedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <PortalDocumentDownloadButton r2Key={cert.r2Key} />
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {student?.id && <PortalDocumentUpload studentDbId={student.id} />}
     </div>

@@ -1,10 +1,14 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import data from '@emoji-mart/data'
 import { sendDirectMessage } from '@/actions/communications'
 import { AdminLabel, adminFieldClassName } from '@/components/admin/AdminFormPrimitives'
 import type { CommunicationChannel } from '@/lib/messaging/types'
+
+const EmojiPicker = dynamic(() => import('@emoji-mart/react'), { ssr: false })
 
 export default function SendDirectMessageCard({ studentId }: { studentId: string }) {
   const router = useRouter()
@@ -14,6 +18,37 @@ export default function SendDirectMessageCard({ studentId }: { studentId: string
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [pending, startTransition] = useTransition()
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const pickerContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    function handleMouseDown(event: MouseEvent) {
+      if (
+        pickerContainerRef.current &&
+        !pickerContainerRef.current.contains(event.target as Node)
+      ) {
+        setPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [pickerOpen])
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const newValue = message.slice(0, start) + emoji + message.slice(end)
+    setMessage(newValue)
+    setTimeout(() => {
+      textarea.selectionStart = start + emoji.length
+      textarea.selectionEnd = start + emoji.length
+      textarea.focus()
+    }, 0)
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,14 +103,50 @@ export default function SendDirectMessageCard({ studentId }: { studentId: string
         )}
         <div>
           <AdminLabel htmlFor="dm-message">Message</AdminLabel>
-          <textarea
-            id="dm-message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            required
-            rows={4}
-            className={adminFieldClassName}
-          />
+          <div ref={pickerContainerRef} className="relative">
+            <textarea
+              id="dm-message"
+              ref={textareaRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+              rows={4}
+              className={adminFieldClassName}
+            />
+            <button
+              type="button"
+              aria-label="Insert emoji"
+              onClick={() => setPickerOpen((open) => !open)}
+              className="absolute bottom-2 right-2 text-[#9898B8] transition-colors hover:text-[#5A5A7A]"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1="9" y1="9" x2="9.01" y2="9" />
+                <line x1="15" y1="9" x2="15.01" y2="9" />
+              </svg>
+            </button>
+            {pickerOpen && (
+              <div className="absolute bottom-full right-0 z-20 mb-2">
+                <EmojiPicker
+                  data={data}
+                  set="native"
+                  onEmojiSelect={(emoji: { native?: string }) => {
+                    if (emoji.native) insertEmoji(emoji.native)
+                    setPickerOpen(false)
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
         {error && <p className="font-body text-sm text-[#E84A4A]">{error}</p>}
         {success && (

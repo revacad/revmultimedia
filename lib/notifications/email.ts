@@ -55,6 +55,7 @@ async function sendHtmlEmail(
   to: string | string[],
   subject: string,
   html: string,
+  fromOverride?: string,
 ): Promise<void> {
   const resend = getResend()
   if (!resend) {
@@ -66,7 +67,7 @@ async function sendHtmlEmail(
     await withRetry(
       () =>
         resend.emails.send({
-          from: fromEmail,
+          from: fromOverride?.trim() || fromEmail,
           to: Array.isArray(to) ? to : [to],
           subject,
           html,
@@ -84,13 +85,14 @@ async function sendHtmlEmail(
 async function sendTemplateEmail(
   to: string | string[],
   opts: Omit<EmailTemplateOptions, 'contact'>,
+  fromOverride?: string,
 ): Promise<void> {
   const settings = await getSystemSettings()
   const html = buildEmailHtml({
     ...opts,
     contact: resolveEmailContactFooter(settings),
   })
-  await sendHtmlEmail(to, emailSubject(opts.badgeLabel, opts.title), html)
+  await sendHtmlEmail(to, emailSubject(opts.badgeLabel, opts.title), html, fromOverride)
 }
 
 function paymentInstructionsHtml(data: {
@@ -991,11 +993,13 @@ export async function sendCertificateUploaded(
   to: string,
   data: { name: string; courseName: string },
 ): Promise<void> {
-  await sendTemplateEmail(to, {
+  const settings = await getSystemSettings()
+  const html = buildEmailHtml({
     recipientName: data.name,
     badgeLabel: 'Certificate Ready',
     badgeColor: '#2ecc71',
     title: 'Your certificate is ready to download.',
+    contact: resolveEmailContactFooter(settings),
     bodyHtml: [
       bodyParagraph(
         `Congratulations on completing ${data.courseName}. Your certificate is available in your student portal.`,
@@ -1003,10 +1007,16 @@ export async function sendCertificateUploaded(
       successCard('Add this certificate to your LinkedIn profile and portfolio.'),
     ].join(''),
     ctaButton: {
-      label: 'Download certificate',
-      url: `${emailAppUrl()}/portal/resources`,
+      label: 'View my certificate',
+      url: `${emailAppUrl()}/portal/documents`,
     },
   })
+  await sendHtmlEmail(
+    to,
+    `Your ${data.courseName} certificate is ready`,
+    html,
+    adminEmail,
+  )
 }
 
 export async function sendSameIntakeAdminReviewRequiredEmail(params: {

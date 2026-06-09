@@ -93,6 +93,7 @@ export async function sendDirectMessage(data: {
       message: payload.message,
       recipientName: student.full_name,
       recipientAddress: recipient,
+      fromOverride: process.env.RESEND_NOTIFY_EMAIL,
     })
 
     const logStatus = sendResult.sent
