@@ -208,8 +208,9 @@ export async function proxy(request: NextRequest) {
     return nextWithoutSession(request, path)
   }
 
-  // Portal auth is enforced in server components. Skipping Supabase network refresh here
-  // avoids cookie churn and redirect loops with /login in development.
+  // Portal auth is enforced in server components. Only unauthenticated requests
+  // (no session cookie) redirect to login; authenticated users on unknown /portal/*
+  // paths pass through so Next.js can render the route or its not-found page.
   if (path.startsWith('/portal')) {
     if (!hasSupabaseSessionCookie(request)) {
       const url = request.nextUrl.clone()

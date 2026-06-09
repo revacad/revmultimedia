@@ -15,6 +15,8 @@ import {
 import { formatCategory, formatMode } from '@/lib/courses/labels'
 import type { ApplicationStatus } from '@/lib/applications/types'
 import type { CourseCategory, CourseMode } from '@/lib/courses/types'
+import { fetchStudentCertificates } from '@/lib/documents/fetch-student-certificates'
+import { fetchStudentDocuments } from '@/lib/documents/fetch-student-documents'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -80,26 +82,17 @@ export default async function PortalProfilePage() {
     )
   }
 
-  const applicationIds = (applications ?? []).map((a) => a.id)
-  let documentsQuery = supabase
-    .from('documents')
-    .select('*')
-    .order('uploaded_at', { ascending: false })
+  const applicationIds = (applications ?? []).map((a) => a.id as string)
+  const studentDbIds = (studentRows ?? []).map((row) => row.id as string)
 
-  if (student?.id && applicationIds.length > 0) {
-    documentsQuery = documentsQuery.or(
-      `student_id.eq.${student.id},application_id.in.(${applicationIds.join(',')})`,
-    )
-  } else if (student?.id) {
-    documentsQuery = documentsQuery.eq('student_id', student.id)
-  } else if (applicationIds.length > 0) {
-    documentsQuery = documentsQuery.in('application_id', applicationIds)
-  }
-
-  const { data: documents } = await documentsQuery
-  const applicationDocuments = (documents ?? []).filter((doc) =>
-    APPLICATION_DOC_TYPES.has(doc.document_type as string),
-  )
+  const [applicationDocuments, certificates] = await Promise.all([
+    fetchStudentDocuments(supabase, {
+      studentDbIds,
+      applicationIds,
+      documentTypes: [...APPLICATION_DOC_TYPES],
+    }),
+    fetchStudentCertificates(supabase, user.id),
+  ])
 
   const { data: pendingDeletion } = await supabase
     .from('deletion_requests')
@@ -284,31 +277,75 @@ export default async function PortalProfilePage() {
           <div className="space-y-3">
             {applicationDocuments.map((doc) => (
               <article
-                key={doc.id as string}
+                key={doc.id}
                 className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-5 shadow-card"
               >
                 <div className="flex min-w-0 items-center gap-4">
-                  <DocumentTypeIcon type={doc.document_type as string} />
+                  <DocumentTypeIcon type={doc.document_type} />
                   <div className="min-w-0">
                     <p className="font-body text-[15px] font-semibold text-[#1A1A2E]">
-                      {formatDocumentType(doc.document_type as string)}
+                      {formatDocumentType(doc.document_type)}
                     </p>
                     <p className="truncate font-body text-[13px] text-[#9898B8]">
-                      {doc.file_name as string}
+                      {doc.file_name}
                     </p>
                     {doc.uploaded_at && (
                       <p className="font-body text-xs text-[#9898B8]">
-                        {formatApplicationDate(doc.uploaded_at as string)}
+                        {formatApplicationDate(doc.uploaded_at)}
                       </p>
                     )}
                   </div>
                 </div>
-                <PortalDocumentDownloadButton r2Key={doc.r2_key as string} />
+                <PortalDocumentDownloadButton r2Key={doc.r2_key} />
               </article>
             ))}
           </div>
         )}
       </section>
+
+      {certificates.length > 0 && (
+        <section>
+          <h2 className="mb-4 font-body text-lg font-semibold text-[#1A1A2E]">
+            Certificates
+          </h2>
+          <div className="space-y-3">
+            {certificates.map((cert) => (
+              <article
+                key={cert.id}
+                className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-5 shadow-card"
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#2DBFB818]">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="#2DBFB8"
+                      strokeWidth={1.75}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                      <path d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-body text-[15px] font-semibold text-[#1A1A2E]">
+                      {cert.courseTitle ?? 'Course certificate'}
+                    </p>
+                    {cert.uploadedAt && (
+                      <p className="font-body text-xs text-[#9898B8]">
+                        {formatApplicationDate(cert.uploadedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <PortalDocumentDownloadButton r2Key={cert.r2Key} />
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <ProfileDataComplianceSection
         hasPendingDeletionRequest={Boolean(pendingDeletion)}

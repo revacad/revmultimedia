@@ -1008,7 +1008,7 @@ export async function sendCertificateUploaded(
     ].join(''),
     ctaButton: {
       label: 'View my certificate',
-      url: `${emailAppUrl()}/portal/documents`,
+      url: `${emailAppUrl()}/portal/profile`,
     },
   })
   await sendHtmlEmail(
