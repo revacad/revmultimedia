@@ -38,6 +38,15 @@ function isDroppedNoise(event: ErrorEvent, hint: EventHint): boolean {
 
 /** Drop known bot/scanner and navigation-abort noise from Sentry. */
 export function sentryBeforeSend(event: ErrorEvent, hint: EventHint): ErrorEvent | null {
+  if (event.tags?.environment === 'development' || process.env.NODE_ENV === 'development') {
+    return null
+  }
+
+  const errorMessage = event.message ?? event.exception?.values?.[0]?.value ?? ''
+  if (errorMessage.includes('EPIPE')) {
+    return null
+  }
+
   if (isDroppedNoise(event, hint)) {
     return null
   }
