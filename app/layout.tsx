@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { LocalBusinessJsonLd } from '@/components/seo/JsonLd'
+import { PostHogPageView } from '@/components/PostHogPageView'
+import { PostHogProvider } from '@/components/PostHogProvider'
 import { PageTransitionLoader } from '@/components/ui/PageTransitionLoader'
 import { siteDescription, siteKeywords, siteUrl } from '@/lib/seo'
 import './globals.css'
@@ -95,10 +97,13 @@ export default function RootLayout({
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       </head>
       <body>
-        <Suspense fallback={null}>
-          <PageTransitionLoader />
-        </Suspense>
-        {children}
+        <PostHogProvider>
+          <PostHogPageView />
+          <Suspense fallback={null}>
+            <PageTransitionLoader />
+          </Suspense>
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   )

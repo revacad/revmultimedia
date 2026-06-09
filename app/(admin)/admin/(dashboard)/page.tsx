@@ -8,8 +8,12 @@ import { getAdminSession, type AdminRole } from '@/lib/auth/admin'
 import { isStaffAdmin } from '@/lib/auth/permissions'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 import PaymentClaimsDashboardCard from '@/components/admin/PaymentClaimsDashboardCard'
-import { aggregatePaymentStats } from '@/lib/payments/invoice-stats'
 import { fetchPendingManualPaymentClaims } from '@/lib/payments/manual-claims'
+import { fetchAdminDashboardStats } from '@/lib/admin/fetch-admin-dashboard-stats'
+import {
+  paymentStatsFromDashboard,
+  recentApplicationsForDashboard,
+} from '@/lib/admin/admin-dashboard-stats'
 import { formatGHS } from '@/lib/utils'
 
 export const metadata = {
@@ -51,27 +55,10 @@ export default async function AdminDashboardPage() {
   const adminFirstName = admin?.full_name?.split(/\s+/)[0] ?? 'Admin'
 
   const paymentClaims = await fetchPendingManualPaymentClaims(supabase)
+  const dashboardStats = await fetchAdminDashboardStats(supabase)
+  const paymentStats = paymentStatsFromDashboard(dashboardStats)
 
   if (!isStaffAdmin(role)) {
-    const { data: paymentInvoices } = await supabase.from('invoices').select(
-      `
-      total_ghs, status, type, payment_method, paystack_reference, updated_at,
-      installments(amount_ghs, paid_at)
-    `,
-    )
-    const paymentStats = aggregatePaymentStats(
-      (paymentInvoices ?? []).map((inv) => ({
-        status: inv.status,
-        type: inv.type,
-        total_ghs: Number(inv.total_ghs),
-        payment_method: inv.payment_method,
-        paystack_reference: inv.paystack_reference,
-        updated_at: inv.updated_at,
-        installments: (inv.installments as { amount_ghs: number; paid_at?: string }[]) ?? [],
-      })),
-      { tuitionOnlyOutstanding: true },
-    )
-
     return (
       <div className="mx-auto max-w-6xl">
         <header className="mb-8">
@@ -144,49 +131,18 @@ export default async function AdminDashboardPage() {
     )
   }
 
-  const [
-    { count: totalApplications },
-    { count: pendingApplications },
-    { count: totalStudents },
-    { data: paymentInvoices },
-    { data: recentApplications },
-    { data: upcomingIntakes },
-  ] = await Promise.all([
-    supabase.from('applications').select('*', { count: 'exact', head: true }),
-    supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('students').select('*', { count: 'exact', head: true }),
-    supabase.from('invoices').select(
-      `
-      total_ghs, status, type, payment_method, paystack_reference, updated_at,
-      installments(amount_ghs, paid_at)
-    `,
-    ),
-    supabase
-      .from('applications')
-      .select('id, reference, full_name, status, created_at, courses(title)')
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('intakes')
-      .select('*, courses(title, category)')
-      .gte('start_date', new Date().toISOString().split('T')[0])
-      .eq('is_closed', false)
-      .order('start_date', { ascending: true })
-      .limit(5),
-  ])
+  const totalApplications = dashboardStats.total_applications
+  const pendingApplications = dashboardStats.pending_applications
+  const totalStudents = dashboardStats.total_students
+  const recentApplications = recentApplicationsForDashboard(dashboardStats)
 
-  const paymentStats = aggregatePaymentStats(
-    (paymentInvoices ?? []).map((inv) => ({
-      status: inv.status,
-      type: inv.type,
-      total_ghs: Number(inv.total_ghs),
-      payment_method: inv.payment_method,
-      paystack_reference: inv.paystack_reference,
-      updated_at: inv.updated_at,
-      installments: (inv.installments as { amount_ghs: number; paid_at?: string }[]) ?? [],
-    })),
-    { tuitionOnlyOutstanding: true },
-  )
+  const { data: upcomingIntakes } = await supabase
+    .from('intakes')
+    .select('*, courses(title, category)')
+    .gte('start_date', new Date().toISOString().split('T')[0])
+    .eq('is_closed', false)
+    .order('start_date', { ascending: true })
+    .limit(5)
 
   return (
     <div className="mx-auto max-w-6xl">
