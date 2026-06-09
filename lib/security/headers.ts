@@ -57,6 +57,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     "'unsafe-inline'",
     'https://js.paystack.co',
     'https://www.googletagmanager.com',
+    'https://us-assets.i.posthog.com',
     ...(isDev ? ["'unsafe-eval'"] : []),
     ...(allowVercelLive
       ? ['https://vercel.live', 'https://vercel-scripts.com']
@@ -76,12 +77,14 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     'https://standard.paystack.co',
     'https://www.google-analytics.com',
     'https://www.googletagmanager.com',
+    'https://us.i.posthog.com',
+    'https://us-assets.i.posthog.com',
     ...(siteHost ? [`https://${siteHost}`, `wss://${siteHost}`] : []),
     ...(isDev ? ['ws://localhost:3000', 'wss://localhost:3000'] : []),
     ...(allowVercelLive ? ['https://vercel.live', 'wss://vercel.live'] : []),
   ]
 
-  const imgSrc = ["'self'", 'data:', 'blob:', 'https:']
+  const imgSrc = ["'self'", 'data:', 'blob:', 'https:', 'https://us-assets.i.posthog.com']
   if (r2Public) imgSrc.push(`https://${r2Public}`)
 
   const directives = [
