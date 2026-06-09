@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStaffAdmin } from "@/lib/auth/admin";
-import { invalidateCourse, invalidateIntakes } from "@/lib/redis/invalidate";
+import { invalidateCourse, invalidateIntakes, invalidateActiveIntakesCache } from "@/lib/redis/invalidate";
 import {
   createIntakesForCoursesSchema,
   intakeInputSchema,
@@ -30,6 +30,7 @@ async function invalidateCoursesByIds(courseIds: string[]): Promise<void> {
       invalidateIntakes(courseId);
     }),
   );
+  invalidateActiveIntakesCache();
 }
 
 export async function createIntakesForCourses(

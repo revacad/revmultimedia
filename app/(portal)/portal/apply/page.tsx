@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation'
 import ReturnStudentApplyForm from '@/components/portal/ReturnStudentApplyForm'
-import { mapApplyCourses } from '@/lib/apply/map-courses'
+import { fetchCachedApplyCourses } from '@/lib/apply/fetch-cached-apply-courses'
 import { fetchReturnStudentEducation } from '@/lib/portal/return-student-education'
 import { requirePortalUser } from '@/lib/auth/requirePortalUser'
-import { withCache } from '@/lib/redis/cache'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const metadata = {
@@ -11,16 +10,6 @@ export const metadata = {
 }
 
 export const dynamic = 'force-dynamic'
-
-async function fetchPublishedCourses() {
-  const supabase = await createServerClient()
-  const { data } = await supabase
-    .from('courses')
-    .select('id, title, slug, category, mode, tuition_fee_ghs, intakes(*)')
-    .eq('is_published', true)
-    .order('title')
-  return mapApplyCourses(data || [])
-}
 
 export default async function PortalApplyPage({
   searchParams,
@@ -53,7 +42,7 @@ export default async function PortalApplyPage({
     redirect('/portal/dashboard')
   }
 
-  const courses = await withCache('courses:published', 300, fetchPublishedCourses)
+  const courses = await fetchCachedApplyCourses()
 
   return (
     <div className="px-0 py-2">

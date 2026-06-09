@@ -102,7 +102,7 @@ export async function getFeaturedCoursesForHome(): Promise<Course[]> {
 }
 
 export async function getPublishedCourses(): Promise<Course[]> {
-  return withCache("courses:published", 300, async () => {
+  return withCache("public:courses:list", 300, async () => {
     const supabase = createPublicClient();
     const { data, error } = await supabase
       .from("courses")

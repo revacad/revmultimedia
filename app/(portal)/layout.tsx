@@ -11,18 +11,23 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await getPortalAuthUser()
   const supabase = await createServerClient()
 
-  const { data: application } = await supabase
-    .from('applications')
-    .select('full_name')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
+  const [{ data: application }, { data: studentRows }] = await Promise.all([
+    supabase
+      .from('applications')
+      .select('full_name')
+      .eq('auth_user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('students')
+      .select('full_name')
+      .eq('auth_user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1),
+  ])
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('full_name')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
-
+  const student = studentRows?.[0] ?? null
   const displayName = student?.full_name ?? application?.full_name ?? 'Student'
 
   return (

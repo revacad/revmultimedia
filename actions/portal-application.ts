@@ -12,6 +12,7 @@ import {
 } from '@/lib/notifications/log-delivery'
 import { sendAdminNewApplication } from '@/lib/notifications/email'
 import { runAfterResponse } from '@/lib/background'
+import { invalidateAdminStats } from '@/lib/redis/invalidate'
 import {
   copyDocumentsFromPreviousApplication,
   findPreviousApplicationId,
@@ -276,6 +277,7 @@ export async function submitReturnStudentApplication(formData: unknown) {
 
   revalidatePath('/portal/dashboard')
   revalidatePath('/portal/application')
+  invalidateAdminStats()
 
   return successResult
 }
