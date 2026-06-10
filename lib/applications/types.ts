@@ -21,6 +21,7 @@ export type ApplicationListRow = {
   phone: string
   country: string
   status: ApplicationStatus
+  application_channel: ApplicationChannel
   app_fee_paid: boolean
   requires_admin_review: boolean
   created_at: string

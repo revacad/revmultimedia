@@ -11,6 +11,7 @@ export type EnrolledStudentListItem = {
   country: string
   profilePhotoUrl: string | null
   latestEnrolledAt: string | null
+  isLevelUp: boolean
   enrollments: {
     id: string
     status: string
@@ -39,6 +40,7 @@ type StudentEmbed = {
   country: string
   created_at: string
   profile_photo_r2_key: string | null
+  applications: { application_channel: string } | { application_channel: string }[] | null
 }
 
 type EnrollmentRow = {
@@ -55,12 +57,22 @@ type StudentGroup = {
   enrollments: EnrolledStudentListItem['enrollments']
   latestEnrolledAt: string | null
   latestEnrolledMs: number
+  isLevelUp: boolean
+}
+
+function studentIsLevelUp(student: StudentEmbed): boolean {
+  const application = firstRelation(student.applications)
+  return application?.application_channel === 'level_up'
 }
 
 export async function fetchEnrolledStudentsGrouped(
   supabase: SupabaseClient,
   range: { from: number; to: number },
-): Promise<{ students: EnrolledStudentListItem[]; totalCount: number }> {
+): Promise<{
+  students: EnrolledStudentListItem[]
+  totalCount: number
+  channelCounts: { all: number; standard: number; level_up: number }
+}> {
   const { data: enrollmentRows, error } = await supabase
     .from('enrollments')
     .select(
@@ -77,7 +89,8 @@ export async function fetchEnrolledStudentsGrouped(
         phone,
         country,
         created_at,
-        profile_photo_r2_key
+        profile_photo_r2_key,
+        applications(application_channel)
       ),
       courses(title),
       intakes(name)
@@ -88,7 +101,11 @@ export async function fetchEnrolledStudentsGrouped(
 
   if (error) {
     console.error('[fetchEnrolledStudentsGrouped]', error)
-    return { students: [], totalCount: 0 }
+    return {
+      students: [],
+      totalCount: 0,
+      channelCounts: { all: 0, standard: 0, level_up: 0 },
+    }
   }
 
   const groups = new Map<string, StudentGroup>()
@@ -118,11 +135,15 @@ export async function fetchEnrolledStudentsGrouped(
         enrollments: [enrollment],
         latestEnrolledAt: row.enrolled_at,
         latestEnrolledMs: enrolledMs,
+        isLevelUp: studentIsLevelUp(student),
       })
       continue
     }
 
     existing.enrollments.push(enrollment)
+    if (studentIsLevelUp(student)) {
+      existing.isLevelUp = true
+    }
     if (enrolledMs > existing.latestEnrolledMs) {
       existing.latestEnrolledAt = row.enrolled_at
       existing.latestEnrolledMs = enrolledMs
@@ -138,6 +159,11 @@ export async function fetchEnrolledStudentsGrouped(
   )
 
   const totalCount = sorted.length
+  const channelCounts = {
+    all: totalCount,
+    standard: sorted.filter((group) => !group.isLevelUp).length,
+    level_up: sorted.filter((group) => group.isLevelUp).length,
+  }
   const pageGroups = sorted.slice(range.from, range.to + 1)
 
   for (const group of pageGroups) {
@@ -163,10 +189,11 @@ export async function fetchEnrolledStudentsGrouped(
         country: canonical.country,
         profilePhotoUrl,
         latestEnrolledAt: group.latestEnrolledAt,
+        isLevelUp: group.isLevelUp,
         enrollments: group.enrollments,
       }
     }),
   )
 
-  return { students, totalCount }
+  return { students, totalCount, channelCounts }
 }

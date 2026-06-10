@@ -23,7 +23,8 @@ export default async function AdminStudentsPage({
   const { from, to } = adminListRange(page)
 
   const supabase = createAdminClient()
-  const { students: grouped, totalCount } = await fetchEnrolledStudentsGrouped(supabase, {
+  const { students: grouped, totalCount, channelCounts } =
+    await fetchEnrolledStudentsGrouped(supabase, {
     from,
     to,
   })
@@ -37,6 +38,7 @@ export default async function AdminStudentsPage({
     phone: row.phone,
     country: row.country,
     latestEnrolledAt: row.latestEnrolledAt,
+    isLevelUp: row.isLevelUp,
     enrollments: row.enrollments,
     profilePhotoUrl: row.profilePhotoUrl,
   }))
@@ -48,6 +50,7 @@ export default async function AdminStudentsPage({
       currentPage={page}
       totalCount={totalCount}
       pageSize={ADMIN_PAGE_SIZE}
+      channelCounts={channelCounts}
     />
   )
 }

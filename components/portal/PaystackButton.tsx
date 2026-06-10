@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PortalErrorState from '@/components/portal/PortalErrorState'
 
 interface PaystackButtonProps {
@@ -39,6 +39,8 @@ export function PaystackButton({
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<{ title: string; message: string } | null>(null)
   const [paystackReady, setPaystackReady] = useState(false)
+  const [reference, setReference] = useState<string | null>(null)
+  const paymentSessionActive = useRef(false)
 
   const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
 
@@ -130,33 +132,45 @@ export function PaystackButton({
       return
     }
 
+    if (paymentSessionActive.current || reference !== null) {
+      return
+    }
+
     setError(null)
 
-    const paystackRef = `${invoiceRef}-${Date.now()}`
+    const ref = `${applicationRef}-${Date.now()}`
+    paymentSessionActive.current = true
+    setReference(ref)
 
     const handler = window.PaystackPop.setup({
       key: publicKey,
       email,
       amount,
       currency: 'GHS',
-      ref: paystackRef,
+      ref,
       metadata: {
         invoiceRef,
         applicationRef,
       },
       callback: (response: PaystackCallbackResponse) => {
-        const reference =
+        paymentSessionActive.current = false
+        setReference(null)
+        const confirmedReference =
           (typeof response === 'object' && response?.reference) ||
           (typeof response === 'string' ? response : null) ||
-          paystackRef
-        void confirmPaymentOnServer(reference)
+          ref
+        void confirmPaymentOnServer(confirmedReference)
       },
-      onClose: () => {},
+      onClose: () => {
+        paymentSessionActive.current = false
+        setReference(null)
+      },
     })
     handler.openIframe()
   }
 
-  const disabled = amount <= 0 || confirming || !paystackReady || !publicKey
+  const disabled =
+    amount <= 0 || confirming || !paystackReady || !publicKey || reference !== null
 
   return (
     <div className="flex flex-col items-center gap-2">

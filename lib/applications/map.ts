@@ -35,6 +35,8 @@ export function mapApplicationListRow(row: Record<string, unknown>): Application
     phone: row.phone as string,
     country: row.country as string,
     status: row.status as ApplicationListRow['status'],
+    application_channel:
+      (row.application_channel as ApplicationListRow['application_channel']) ?? 'standard',
     app_fee_paid: row.app_fee_paid as boolean,
     requires_admin_review: Boolean(row.requires_admin_review),
     created_at: row.created_at as string,

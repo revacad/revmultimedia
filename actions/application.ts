@@ -407,6 +407,11 @@ export async function submitApplication(formData: unknown) {
   const channel = data.applicationChannel ?? 'standard'
 
   let parentWhatsappNormalized: string | null = null
+  const channelUpdate: Record<string, unknown> = {
+    application_channel: channel,
+    updated_at: new Date().toISOString(),
+  }
+
   if (channel === 'level_up') {
     try {
       parentWhatsappNormalized = normalisePhone(data.parentGuardianWhatsapp!, 'GH')
@@ -414,21 +419,19 @@ export async function submitApplication(formData: unknown) {
       return { error: 'Invalid parent/guardian WhatsApp number' }
     }
 
-    const { error: levelUpUpdateError } = await supabase
-      .from('applications')
-      .update({
-        application_channel: 'level_up',
-        parent_guardian_whatsapp: parentWhatsappNormalized,
-        parent_guardian_email: data.parentGuardianEmail?.trim() || null,
-        shs_school_id: data.shsSchoolId ?? null,
-        shs_school_name_freeform: data.shsSchoolNameFreeform?.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', rpc.application_id)
+    channelUpdate.parent_guardian_whatsapp = parentWhatsappNormalized
+    channelUpdate.parent_guardian_email = data.parentGuardianEmail?.trim() || null
+    channelUpdate.shs_school_id = data.shsSchoolId ?? null
+    channelUpdate.shs_school_name_freeform = data.shsSchoolNameFreeform?.trim() || null
+  }
 
-    if (levelUpUpdateError) {
-      console.error('Level Up application update failed:', levelUpUpdateError)
-    }
+  const { error: channelUpdateError } = await supabase
+    .from('applications')
+    .update(channelUpdate)
+    .eq('id', rpc.application_id)
+
+  if (channelUpdateError) {
+    console.error('Application channel update failed:', channelUpdateError)
   }
 
   void Promise.race([

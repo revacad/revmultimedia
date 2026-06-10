@@ -22,13 +22,29 @@ function r2ConnectSources(): string[] {
   return [`https://*.${accountId}.r2.cloudflarestorage.com`]
 }
 
-/** R2 hosts used in img-src (public bucket URL and presigned download endpoint). */
+function r2PublicOrigin(): string | null {
+  const r2PublicUrl =
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim() ||
+    process.env.CLOUDFLARE_R2_PUBLIC_URL?.trim() ||
+    process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL?.trim() ||
+    ''
+  if (!r2PublicUrl) return null
+  try {
+    return new URL(r2PublicUrl).origin
+  } catch {
+    return null
+  }
+}
+
+/** R2 hosts used in img-src (public bucket origin and presigned download endpoint). */
 function r2ImgSources(): string[] {
   const sources: string[] = []
-  const r2Public = hostFromEnvUrl(process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL)
-  if (r2Public) sources.push(`https://${r2Public}`)
+  const r2Origin = r2PublicOrigin()
+  if (r2Origin) sources.push(r2Origin)
 
-  const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID?.trim()
+  const accountId =
+    process.env.CLOUDFLARE_R2_ACCOUNT_ID?.trim() ||
+    process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
   if (accountId) {
     sources.push(`https://${accountId}.r2.cloudflarestorage.com`)
   }

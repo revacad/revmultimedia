@@ -28,13 +28,15 @@ export default async function AdminApplicationsPage({
     { count: pendingReviewCount },
     { count: acceptedCount },
     { count: rejectedCount },
+    { count: standardCount },
+    { count: levelUpCount },
   ] = await Promise.all([
     supabase
       .from('applications')
       .select(
         `
       id, reference, full_name, real_email, phone,
-      country, status, app_fee_paid, requires_admin_review, created_at,
+      country, status, application_channel, app_fee_paid, requires_admin_review, created_at,
       students:students!students_application_id_fkey(student_id),
       returning_student:students!applications_returning_student_id_fkey(student_id),
       courses(title, category),
@@ -56,6 +58,14 @@ export default async function AdminApplicationsPage({
       .from('applications')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'rejected'),
+    supabase
+      .from('applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('application_channel', 'standard'),
+    supabase
+      .from('applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('application_channel', 'level_up'),
   ])
 
   if (error) {
@@ -83,6 +93,11 @@ export default async function AdminApplicationsPage({
         pendingReview: pendingReviewCount ?? 0,
         accepted: acceptedCount ?? 0,
         rejected: rejectedCount ?? 0,
+      }}
+      channelCounts={{
+        all: count ?? 0,
+        standard: standardCount ?? 0,
+        level_up: levelUpCount ?? 0,
       }}
     />
   )

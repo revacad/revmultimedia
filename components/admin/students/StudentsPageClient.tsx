@@ -6,6 +6,7 @@ import AdminStudentAvatar from '@/components/admin/students/AdminStudentAvatar'
 import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import { formatApplicationDate } from '@/lib/applications/format'
 import { StateWrapper } from '@/components/ui/StateWrapper'
+import { cn } from '@/lib/utils'
 
 export type StudentListEnrollment = {
   id: string
@@ -24,9 +25,12 @@ export type StudentListRow = {
   phone: string
   country: string
   latestEnrolledAt: string | null
+  isLevelUp: boolean
   enrollments: StudentListEnrollment[]
   profilePhotoUrl?: string | null
 }
+
+type ChannelFilter = 'all' | 'standard' | 'level_up'
 
 interface StudentsPageClientProps {
   students: StudentListRow[]
@@ -34,7 +38,18 @@ interface StudentsPageClientProps {
   currentPage: number
   totalCount: number
   pageSize: number
+  channelCounts: {
+    all: number
+    standard: number
+    level_up: number
+  }
 }
+
+const CHANNEL_FILTERS: { value: ChannelFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'level_up', label: 'Level Up' },
+]
 
 export default function StudentsPageClient({
   students,
@@ -42,14 +57,18 @@ export default function StudentsPageClient({
   currentPage,
   totalCount,
   pageSize,
+  channelCounts,
 }: StudentsPageClientProps) {
   const [query, setQuery] = useState('')
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all')
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return students
-    return students.filter(
-      (s) =>
+    return students.filter((s) => {
+      if (channelFilter === 'standard' && s.isLevelUp) return false
+      if (channelFilter === 'level_up' && !s.isLevelUp) return false
+      if (!q) return true
+      return (
         s.student_id.toLowerCase().includes(q) ||
         s.full_name.toLowerCase().includes(q) ||
         s.real_email.toLowerCase().includes(q) ||
@@ -57,9 +76,10 @@ export default function StudentsPageClient({
           (e) =>
             e.courseTitle.toLowerCase().includes(q) ||
             e.intakeName.toLowerCase().includes(q),
-        ),
-    )
-  }, [students, query])
+        )
+      )
+    })
+  }, [students, query, channelFilter])
 
   const activeCount = students.filter((s) =>
     s.enrollments.some((e) => e.status === 'active'),
@@ -76,6 +96,24 @@ export default function StudentsPageClient({
           One row per student. Students with at least one active or completed enrollment only.
         </p>
       </header>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {CHANNEL_FILTERS.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() => setChannelFilter(filter.value)}
+            className={cn(
+              'rounded-full px-4 py-2 font-body text-[13px] font-semibold transition-colors',
+              channelFilter === filter.value
+                ? 'bg-[#252540] text-white'
+                : 'border border-[#EFEFF5] bg-[#F7F8FC] text-[#5A5A7A] hover:border-[#D8D8E8]',
+            )}
+          >
+            {filter.label} ({channelCounts[filter.value]})
+          </button>
+        ))}
+      </div>
 
       <input
         type="search"

@@ -7,7 +7,7 @@ import ApplicationStatusBadge from '@/components/admin/applications/ApplicationS
 import Pagination, { PaginationSummary } from '@/components/admin/Pagination'
 import { FILTER_STATUSES } from '@/lib/applications/status'
 import { formatApplicationDate, getCountryFlag } from '@/lib/applications/format'
-import type { ApplicationListRow, ApplicationStatus } from '@/lib/applications/types'
+import type { ApplicationListRow, ApplicationStatus, ApplicationChannel } from '@/lib/applications/types'
 import { formatCategory } from '@/lib/courses/labels'
 import type { CourseCategory } from '@/lib/courses/types'
 import { StateWrapper } from '@/components/ui/StateWrapper'
@@ -25,7 +25,18 @@ interface ApplicationsPageClientProps {
     accepted: number
     rejected: number
   }
+  channelCounts: {
+    all: number
+    standard: number
+    level_up: number
+  }
 }
+
+const CHANNEL_FILTERS: { value: ApplicationChannel | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'level_up', label: 'Level Up' },
+]
 
 export default function ApplicationsPageClient({
   applications,
@@ -34,13 +45,16 @@ export default function ApplicationsPageClient({
   totalCount,
   pageSize,
   stats,
+  channelCounts,
 }: ApplicationsPageClientProps) {
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all')
+  const [channelFilter, setChannelFilter] = useState<ApplicationChannel | 'all'>('all')
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return applications.filter((app) => {
+      if (channelFilter !== 'all' && app.application_channel !== channelFilter) return false
       if (statusFilter !== 'all' && app.status !== statusFilter) return false
       if (!q) return true
       return (
@@ -49,7 +63,7 @@ export default function ApplicationsPageClient({
         app.reference.toLowerCase().includes(q)
       )
     })
-  }, [applications, statusFilter, search])
+  }, [applications, channelFilter, statusFilter, search])
 
   return (
     <div className="mx-auto max-w-[1200px]">
@@ -78,7 +92,25 @@ export default function ApplicationsPageClient({
         ))}
       </div>
 
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-6 flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          {CHANNEL_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => setChannelFilter(filter.value)}
+              className={cn(
+                'rounded-full px-4 py-2 font-body text-[13px] font-semibold transition-colors',
+                channelFilter === filter.value
+                  ? 'bg-[#252540] text-white'
+                  : 'border border-[#EFEFF5] bg-[#F7F8FC] text-[#5A5A7A] hover:border-[#D8D8E8]',
+              )}
+            >
+              {filter.label} ({channelCounts[filter.value]})
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           {FILTER_STATUSES.map((filter) => (
             <button
@@ -103,6 +135,7 @@ export default function ApplicationsPageClient({
           placeholder="Search by name, email, or reference..."
           className="w-full rounded-full border-[1.5px] border-[#D8D8E8] bg-white px-4 py-2 font-body text-sm text-[#1A1A2E] outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/10 lg:w-[280px]"
         />
+        </div>
       </div>
 
       <StateWrapper
