@@ -70,10 +70,12 @@ export default function RootLayout({
         <link
           rel="preconnect"
           href="https://api.fontshare.com"
+          crossOrigin="anonymous"
         />
         <link
           href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap"
           rel="stylesheet"
+          crossOrigin="anonymous"
         />
         <link
           rel="preconnect"
@@ -87,6 +89,7 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
+          crossOrigin="anonymous"
         />
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />

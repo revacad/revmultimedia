@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: {
     optimizePackageImports: [
       '@radix-ui/react-accordion',
@@ -25,6 +26,43 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  async headers() {
+    const globalSecurityHeaders = [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=31536000; includeSubDomains; preload',
+      },
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+    ]
+
+    return [
+      {
+        source: '/robots.txt',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://revmultimedia.com',
+          },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://revmultimedia.com',
+          },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/:path*',
+        headers: globalSecurityHeaders,
+      },
+    ]
   },
 }
 

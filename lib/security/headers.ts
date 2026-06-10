@@ -22,6 +22,20 @@ function r2ConnectSources(): string[] {
   return [`https://*.${accountId}.r2.cloudflarestorage.com`]
 }
 
+/** R2 hosts used in img-src (public bucket URL and presigned download endpoint). */
+function r2ImgSources(): string[] {
+  const sources: string[] = []
+  const r2Public = hostFromEnvUrl(process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL)
+  if (r2Public) sources.push(`https://${r2Public}`)
+
+  const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID?.trim()
+  if (accountId) {
+    sources.push(`https://${accountId}.r2.cloudflarestorage.com`)
+  }
+
+  return sources
+}
+
 const PRODUCTION_APP_URLS = new Set([
   'https://revmultimedia.com',
   'https://www.revmultimedia.com',
@@ -46,7 +60,6 @@ export function shouldAllowVercelLiveScripts(): boolean {
 /** Build Content-Security-Policy for the public app (adjust when adding third-party scripts). */
 export function buildContentSecurityPolicy(isDev: boolean): string {
   const supabase = supabaseConnectSources()
-  const r2Public = hostFromEnvUrl(process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL)
   const siteHost = hostFromEnvUrl(
     process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL,
   )
@@ -84,8 +97,13 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     ...(allowVercelLive ? ['https://vercel.live', 'wss://vercel.live'] : []),
   ]
 
-  const imgSrc = ["'self'", 'data:', 'blob:', 'https:', 'https://us-assets.i.posthog.com']
-  if (r2Public) imgSrc.push(`https://${r2Public}`)
+  const imgSrc = [
+    "'self'",
+    'data:',
+    'blob:',
+    'https://us-assets.i.posthog.com',
+    ...r2ImgSources(),
+  ]
 
   const directives = [
     "default-src 'self'",
@@ -97,7 +115,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     `connect-src ${connectSrc.join(' ')}`,
     "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com" +
       (allowVercelLive ? ' https://vercel.live' : ''),
-    "media-src 'self' https: blob:",
+    "media-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

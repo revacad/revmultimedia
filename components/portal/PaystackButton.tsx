@@ -59,6 +59,7 @@ export function PaystackButton({
 
     const script = document.createElement('script')
     script.src = 'https://js.paystack.co/v1/inline.js'
+    script.crossOrigin = 'anonymous'
     script.async = true
     script.onload = () => setPaystackReady(true)
     script.onerror = () => {
