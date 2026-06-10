@@ -119,7 +119,7 @@ function paymentInstructionsHtml(data: {
       ),
       detailsCard([
         { label: 'Number', value: data.momoNumber },
-        { label: 'Account name', value: data.momoName || '—' },
+        { label: 'Account name', value: data.momoName || ' - ' },
       ]),
     )
   }
@@ -129,8 +129,8 @@ function paymentInstructionsHtml(data: {
       bodyParagraphHtml('<strong style="color:#1a1a2e;">Bank transfer</strong>'),
       detailsCard([
         { label: 'Bank', value: data.bankName },
-        { label: 'Account number', value: data.bankAccount || '—' },
-        { label: 'Account name', value: data.bankAccountName || '—' },
+        { label: 'Account number', value: data.bankAccount || ' - ' },
+        { label: 'Account name', value: data.bankAccountName || ' - ' },
       ]),
     )
   }
@@ -149,7 +149,7 @@ function paymentInstructionsHtml(data: {
   return parts.join('')
 }
 
-// ——— 1. OTP ———
+//  -  -  -  1. OTP  -  -  - 
 
 export async function sendOtpEmail(
   to: string,
@@ -175,7 +175,7 @@ export async function sendOtpEmail(
 /** @deprecated Use sendOtpEmail */
 export const sendOTP = sendOtpEmail
 
-// ——— 2. Application received ———
+//  -  -  -  2. Application received  -  -  - 
 
 export async function sendApplicationReceivedEmail(
   to: string,
@@ -215,13 +215,13 @@ export async function sendApplicationReceivedEmail(
       label: `Pay Application Fee: GHS ${feeLabel}`,
       url: `${emailAppUrl()}/portal/application`,
     },
-    ctaNote: `Save your reference ${data.reference} — you will need it to log in.`,
+    ctaNote: `Save your reference ${data.reference}  -  you will need it to log in.`,
   })
 }
 
 export const sendApplicationReceived = sendApplicationReceivedEmail
 
-// ——— 3. Status changed ———
+//  -  -  -  3. Status changed  -  -  - 
 
 const STATUS_EMAIL: Record<
   string,
@@ -301,7 +301,7 @@ export async function sendStatusChangedEmail(
 
 export const sendStatusChanged = sendStatusChangedEmail
 
-// ——— 4. Application fee invoice ———
+//  -  -  -  4. Application fee invoice  -  -  - 
 
 export async function sendAppFeeInvoiceEmail(
   to: string,
@@ -343,7 +343,7 @@ export async function sendAppFeeInvoiceEmail(
 
 export const sendAppFeeInvoice = sendAppFeeInvoiceEmail
 
-// ——— 5. Tuition invoice ———
+//  -  -  -  5. Tuition invoice  -  -  - 
 
 export type InvoiceReadyEmailData = {
   name: string
@@ -418,7 +418,7 @@ export async function sendInvoiceReadyEmail(
   })
 }
 
-// ——— 6. Payment confirmed ———
+//  -  -  -  6. Payment confirmed  -  -  - 
 
 export async function sendPaymentConfirmedEmail(
   to: string,
@@ -464,7 +464,7 @@ export async function sendPaymentConfirmedEmail(
       ),
       ...(detailRows.length > 0 ? [detailsCard(detailRows)] : []),
       enrolled
-        ? bodyParagraph('Save your Student ID — you will use it to log in to your student portal.')
+        ? bodyParagraph('Save your Student ID  -  you will use it to log in to your student portal.')
         : '',
     ].join(''),
     ctaButton: {
@@ -476,7 +476,7 @@ export async function sendPaymentConfirmedEmail(
 
 export const sendPaymentConfirmed = sendPaymentConfirmedEmail
 
-// ——— 7. Enrollment letter ———
+//  -  -  -  7. Enrollment letter  -  -  - 
 
 export async function sendEnrollmentLetterEmail(
   to: string,
@@ -522,7 +522,7 @@ export async function sendEnrollmentLetterEmail(
 
 export const sendAdmissionLetterEmail = sendEnrollmentLetterEmail
 
-// ——— 8. Admin invite ———
+//  -  -  -  8. Admin invite  -  -  - 
 
 export async function sendAdminInviteEmail(
   to: string,
@@ -559,7 +559,7 @@ export async function sendAdminInviteEmail(
 
 export const sendAdminInvite = sendAdminInviteEmail
 
-// ——— 9–10. Password reset ———
+//  -  -  -  9–10. Password reset  -  -  - 
 
 export async function sendAdminPasswordResetEmail(
   to: string,
@@ -604,7 +604,7 @@ export async function sendPasswordReset(
   }
 }
 
-// ——— 11–12. Waitlist ———
+//  -  -  -  11–12. Waitlist  -  -  - 
 
 export async function sendWaitlistConfirmationEmail(
   to: string,
@@ -673,7 +673,7 @@ export async function sendWaitlistNotificationEmail(
 
 export const sendWaitlistSpotAvailable = sendWaitlistNotificationEmail
 
-// ——— 13–14. Contact form ———
+//  -  -  -  13–14. Contact form  -  -  - 
 
 export async function sendContactFormConfirmationEmail(
   to: string,
@@ -800,7 +800,7 @@ export async function sendContactForm(data: {
   }, { maxRetries: 3, baseDelayMs: 1000 })
 }
 
-// ——— 15. Manual payment claim ———
+//  -  -  -  15. Manual payment claim  -  -  - 
 
 export async function sendManualPaymentClaimEmail(
   to: string,
@@ -865,7 +865,7 @@ export async function sendManualPaymentClaimRejectedEmail(
   })
 }
 
-// ——— 16–17. Account deletion ———
+//  -  -  -  16–17. Account deletion  -  -  - 
 
 export async function sendAccountDeletionRequestEmail(
   to: string,
@@ -918,7 +918,7 @@ export async function sendAccountDeletionCompleteEmail(to: string): Promise<void
 
 export const sendAccountDeletionCompleted = sendAccountDeletionCompleteEmail
 
-// ——— 18. Data export ———
+//  -  -  -  18. Data export  -  -  - 
 
 export async function sendDataExportEmail(
   to: string,
@@ -936,7 +936,7 @@ export async function sendDataExportEmail(
   })
 }
 
-// ——— Additional emails (same template system) ———
+//  -  -  -  Additional emails (same template system)  -  -  - 
 
 export async function sendPaymentReceiptEmail(
   to: string,
@@ -1019,6 +1019,48 @@ export async function sendCertificateUploaded(
   )
 }
 
+export async function sendWaiverApplied(
+  to: string,
+  data: {
+    name: string
+    invoiceRef: string
+    courseName: string
+    amountGhs: number
+    newRemainingGhs: number
+  },
+): Promise<void> {
+  const settings = await getSystemSettings()
+  const settledParagraph =
+    data.newRemainingGhs <= 0
+      ? bodyParagraph('Your invoice is now fully settled.')
+      : ''
+
+  const html = buildEmailHtml({
+    recipientName: data.name,
+    badgeLabel: 'Fee Waiver',
+    badgeColor: '#2ecc71',
+    title: 'A fee waiver has been applied to your invoice.',
+    contact: resolveEmailContactFooter(settings),
+    bodyHtml: [
+      bodyParagraph(
+        `We would like to inform you that a fee waiver of GHS ${data.amountGhs.toFixed(2)} has been applied to your invoice ${data.invoiceRef} for ${data.courseName}. Your updated balance is GHS ${data.newRemainingGhs.toFixed(2)}.`,
+      ),
+      settledParagraph,
+    ].join(''),
+    ctaButton: {
+      label: 'View invoice',
+      url: `${emailAppUrl()}/portal/invoices`,
+    },
+  })
+
+  await sendHtmlEmail(
+    to,
+    `Fee waiver applied - ${data.invoiceRef}`,
+    html,
+    adminEmail,
+  )
+}
+
 export async function sendSameIntakeAdminReviewRequiredEmail(params: {
   studentId: string
   studentName: string
@@ -1042,7 +1084,7 @@ export async function sendSameIntakeAdminReviewRequiredEmail(params: {
       contact: resolveEmailContactFooter(settings),
       bodyHtml: [
         bodyParagraph(
-          'A returning student submitted a new application for a course in an intake where they already have an active enrollment. Please verify before accepting — some courses cannot be taken simultaneously.',
+          'A returning student submitted a new application for a course in an intake where they already have an active enrollment. Please verify before accepting  -  some courses cannot be taken simultaneously.',
         ),
         detailsCard([
           { label: 'Student ID', value: params.studentId },

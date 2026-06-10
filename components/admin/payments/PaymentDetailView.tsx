@@ -69,10 +69,10 @@ export default function PaymentDetailView({ invoice, viewerRole }: PaymentDetail
               </div>
             ) : null}
             <p className="mt-4 font-display text-xl font-semibold text-[#1A1A2E]">
-              {application?.full_name ?? '—'}
+              {application?.full_name ?? '-'}
             </p>
             <p className="font-body text-sm text-[#9898B8]">
-              {application?.courses?.title ?? '—'}
+              {application?.courses?.title ?? '-'}
               {application?.intakes?.name ? ` · ${application.intakes.name}` : ''}
             </p>
           </section>
@@ -167,6 +167,11 @@ export default function PaymentDetailView({ invoice, viewerRole }: PaymentDetail
                     {inst.payment_note && (
                       <p className="mt-1 font-body text-[13px] text-[#5A5A7A]">{inst.payment_note}</p>
                     )}
+                    {inst.waiver_reason && (
+                      <p className="mt-1 font-body text-[13px] text-[#9898B8]">
+                        Reason: {inst.waiver_reason}
+                      </p>
+                    )}
                     <p className="mt-2 font-body text-xs text-[#9898B8]">
                       {inst.admins?.full_name ?? 'Admin'} · {formatPaymentDateTime(inst.paid_at)}
                     </p>
@@ -188,8 +193,9 @@ export default function PaymentDetailView({ invoice, viewerRole }: PaymentDetail
               status={invoice.status}
               paymentForLabel={paymentForLabel}
               invoiceType={invoice.type}
-              studentName={application?.full_name ?? '—'}
+              studentName={application?.full_name ?? '-'}
               applicationReference={application?.reference ?? invoice.reference}
+              invoiceReference={invoice.reference}
             />
           </section>
         </div>

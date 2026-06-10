@@ -69,7 +69,7 @@ export function resolveEmailContactFooter(
 }
 
 export function emailSubject(badgeLabel: string, title: string): string {
-  return `${badgeLabel} — ${title}`
+  return `${badgeLabel}  -  ${title}`
 }
 
 export function buildEmailHtml(opts: EmailTemplateOptions): string {

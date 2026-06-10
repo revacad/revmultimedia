@@ -74,7 +74,7 @@ export async function sendFishAfricaSMS(
         return {
           sent: 0,
           failed: phones.length,
-          errors: ['Cloudflare WAF block — contact Fish Africa support'],
+          errors: ['Cloudflare WAF block  -  contact Fish Africa support'],
           messageIds: [],
         }
       }

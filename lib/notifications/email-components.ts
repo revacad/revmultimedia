@@ -29,7 +29,7 @@ export function emailGreeting(name: string): string {
   `
 }
 
-/** For trusted template HTML (bold tags, etc.) — do not pass raw user input. */
+/** For trusted template HTML (bold tags, etc.)  -  do not pass raw user input. */
 export function emailParagraph(text: string): string {
   return `
     <p style="margin:0 0 16px;font-family:Helvetica,Arial,sans-serif;

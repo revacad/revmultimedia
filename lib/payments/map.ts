@@ -106,6 +106,7 @@ export function mapInvoiceDetail(row: Record<string, unknown>): InvoiceDetail {
     payment_method: inst.payment_method as string,
     transaction_ref: (inst.transaction_ref as string | null) ?? null,
     payment_note: (inst.payment_note as string | null) ?? null,
+    waiver_reason: (inst.waiver_reason as string | null) ?? null,
     paid_at: inst.paid_at as string,
     admins: firstRelation(
       inst.admins as { full_name: string } | { full_name: string }[] | null,

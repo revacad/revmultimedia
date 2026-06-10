@@ -21,6 +21,7 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: 'Cash',
   paystack: 'Paystack',
   other: 'Manual',
+  waiver: 'Waiver',
 }
 
 /** Badge label + Tailwind classes for invoice payment method display */
@@ -31,6 +32,7 @@ export const PAYMENT_METHOD_BADGE_LABELS: Record<string, string> = {
   cash: 'Cash',
   other: 'Manual',
   international_wire: 'International Wire',
+  waiver: 'Waiver',
 }
 
 export const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
@@ -40,6 +42,7 @@ export const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
   international_wire: 'bg-[#EBF0FD] text-[#4A7BE8]',
   cash: 'bg-[#F0F0F8] text-[#5A5A7A]',
   other: 'bg-[#F0F0F8] text-[#5A5A7A]',
+  waiver: 'bg-[#F0F0F8] text-[#9898B8]',
 }
 
 const PAYMENT_METHOD_BADGE_FALLBACK_CLASS = 'bg-[#F0F0F8] text-[#5A5A7A]'

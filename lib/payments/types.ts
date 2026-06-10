@@ -44,6 +44,7 @@ export type InstallmentRow = {
   payment_method: string
   transaction_ref: string | null
   payment_note: string | null
+  waiver_reason: string | null
   paid_at: string
   admins: { full_name: string } | null
 }

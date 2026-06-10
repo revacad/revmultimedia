@@ -7,6 +7,7 @@ import ReportsPageClient, {
 import type { CourseCategory } from '@/lib/courses/types'
 import { requireFinanceAccess } from '@/lib/auth/requireAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchWaiverReport } from '@/lib/payments/fetch-waiver-report'
 
 export const metadata = {
   title: 'Reports - Admin',
@@ -32,6 +33,8 @@ export default async function AdminReportsPage() {
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
+  const sixMonthsAgoIso = sixMonthsAgo.toISOString()
+
   const [
     { data: revenueByMonth },
     { data: enrollmentsByCourse },
@@ -42,6 +45,7 @@ export default async function AdminReportsPage() {
     { count: totalApplications },
     { count: acceptedApplications },
     { count: enrolledCount },
+    waiverReport,
   ] = await Promise.all([
     supabase
       .from('invoices')
@@ -57,6 +61,7 @@ export default async function AdminReportsPage() {
     supabase.from('applications').select('*', { count: 'exact', head: true }),
     supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'accepted'),
     supabase.from('students').select('*', { count: 'exact', head: true }),
+    fetchWaiverReport(supabase, { from: sixMonthsAgoIso }),
   ])
 
   const totalRevenue =
@@ -185,6 +190,8 @@ export default async function AdminReportsPage() {
       maxRevenue={maxRevenue}
       enrollmentRows={enrollmentRows}
       countryRows={countryRows}
+      waiverRows={waiverReport.rows}
+      waiverTotalGhs={waiverReport.totalGhs}
     />
   )
 }

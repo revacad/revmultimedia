@@ -9,6 +9,7 @@ import {
   sendPaymentConfirmed,
   sendAppFeeInvoice,
   sendInvoiceReadyEmail,
+  sendWaiverApplied,
 } from '@/lib/notifications/email'
 import { sendPaymentReceiptNotification } from '@/lib/notifications/payment-receipt'
 import { formatInvoiceType } from '@/lib/payments/format-invoice-type'
@@ -27,7 +28,7 @@ import { formatAmountGhs, sumInstallments } from '@/lib/payments/format'
 import {
   confirmPaymentSchema,
   resendInvoiceEmailSchema,
-  waiveInvoiceSchema,
+  applyInvoiceWaiverSchema,
 } from '@/lib/validations/payment'
 import { safeActionError } from '@/lib/errors/action'
 
@@ -113,7 +114,7 @@ export async function confirmPayment(data: {
     const amountGhs = roundGhs(payload.amountGhs)
     if (amountGhs > remaining) {
       return {
-        error: `Amount exceeds remaining balance of ${formatAmountGhs(remaining)}.`,
+        error: `Payment of GHS ${formatAmountGhs(amountGhs)} exceeds remaining balance of GHS ${formatAmountGhs(remaining)}. Payment was not recorded.`,
       }
     }
 
@@ -322,35 +323,196 @@ export async function confirmPayment(data: {
   }
 }
 
-export async function waiveInvoice(
-  invoiceId: string,
-): Promise<{ success: true } | { error: string }> {
+export async function applyInvoiceWaiver(data: {
+  invoiceId: string
+  waiverAmount: number
+  reason: string
+  note: string
+}): Promise<{ success: true } | { error: string }> {
   try {
-    const parsed = waiveInvoiceSchema.safeParse({ invoiceId })
+    const parsed = applyInvoiceWaiverSchema.safeParse(data)
     if (!parsed.success) {
       return {
-        error: parsed.error.issues[0]?.message ?? 'Invalid invoice',
+        error: parsed.error.issues[0]?.message ?? 'Invalid waiver details',
       }
     }
 
-    await requireFinanceAccess()
+    const session = await requireFinanceAccess()
     const supabase = createAdminClient()
+    const payload = parsed.data
 
-    const { error } = await supabase
-      .from('invoices')
-      .update({ status: 'waived', updated_at: new Date().toISOString() })
-      .eq('id', parsed.data.invoiceId)
+    const { data: admin } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('auth_user_id', session.userId)
+      .single()
 
-    if (error) {
-      return safeActionError('payment.waive', error, 'Failed to waive invoice.')
+    if (!admin) {
+      return { error: 'Not an admin' }
     }
 
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select(
+        '*, payment_types(label), applications(id, real_email, full_name, phone, country, courses(title))',
+      )
+      .eq('id', payload.invoiceId)
+      .single()
+
+    if (!invoice) {
+      return { error: 'Invoice not found' }
+    }
+
+    const { data: existingInstallments } = await supabase
+      .from('installments')
+      .select('amount_ghs')
+      .eq('invoice_id', payload.invoiceId)
+
+    const manualGuard = assertCanRecordManualPayment(
+      {
+        status: invoice.status,
+        total_ghs: Number(invoice.total_ghs),
+        payment_method: invoice.payment_method as string | null,
+        paystack_reference: (invoice.paystack_reference as string | null) ?? null,
+      },
+      existingInstallments ?? [],
+    )
+
+    if (!manualGuard.ok) {
+      return { error: manualGuard.error }
+    }
+
+    const remainingBefore = manualGuard.remaining
+    const waiverAmount = roundGhs(payload.waiverAmount)
+
+    if (waiverAmount > remainingBefore) {
+      return {
+        error: `Waiver of GHS ${formatAmountGhs(waiverAmount)} exceeds remaining balance of GHS ${formatAmountGhs(remainingBefore)}.`,
+      }
+    }
+
+    const paidAtIso = new Date().toISOString()
+
+    const { data: installment, error: installmentError } = await supabase
+      .from('installments')
+      .insert({
+        invoice_id: payload.invoiceId,
+        amount_ghs: waiverAmount,
+        payment_method: 'waiver',
+        payment_note: payload.note,
+        waiver_reason: payload.reason,
+        confirmed_by_admin_id: admin.id,
+        paid_at: paidAtIso,
+      })
+      .select('id')
+      .single()
+
+    if (installmentError || !installment) {
+      return safeActionError('payment.waiver', installmentError, 'Failed to apply waiver.')
+    }
+
+    const totalPaid = roundGhs(sumInstallments(existingInstallments ?? []) + waiverAmount)
+    const remainingAfter = roundGhs(Number(invoice.total_ghs) - totalPaid)
+    const isFullyPaid = totalPaid >= roundGhs(Number(invoice.total_ghs))
+
+    const application = invoice.applications as {
+      real_email: string
+      full_name: string
+      courses: { title: string } | { title: string }[] | null
+    } | null
+
+    const courseTitle = application
+      ? Array.isArray(application.courses)
+        ? application.courses[0]?.title
+        : application.courses?.title
+      : undefined
+
+    if (isFullyPaid) {
+      if (invoice.type === 'tuition') {
+        const { data: result, error } = await supabase.rpc('confirm_full_payment', {
+          p_invoice_id: payload.invoiceId,
+          p_admin_id: admin.id,
+          p_payment_method: 'waiver',
+          p_transaction_note: payload.note,
+        })
+
+        if (error) {
+          await supabase.from('installments').delete().eq('id', installment.id)
+          return safeActionError('payment.waiver', error, 'Failed to confirm full waiver.')
+        }
+
+        const rpc = result as { error?: string } | null
+        if (rpc?.error) {
+          await supabase.from('installments').delete().eq('id', installment.id)
+          return { error: rpc.error }
+        }
+      } else if (invoice.type === 'application_fee') {
+        const { error: settleError } = await markApplicationFeePaid(
+          supabase,
+          payload.invoiceId,
+          invoice.application_id as string,
+          'waiver',
+          { transactionNote: payload.note },
+        )
+        if (settleError) {
+          await supabase.from('installments').delete().eq('id', installment.id)
+          return { error: settleError }
+        }
+      } else {
+        const { error: settleError } = await markNonTuitionInvoicePaid(
+          supabase,
+          payload.invoiceId,
+          'waiver',
+          { transactionNote: payload.note },
+        )
+        if (settleError) {
+          await supabase.from('installments').delete().eq('id', installment.id)
+          return { error: settleError }
+        }
+      }
+    } else {
+      await supabase
+        .from('invoices')
+        .update({ status: 'partially_paid', updated_at: new Date().toISOString() })
+        .eq('id', payload.invoiceId)
+    }
+
+    await logAuditEvent({
+      actorId: admin.id,
+      actorType: 'admin',
+      action: 'invoice_waiver_applied',
+      targetType: 'invoice',
+      targetId: payload.invoiceId,
+      metadata: {
+        waiverAmount,
+        reason: payload.reason,
+        note: payload.note,
+        invoiceRef: invoice.reference,
+        studentName: application?.full_name ?? '',
+        remainingBefore,
+        remainingAfter: Math.max(0, remainingAfter),
+      },
+    })
+
+    runAfterResponse(async () => {
+      if (application?.real_email) {
+        await sendWaiverApplied(application.real_email, {
+          name: application.full_name,
+          invoiceRef: invoice.reference as string,
+          courseName: courseTitle ?? '',
+          amountGhs: waiverAmount,
+          newRemainingGhs: Math.max(0, remainingAfter),
+        })
+      }
+    })
+
     invalidateAdminStats()
-    revalidatePath(`/admin/payments/${parsed.data.invoiceId}`)
+    revalidatePath(`/admin/payments/${payload.invoiceId}`)
     revalidatePath('/admin/payments')
+    revalidatePath('/admin/reports')
     return { success: true }
   } catch (e) {
-    return safeActionError('payment.waive', e, 'Failed to waive invoice.')
+    return safeActionError('payment.waiver', e, 'Failed to apply waiver.')
   }
 }
 

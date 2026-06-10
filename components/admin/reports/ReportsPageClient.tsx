@@ -3,8 +3,10 @@
 import { useTransition } from 'react'
 import Button from '@/components/ui/Button'
 import CsvExportButton from '@/components/admin/reports/CsvExportButton'
+import WaiversReportSection from '@/components/admin/reports/WaiversReportSection'
 import { formatCategory } from '@/lib/courses/labels'
 import type { CourseCategory } from '@/lib/courses/types'
+import type { WaiverReportRow } from '@/lib/payments/fetch-waiver-report'
 import { formatGHS } from '@/lib/utils'
 import {
   exportApplicationsCSV,
@@ -53,6 +55,8 @@ interface ReportsPageClientProps {
   maxRevenue: number
   enrollmentRows: EnrollmentCourseRow[]
   countryRows: CountryRow[]
+  waiverRows: WaiverReportRow[]
+  waiverTotalGhs: number
 }
 
 export default function ReportsPageClient({
@@ -66,6 +70,8 @@ export default function ReportsPageClient({
   maxRevenue,
   enrollmentRows,
   countryRows,
+  waiverRows,
+  waiverTotalGhs,
 }: ReportsPageClientProps) {
   const [pending, startTransition] = useTransition()
 
@@ -233,6 +239,8 @@ export default function ReportsPageClient({
           ))}
         </ul>
       </section>
+
+      <WaiversReportSection rows={waiverRows} totalGhs={waiverTotalGhs} />
 
       <section className="rounded-xl bg-white p-6 shadow-card">
         <h2 className="mb-4 font-body text-base font-semibold text-[#1A1A2E]">Export Data</h2>
