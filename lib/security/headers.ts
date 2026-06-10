@@ -22,34 +22,24 @@ function r2ConnectSources(): string[] {
   return [`https://*.${accountId}.r2.cloudflarestorage.com`]
 }
 
-function r2PublicOrigin(): string | null {
-  const r2PublicUrl =
-    process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim() ||
-    process.env.CLOUDFLARE_R2_PUBLIC_URL?.trim() ||
-    process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL?.trim() ||
+function buildImgSrcDirective(isDev: boolean): string {
+  const r2Public = (process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL ?? '').trim()
+  const r2Account = (
+    process.env.CLOUDFLARE_ACCOUNT_ID ??
+    process.env.CLOUDFLARE_R2_ACCOUNT_ID ??
     ''
-  if (!r2PublicUrl) return null
-  try {
-    return new URL(r2PublicUrl).origin
-  } catch {
-    return null
-  }
-}
+  ).trim()
+  const r2Presigned = r2Account ? `https://${r2Account}.r2.cloudflarestorage.com` : ''
 
-/** R2 hosts used in img-src (public bucket origin and presigned download endpoint). */
-function r2ImgSources(): string[] {
-  const sources: string[] = []
-  const r2Origin = r2PublicOrigin()
-  if (r2Origin) sources.push(r2Origin)
+  const imgSrc = `img-src 'self' data: blob: ${r2Public} ${r2Presigned} https://us-assets.i.posthog.com`
+    .trim()
+    .replace(/\s+/g, ' ')
 
-  const accountId =
-    process.env.CLOUDFLARE_R2_ACCOUNT_ID?.trim() ||
-    process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
-  if (accountId) {
-    sources.push(`https://${accountId}.r2.cloudflarestorage.com`)
+  if (isDev) {
+    console.log('[csp] img-src directive:', imgSrc)
   }
 
-  return sources
+  return imgSrc
 }
 
 const PRODUCTION_APP_URLS = new Set([
@@ -113,13 +103,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     ...(allowVercelLive ? ['https://vercel.live', 'wss://vercel.live'] : []),
   ]
 
-  const imgSrc = [
-    "'self'",
-    'data:',
-    'blob:',
-    'https://us-assets.i.posthog.com',
-    ...r2ImgSources(),
-  ]
+  const imgSrcDirective = buildImgSrcDirective(isDev)
 
   const directives = [
     "default-src 'self'",
@@ -127,7 +111,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     `worker-src ${workerSrc.join(' ')}`,
     "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://cdn.fontshare.com https://fonts.googleapis.com https://paystack.com https://js.paystack.co",
     "font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com data:",
-    `img-src ${imgSrc.join(' ')}`,
+    imgSrcDirective,
     `connect-src ${connectSrc.join(' ')}`,
     "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com" +
       (allowVercelLive ? ' https://vercel.live' : ''),

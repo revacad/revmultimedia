@@ -40,13 +40,13 @@ type StudentEmbed = {
   country: string
   created_at: string
   profile_photo_r2_key: string | null
-  applications: { application_channel: string } | { application_channel: string }[] | null
 }
 
 type EnrollmentRow = {
   id: string
   status: string
   enrolled_at: string | null
+  application_id: string
   students: StudentEmbed | StudentEmbed[] | null
   courses: { title: string } | { title: string }[] | null
   intakes: { name: string } | { name: string }[] | null
@@ -60,9 +60,24 @@ type StudentGroup = {
   isLevelUp: boolean
 }
 
-function studentIsLevelUp(student: StudentEmbed): boolean {
-  const application = firstRelation(student.applications)
-  return application?.application_channel === 'level_up'
+async function fetchLevelUpApplicationIds(
+  supabase: SupabaseClient,
+  applicationIds: string[],
+): Promise<Set<string>> {
+  if (applicationIds.length === 0) return new Set()
+
+  const { data, error } = await supabase
+    .from('applications')
+    .select('id')
+    .in('id', applicationIds)
+    .eq('application_channel', 'level_up')
+
+  if (error) {
+    console.error('[fetchLevelUpApplicationIds]', error)
+    return new Set()
+  }
+
+  return new Set((data ?? []).map((row) => row.id as string))
 }
 
 export async function fetchEnrolledStudentsGrouped(
@@ -80,6 +95,7 @@ export async function fetchEnrolledStudentsGrouped(
       id,
       status,
       enrolled_at,
+      application_id,
       students!inner(
         id,
         student_id,
@@ -89,8 +105,7 @@ export async function fetchEnrolledStudentsGrouped(
         phone,
         country,
         created_at,
-        profile_photo_r2_key,
-        applications(application_channel)
+        profile_photo_r2_key
       ),
       courses(title),
       intakes(name)
@@ -108,15 +123,20 @@ export async function fetchEnrolledStudentsGrouped(
     }
   }
 
+  const rows = (enrollmentRows ?? []) as EnrollmentRow[]
+  const applicationIds = [...new Set(rows.map((row) => row.application_id))]
+  const levelUpApplicationIds = await fetchLevelUpApplicationIds(supabase, applicationIds)
+
   const groups = new Map<string, StudentGroup>()
 
-  for (const row of (enrollmentRows ?? []) as EnrollmentRow[]) {
+  for (const row of rows) {
     const student = firstRelation(row.students)
     if (!student) continue
 
     const course = firstRelation(row.courses)
     const intake = firstRelation(row.intakes)
     const authUserId = student.auth_user_id
+    const isLevelUpEnrollment = levelUpApplicationIds.has(row.application_id)
 
     const enrollment = {
       id: row.id,
@@ -135,13 +155,13 @@ export async function fetchEnrolledStudentsGrouped(
         enrollments: [enrollment],
         latestEnrolledAt: row.enrolled_at,
         latestEnrolledMs: enrolledMs,
-        isLevelUp: studentIsLevelUp(student),
+        isLevelUp: isLevelUpEnrollment,
       })
       continue
     }
 
     existing.enrollments.push(enrollment)
-    if (studentIsLevelUp(student)) {
+    if (isLevelUpEnrollment) {
       existing.isLevelUp = true
     }
     if (enrolledMs > existing.latestEnrolledMs) {
