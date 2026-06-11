@@ -1,3 +1,5 @@
+-- Reuse returning student row via applications.returning_student_id before application_id lookup.
+
 CREATE OR REPLACE FUNCTION public.confirm_full_payment(
   p_invoice_id uuid,
   p_admin_id uuid,
