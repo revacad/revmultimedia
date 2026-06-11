@@ -3,6 +3,7 @@ import { sendMessage } from '@/lib/notifications/sms'
 import { withRetry } from '@/lib/retry'
 import type { CommunicationChannel } from '@/lib/messaging/types'
 
+import { resolveResendFrom } from '@/lib/notifications/resend-from'
 import { escapeHtml } from '@/lib/security/escape-html'
 import { logServerError } from '@/lib/errors/log'
 
@@ -35,7 +36,7 @@ export async function sendCampaignMessage(params: {
       const { error } = await withRetry(
         () =>
           resend.emails.send({
-            from: fromOverride?.trim() || process.env.RESEND_FROM_EMAIL!,
+            from: resolveResendFrom(fromOverride),
             to: recipientAddress,
             subject: subject || 'Message from Rev Multimedia',
             html: `<p>Dear ${escapeHtml(recipientName)},</p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,

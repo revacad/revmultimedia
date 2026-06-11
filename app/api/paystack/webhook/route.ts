@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
 import { completePaystackCharge } from '@/lib/payments/complete-paystack-charge'
+import { checkRateLimit, paystackWebhookLimit } from '@/lib/redis/ratelimit'
+import { isRedisConfigured } from '@/lib/redis/client'
+import { getRequestIp } from '@/lib/security/rate-limit-request'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 type PaystackWebhookEvent = {
@@ -33,6 +36,18 @@ function verifyPaystackSignature(rawBody: string, signature: string): boolean {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!isRedisConfigured) {
+    console.warn(
+      '[paystack:webhook] Redis not configured; webhook rate limiting is disabled',
+    )
+  } else {
+    const ip = getRequestIp(request)
+    const { allowed } = await checkRateLimit(paystackWebhookLimit, ip)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+  }
+
   const rawBody = await request.text()
   const signature = request.headers.get('x-paystack-signature') ?? ''
 
@@ -61,7 +76,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!result.ok && result.reason !== 'invoice_not_found') {
     console.warn('[paystack:webhook] complete failed', {
-      reference: event.data.reference,
+      reference: `${event.data.reference.slice(0, 8)}...`,
       reason: result.reason,
     })
   }

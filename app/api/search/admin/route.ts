@@ -7,6 +7,8 @@ import {
   toAdminSearchCourseResult,
   toAdminSearchStudentResult,
 } from '@/lib/api/responses'
+import type { AdminRole } from '@/lib/auth/admin'
+import { isStaffAdmin } from '@/lib/auth/permissions'
 import { searchQuerySchema } from '@/lib/validations/api'
 
 export async function GET(request: NextRequest) {
@@ -24,13 +26,17 @@ export async function GET(request: NextRequest) {
   const adminClient = createAdminClient()
   const { data: admin } = await adminClient
     .from('admins')
-    .select('id')
+    .select('id, role')
     .eq('auth_user_id', user.id)
     .eq('is_active', true)
     .maybeSingle()
 
   if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (!isStaffAdmin(admin.role as AdminRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const rawQ = request.nextUrl.searchParams.get('q') ?? ''

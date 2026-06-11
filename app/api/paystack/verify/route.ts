@@ -43,7 +43,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!invoiceRef) {
       console.error('[paystack:verify] could not resolve invoice', {
-        reference: body.reference,
+        reference: `${body.reference.slice(0, 8)}...`,
         metadata: redactSensitive(verified.metadata),
       })
       return NextResponse.json(

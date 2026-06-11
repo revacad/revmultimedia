@@ -5,7 +5,8 @@
       "PowerShell(New-Item *)",
       "Bash(pnpm build *)",
       "Bash(pnpm dev *)",
-      "Bash(curl -s http://localhost:3000)"
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

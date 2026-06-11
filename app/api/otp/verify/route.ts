@@ -37,6 +37,9 @@ async function handlePost(request: Request): Promise<NextResponse> {
 
   const isProduction = process.env.NODE_ENV === 'production'
   if (!isProduction && process.env.DISABLE_OTP_VERIFICATION === 'true') {
+    console.warn(
+      '[SECURITY WARNING] OTP verification is DISABLED via DISABLE_OTP_VERIFICATION=true. Never enable this in production.',
+    )
     return NextResponse.json({ valid: true })
   }
 

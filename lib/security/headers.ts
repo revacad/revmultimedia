@@ -117,13 +117,13 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     "font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com data:",
     imgSrcDirective,
     `connect-src ${connectSrc.join(' ')}`,
-    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com" +
+    "frame-src 'self' https://js.paystack.co https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://checkout.paystack.com https://standard.paystack.co https://paystack.com" +
       (allowVercelLive ? ' https://vercel.live' : ''),
     "media-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     ...(isDev ? [] : ['upgrade-insecure-requests']),
   ]
 

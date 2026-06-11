@@ -107,6 +107,13 @@ export const formBurstLimit = new Ratelimit({
   prefix: "ratelimit:form-burst",
 });
 
+/** Paystack webhook bursts (per source IP). */
+export const paystackWebhookLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(100, '1 m'),
+  prefix: 'ratelimit:webhook:paystack',
+})
+
 export async function checkRateLimit(
   limiter: Ratelimit,
   identifier: string,

@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaffAdmin } from '@/lib/auth/admin'
 import { sendMessage } from '@/lib/notifications/sms'
 import { sendCampaignMessage } from '@/lib/messaging/send'
+import { getNotifyFromEmail } from '@/lib/notifications/resend-from'
 import { resolveCampaignRecipients } from '@/lib/messaging/recipients'
 import { z } from 'zod'
 import type {
@@ -93,7 +94,7 @@ export async function sendDirectMessage(data: {
       message: payload.message,
       recipientName: student.full_name,
       recipientAddress: recipient,
-      fromOverride: process.env.RESEND_NOTIFY_EMAIL,
+      fromOverride: getNotifyFromEmail(),
     })
 
     const logStatus = sendResult.sent
