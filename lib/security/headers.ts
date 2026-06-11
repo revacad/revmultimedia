@@ -24,12 +24,16 @@ function r2ConnectSources(): string[] {
 
 function buildImgSrcDirective(isDev: boolean): string {
   const r2Public = (process.env.CLOUDFLARE_R2_PUBLIC_BUCKET_URL ?? '').trim()
+  const r2BucketName = (process.env.CLOUDFLARE_R2_BUCKET_NAME ?? '').trim()
   const r2Account = (
     process.env.CLOUDFLARE_ACCOUNT_ID ??
     process.env.CLOUDFLARE_R2_ACCOUNT_ID ??
     ''
   ).trim()
-  const r2Presigned = r2Account ? `https://${r2Account}.r2.cloudflarestorage.com` : ''
+  const r2Presigned =
+    r2BucketName && r2Account
+      ? `https://${r2BucketName}.${r2Account}.r2.cloudflarestorage.com`
+      : ''
 
   const imgSrc = `img-src 'self' data: blob: ${r2Public} ${r2Presigned} https://us-assets.i.posthog.com`
     .trim()
