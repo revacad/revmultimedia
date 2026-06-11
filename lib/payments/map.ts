@@ -12,6 +12,29 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
+function resolveApplicationStudent(
+  applicationsRaw: Record<string, unknown>,
+): { full_name: string; student_id: string } | null {
+  const directStudent = firstRelation(
+    applicationsRaw.students as
+      | { full_name: string; student_id: string }
+      | { full_name: string; student_id: string }[]
+      | null,
+  )
+  const returningStudent = firstRelation(
+    applicationsRaw.returning_student as
+      | { full_name: string; student_id: string }
+      | { full_name: string; student_id: string }[]
+      | null,
+  )
+
+  if (returningStudent?.student_id) {
+    return returningStudent
+  }
+
+  return directStudent
+}
+
 export function mapPaymentListRow(row: Record<string, unknown>): PaymentListRow {
   const applicationsRaw = firstRelation(
     row.applications as Record<string, unknown> | Record<string, unknown>[] | null,
@@ -30,12 +53,7 @@ export function mapPaymentListRow(row: Record<string, unknown>): PaymentListRow 
         intakes: firstRelation(
           applicationsRaw.intakes as { name: string } | { name: string }[] | null,
         ),
-        students: firstRelation(
-          applicationsRaw.students as
-            | { full_name: string; student_id: string }
-            | { full_name: string; student_id: string }[]
-            | null,
-        ),
+        students: resolveApplicationStudent(applicationsRaw),
       }
     : null
   const admins = firstRelation(
@@ -90,12 +108,7 @@ export function mapInvoiceDetail(row: Record<string, unknown>): InvoiceDetail {
             | { name: string; start_date: string }[]
             | null,
         ),
-        students: firstRelation(
-          applicationsRaw.students as
-            | { full_name: string; student_id: string }
-            | { full_name: string; student_id: string }[]
-            | null,
-        ),
+        students: resolveApplicationStudent(applicationsRaw),
       }
     : null
 

@@ -35,7 +35,8 @@ export default async function AdminPaymentsPage({
         id, reference, full_name, real_email, phone, country,
         courses(title),
         intakes(name),
-        students!students_application_id_fkey(full_name, student_id)
+        students!students_application_id_fkey(full_name, student_id),
+        returning_student:students!applications_returning_student_id_fkey(full_name, student_id)
       ),
       installments(amount_ghs, paid_at)
     `,

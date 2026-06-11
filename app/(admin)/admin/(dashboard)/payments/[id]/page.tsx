@@ -25,7 +25,8 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
         id, reference, full_name, real_email, phone,
         courses(title),
         intakes(name, start_date),
-        students!students_application_id_fkey(full_name, student_id)
+        students!students_application_id_fkey(full_name, student_id),
+        returning_student:students!applications_returning_student_id_fkey(full_name, student_id)
       ),
       installments(*, admins(full_name)),
       promo_codes(code, discount_type, discount_value),
