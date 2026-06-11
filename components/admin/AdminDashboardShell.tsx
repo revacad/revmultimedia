@@ -8,12 +8,14 @@ import type { AdminRole } from '@/lib/auth/admin'
 interface AdminDashboardShellProps {
   adminName: string
   adminRole: AdminRole
+  unreadApplicationsCount?: number
   children: ReactNode
 }
 
 export default function AdminDashboardShell({
   adminName,
   adminRole,
+  unreadApplicationsCount = 0,
   children,
 }: AdminDashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -36,6 +38,7 @@ export default function AdminDashboardShell({
       <AdminSidebar
         adminName={adminName}
         adminRole={adminRole}
+        unreadApplicationsCount={unreadApplicationsCount}
         mobileOpen={sidebarOpen}
         onClose={closeSidebar}
         onNavigate={closeSidebar}

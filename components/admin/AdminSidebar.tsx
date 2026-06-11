@@ -127,6 +127,7 @@ function NavIcon({ name }: { name: NavIconName }) {
 interface AdminSidebarProps {
   adminName: string
   adminRole: AdminRole
+  unreadApplicationsCount?: number
   mobileOpen?: boolean
   onClose?: () => void
   onNavigate?: () => void
@@ -135,6 +136,7 @@ interface AdminSidebarProps {
 export default function AdminSidebar({
   adminName,
   adminRole,
+  unreadApplicationsCount = 0,
   mobileOpen = false,
   onClose,
   onNavigate,
@@ -202,7 +204,15 @@ export default function AdminSidebar({
                       )}
                     >
                       <NavIcon name={link.icon} />
-                      {link.label}
+                      <span className="min-w-0 flex-1">{link.label}</span>
+                      {link.href === '/admin/applications' && unreadApplicationsCount > 0 ? (
+                        <span
+                          className="ml-auto min-w-[20px] rounded-full bg-primary px-2 py-0.5 text-center text-xs font-semibold text-white"
+                          aria-label={`${unreadApplicationsCount > 99 ? '99 plus' : unreadApplicationsCount} unread applications`}
+                        >
+                          {unreadApplicationsCount > 99 ? '99+' : unreadApplicationsCount}
+                        </span>
+                      ) : null}
                     </Link>
                   )
                 })}

@@ -1,4 +1,5 @@
 import ApplicationsPageClient from '@/components/admin/applications/ApplicationsPageClient'
+import { markApplicationsAsSeen } from '@/lib/admin/applications-last-seen'
 import { mapApplicationListRow } from '@/lib/applications/map'
 import { ADMIN_PAGE_SIZE, adminListRange, parseAdminPage } from '@/lib/admin/pagination'
 import { requireStaffAdmin } from '@/lib/auth/requireAdmin'
@@ -16,7 +17,8 @@ export default async function AdminApplicationsPage({
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
-  await requireStaffAdmin()
+  const admin = await requireStaffAdmin()
+  await markApplicationsAsSeen(admin.id)
   const { page: pageParam } = await searchParams
   const page = parseAdminPage(pageParam)
   const { from, to } = adminListRange(page)

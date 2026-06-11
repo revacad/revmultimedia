@@ -3,7 +3,9 @@ import AdminLayoutShell from '@/components/admin/AdminLayoutShell'
 import { PostHogIdentify } from '@/components/auth/PostHogIdentify'
 import { requireAdminPage } from '@/lib/auth/guard'
 import { enforceAdminRouteAccess } from '@/lib/auth/requireAdmin'
+import { getUnreadApplicationsCount } from '@/lib/admin/applications-last-seen'
 import { getAdminNavItems } from '@/lib/admin/nav'
+import { isStaffAdmin } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
 import { getAdminSession } from '@/lib/auth/admin'
@@ -35,6 +37,9 @@ export default async function AdminDashboardLayout({
 
   const adminRole = admin?.role ?? adminRecord.role
   const navItems = getAdminNavItems(adminRole)
+  const unreadApplicationsCount = isStaffAdmin(adminRole)
+    ? await getUnreadApplicationsCount(adminRecord.id)
+    : 0
 
   return (
     <AdminLayoutShell navItems={navItems}>
@@ -46,7 +51,11 @@ export default async function AdminDashboardLayout({
           role={adminRole as AdminRole}
         />
       ) : null}
-      <AdminDashboardShell adminName={admin?.full_name ?? 'Admin'} adminRole={adminRole}>
+      <AdminDashboardShell
+        adminName={admin?.full_name ?? 'Admin'}
+        adminRole={adminRole}
+        unreadApplicationsCount={unreadApplicationsCount}
+      >
         {children}
       </AdminDashboardShell>
     </AdminLayoutShell>
