@@ -11,7 +11,7 @@ export default function CtaSection({ applicationFeeGhs }: CtaSectionProps) {
   const feeLabel = formatGHS(applicationFeeGhs)
   return (
     <section
-      className="reveal-section"
+      className="reveal-section cta-section"
       style={{
         background: 'linear-gradient(135deg, #1A1A2E 0%, #2F2F52 100%)',
         padding: '80px 48px',
@@ -19,6 +19,13 @@ export default function CtaSection({ applicationFeeGhs }: CtaSectionProps) {
         overflow: 'hidden',
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .cta-section { padding: 60px 24px !important; }
+          .cta-heading { font-size: 32px !important; }
+          .cta-buttons a { width: 100%; text-align: center; box-sizing: border-box; }
+        }
+      `}</style>
       <div
         style={{
           position: 'absolute',
@@ -39,6 +46,7 @@ export default function CtaSection({ applicationFeeGhs }: CtaSectionProps) {
         }}
       >
         <h2
+          className="cta-heading"
           style={{
             fontFamily: 'Clash Display, sans-serif',
             fontSize: '48px',
@@ -105,6 +113,7 @@ export default function CtaSection({ applicationFeeGhs }: CtaSectionProps) {
         </div>
 
         <div
+          className="cta-buttons"
           style={{
             display: 'flex',
             justifyContent: 'center',
