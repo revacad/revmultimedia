@@ -49,7 +49,15 @@ export default function SettingsPageClient({ values }: SettingsPageClientProps) 
     setErrorTab((m) => ({ ...m, [tabId]: '' }))
     const updates: Record<string, string> = {}
     for (const key of keys) {
-      updates[key] = draft[key] ?? ''
+      const next = draft[key] ?? ''
+      if (next !== (values[key] ?? '')) {
+        updates[key] = next
+      }
+    }
+    if (Object.keys(updates).length === 0) {
+      setPendingTab(null)
+      setSavedTab(tabId)
+      return
     }
     startTransition(async () => {
       const result = await updateSettings(updates)
