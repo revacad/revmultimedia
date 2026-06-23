@@ -208,7 +208,7 @@ export default function StatsSection({ statsRef }: StatsSectionProps) {
               </div>
             ))}
           </div>
-          <Link href="/apply" className={cn(buttonVariants({ variant: 'primary', size: 'md' }), 'mt-6 inline-flex')}>
+          <Link href="/apply/level-up" className={cn(buttonVariants({ variant: 'primary', size: 'md' }), 'mt-6 inline-flex')}>
             Apply Now
           </Link>
         </div>

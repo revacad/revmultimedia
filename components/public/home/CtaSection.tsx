@@ -122,7 +122,7 @@ export default function CtaSection({ applicationFeeGhs }: CtaSectionProps) {
           }}
         >
           <Link
-            href="/apply"
+            href="/apply/level-up"
             style={{
               backgroundColor: 'white',
               color: '#1A1A2E',

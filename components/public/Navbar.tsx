@@ -77,7 +77,7 @@ export default function Navbar() {
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             <Link
-              href="/apply"
+              href="/apply/level-up"
               className={cn(
                 buttonVariants({ variant: 'primary', size: 'sm' }),
                 'inline-flex px-4 py-2 text-[13px] md:hidden',
@@ -86,7 +86,7 @@ export default function Navbar() {
               Apply Now
             </Link>
             <Link
-              href="/apply"
+              href="/apply/level-up"
               className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'hidden md:inline-flex')}
             >
               Apply Now
@@ -129,7 +129,7 @@ export default function Navbar() {
             </Link>
           ))}
           <Link
-            href="/apply"
+            href="/apply/level-up"
             className={buttonVariants({ variant: 'primary', size: 'md' })}
             onClick={() => setMobileMenuOpen(false)}
           >

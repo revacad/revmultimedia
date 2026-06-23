@@ -24,7 +24,7 @@ export default function PortalDashboardEmptyApplications() {
       <p className="mt-3 max-w-sm font-body text-sm leading-relaxed text-[#5A5A7A]">
         You have not started an application. Apply for a course to get started.
       </p>
-      <Link href="/apply" className="mt-8">
+      <Link href="/apply/level-up" className="mt-8">
         <Button variant="primary" size="lg">
           Apply now
         </Button>

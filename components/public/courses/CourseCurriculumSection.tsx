@@ -89,7 +89,7 @@ export function CourseCurriculumSection({
             </>
           )}
           <Link
-            href={`/apply?course=${courseSlug}`}
+            href={`/apply/level-up?course=${courseSlug}`}
             style={{
               display: 'block',
               marginTop: '20px',

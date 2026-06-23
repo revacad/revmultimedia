@@ -106,7 +106,7 @@ export function AboutOrbitalAvatars() {
         }}
       />
 
-      <a href="/apply" style={{ textDecoration: 'none' }}>
+      <a href="/apply/level-up" style={{ textDecoration: 'none' }}>
         <div
           style={{
             position: 'absolute',
